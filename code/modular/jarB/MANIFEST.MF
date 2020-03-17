@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Created-By: 11.0.4 (Ubuntu)
+Main-Class: com.java.jarb.JarBApp
+Class-Path: jarA.jar
