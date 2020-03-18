@@ -9341,61 +9341,6 @@ Suppressed: java.lang.reflect.InvocationTargetException
 {MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
 ```
 
-`136.` `Proxy` and `InvocationHandler` are used to create mock objects on the fly or to implement proxy pattern in programming.
-```java
-import java.util.*;
-import java.lang.reflect.*;
-
-public class App {
-    public static void main(String[] args) {
-        ProxyHandler handler = new ProxyHandler();
-        handler.addReturnValue("getName", "John");
-        handler.addReturnValue("getAge", 30);
-        Person p1 = (Person) Proxy.newProxyInstance(Person.class.getClassLoader(), new Class<?>[] {Person.class}, handler);
-        print(p1);
-
-        //Since `InvocationHandler` is functional interface, we can rewrite code to use lambda as third parameter.
-        Person p2 = (Person) Proxy.newProxyInstance(Person.class.getClassLoader(), new Class<?>[] {Person.class}, (proxy, method, methodArgs) -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("getName", "Jack");
-            map.put("getAge", 25);
-            String methodName = method.getName();
-            if (map.containsKey(methodName)) {
-                return map.get(methodName);
-            } else {
-                throw new RuntimeException("No value for method: " + methodName);
-            }
-        });
-        print(p2);
-    }
-    private static void print(Person p){
-        System.out.println("Person[name=" + p.getName() + ", age=" + p.getAge()+"]");
-    }
-}
-interface Person {
-    String getName();
-    int getAge();
-}
-class ProxyHandler implements InvocationHandler {
-    private Map<String, Object> map = new HashMap<>();
-    public void addReturnValue(String methodName, Object returnValue){
-        map.put(methodName, returnValue);
-    }
-    @Override
-    public Object invoke(Object object, Method method, Object[] args) {
-        String methodName = method.getName();
-        if(map.containsKey(methodName)){
-            return map.get(methodName);
-        } else {
-            throw new RuntimeException("No value for method: " + methodName);
-        }
-    }
-}
-```
-```
-Person[name=John, age=30]
-Person[name=Jack, age=25]
-```
 
 `137.` Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
 ```java
@@ -10908,6 +10853,7 @@ public class Outer{
 
 ###### JMX - java management extension
 Allows us to manage java without reloading app. So you can call method to class from `jconsole`.
+interface should be public, so we put it into separate file `PrinterMBean.java`
 ```java
 package com.java.test;
 
@@ -10944,3 +10890,63 @@ class Printer implements PrinterMBean {
 ```
 
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
+
+
+###### Proxy and InvocationHandler
+They both are used to create mock objects on the fly or to implement proxy pattern in programming.
+Proxy can work only with interfaces. If you want to work with concrete classes 
+you should use [cglib](https://github.com/cglib/cglib).
+```java
+import java.util.*;
+import java.lang.reflect.*;
+
+public class App {
+    public static void main(String[] args) {
+        ProxyHandler handler = new ProxyHandler();
+        handler.addReturnValue("getName", "John");
+        handler.addReturnValue("getAge", 30);
+        Person p1 = (Person) Proxy.newProxyInstance(Person.class.getClassLoader(), new Class<?>[] {Person.class}, handler);
+        print(p1);
+
+        //Since `InvocationHandler` is functional interface, we can rewrite code to use lambda as third parameter.
+        Person p2 = (Person) Proxy.newProxyInstance(Person.class.getClassLoader(), new Class<?>[] {Person.class}, (proxy, method, methodArgs) -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("getName", "Jack");
+            map.put("getAge", 25);
+            String methodName = method.getName();
+            if (map.containsKey(methodName)) {
+                return map.get(methodName);
+            } else {
+                throw new RuntimeException("No value for method: " + methodName);
+            }
+        });
+        print(p2);
+    }
+    private static void print(Person p){
+        System.out.println("Person[name=" + p.getName() + ", age=" + p.getAge()+"]");
+    }
+}
+interface Person {
+    String getName();
+    int getAge();
+}
+class ProxyHandler implements InvocationHandler {
+    private Map<String, Object> map = new HashMap<>();
+    public void addReturnValue(String methodName, Object returnValue){
+        map.put(methodName, returnValue);
+    }
+    @Override
+    public Object invoke(Object object, Method method, Object[] args) {
+        String methodName = method.getName();
+        if(map.containsKey(methodName)){
+            return map.get(methodName);
+        } else {
+            throw new RuntimeException("No value for method: " + methodName);
+        }
+    }
+}
+```
+```
+Person[name=John, age=30]
+Person[name=Jack, age=25]
+```
