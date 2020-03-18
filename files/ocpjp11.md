@@ -1,9 +1,18 @@
 # Java Tips
 
-//TODO: write custom MinMax collector
-//TODO: java serialization filters (writeResolve, readResolve)
-//TODO: divide document into 12 sections
+
+### TODO
+write custom MinMax collector
+java serialization filters (writeResolve, readResolve)
+divide document into 12 sections
 https://www.youtube.com/watch?v=XC8RmEn5gYA&list=PLlb7e2G7aSpQith1Z6xRpU8jFPgkh_Gvz&index=1
+
+### Content
+
+12. [Advanced](#java-advanced)
+
+
+### Tips
 
 `1.` Working with java
 
@@ -10899,4 +10908,45 @@ public class Outer{
     protected class B{} // protected default no-arg constructor
     private class C{} // private default no-arg constructor
 }
-``` 
+```
+
+#### Java Advanced
+
+`JMX` - java management extension - allows us to manage java without reloading app. So you can call method to class from 
+jconsole. For this we need to have following code
+```java
+package com.java.test;
+
+public interface PrinterMBean{
+    void print();
+}
+```
+
+```java
+package com.java.test;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
+
+public class App{
+    public static void main(String[] args) throws Exception {
+        PrinterMBean my = new Printer();
+        ObjectName objectName = new ObjectName("com.java.test:type=Printer");
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        server.registerMBean(my, objectName);
+        Thread.sleep(Integer.MAX_VALUE);
+    }
+}
+
+
+
+class Printer implements PrinterMBean {
+    @Override
+    public void print(){
+        System.out.println("Printer.print");
+    }
+}
+```
+
+Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
