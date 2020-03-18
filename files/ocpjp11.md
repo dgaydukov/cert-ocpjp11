@@ -3,7 +3,7 @@
 
 
 12. [Advanced](#java-advanced)
-    12.1 [JMX](#jmx)
+    12.1. [JMX](#jmx---java-management-extension)
 
 
 ### Tips
