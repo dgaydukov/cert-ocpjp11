@@ -1,7 +1,15 @@
 # OCPJP11
 
+### Description
+Here is my experience for taking 2 exams [815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815) and
+[816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816) to become OCPJP11
+
 ### Contents
-* [OcpJp11](https://gitlab.com/mycert/ocpjp/blob/master/files/ocpjp11.md)
+* [Java Tips](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/ocpjp11.md)
 
 
-https://stackoverflow.com/questions/6470651/how-to-create-a-memory-leak-in-java
+### TODO
+write custom MinMax collector
+java serialization filters (writeResolve, readResolve)
+divide document into 12 sections
+https://www.youtube.com/watch?v=XC8RmEn5gYA&list=PLlb7e2G7aSpQith1Z6xRpU8jFPgkh_Gvz&index=1

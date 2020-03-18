@@ -1,13 +1,6 @@
-# Java Tips
+# Content
 
 
-### TODO
-write custom MinMax collector
-java serialization filters (writeResolve, readResolve)
-divide document into 12 sections
-https://www.youtube.com/watch?v=XC8RmEn5gYA&list=PLlb7e2G7aSpQith1Z6xRpU8jFPgkh_Gvz&index=1
-
-### Content
 
 12. [Advanced](#java-advanced)
 
