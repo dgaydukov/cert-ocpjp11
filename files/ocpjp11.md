@@ -3,6 +3,7 @@
 
 
 12. [Advanced](#java-advanced)
+    12.1 [JMX](#jmx)
 
 
 ### Tips
@@ -10905,8 +10906,8 @@ public class Outer{
 
 #### Java Advanced
 
-`JMX` - java management extension - allows us to manage java without reloading app. So you can call method to class from 
-jconsole. For this we need to have following code
+###### JMX - java management extension
+Allows us to manage java without reloading app. So you can call method to class from `jconsole`.
 ```java
 package com.java.test;
 
