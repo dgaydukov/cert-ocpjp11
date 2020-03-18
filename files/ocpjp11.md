@@ -10853,18 +10853,20 @@ public class Outer{
 
 ###### JMX - java management extension
 Allows us to manage java without reloading app. So you can call method to class from `jconsole`.
-interface should be public, so we put it into separate file `PrinterMBean.java`
+interface should be public, so we put it into separate file `PrinterMBean.java`.
+If we want to have some attributes and change them dynamically, we have to add getter/setter to interface
 ```java
-package com.java.test;
-
 public interface PrinterMBean{
     void print();
+
+    int getValue();
+    void setValue(int value);
 }
 ```
 
-```java
-package com.java.test;
+The main logic:
 
+```java
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
@@ -10879,12 +10881,21 @@ public class App{
     }
 }
 
-
-
 class Printer implements PrinterMBean {
+    private int value;
     @Override
     public void print(){
-        System.out.println("Printer.print");
+        System.out.println("value => " + value);
+    }
+
+    @Override
+    public int getValue() {
+        return value;
+    }
+
+    @Override
+    public void setValue(int value) {
+        this.value = value;
     }
 }
 ```
