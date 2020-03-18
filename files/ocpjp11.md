@@ -1,9 +1,9 @@
 # Content
 
 
-
+11. Some data
 12. [Advanced](#java-advanced)
-    12.1. [JMX](#jmx---java-management-extension)
+* 12.1. [JMX](#jmx---java-management-extension)
 
 
 ### Tips
