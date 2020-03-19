@@ -3,29 +3,33 @@
 1. [Java Basics](#java-basics)
 2. [Classes, Enums, Interfaces](#classes-enums-interfaces)
 3. [Exceptions](#exceptions)
-4. [Generics](#generics)
-5. [Collections](#collections)
-6. [Functional Programming and Stream API](#functional-programming-and-stream-api)
-* 6.1 [Functional interfaces](#functional-interfaces)
-* 6.2 [Method reference](#method-reference)
-* 6.3 [Simple streams](#simple-streams)
-* 6.4 [Parallel streams](#parallel-streams)
-* 6.5 [Collectors](#collectors)
-7. [Concurrency](#concurrency)
-8. [JDBC](#jdbc)
-9. [Serialization](#serialization)
-10. [IO and NIO](#io-and-nio)
-11. [Advanced](#java-advanced)
-* 11.1 [JMX](#jmx---java-management-extension)
-* 11.2 [Proxy and InvocationHandler](#proxy-and-invocationhandler)
-* 11.3 [Annotations](#annotations)
-* 11.4 [Reflection API](#reflection-api)
+4. [Date and Time](#date-and-time)
+5. [Generics](#generics)
+6. [Collections](#collections)
+7. [Functional Programming and Stream API](#functional-programming-and-stream-api)
+* 7.1 [Functional interfaces](#functional-interfaces)
+* 7.2 [Method reference](#method-reference)
+* 7.3 [Simple streams](#simple-streams)
+* 7.4 [Parallel streams](#parallel-streams)
+* 7.5 [Collectors](#collectors)
+8. [Concurrency](#concurrency)
+9. [JDBC and SQl](#jdbc-and-sql)
+10. [Serialization](#serialization)
+11. [IO and NIO](#io-and-nio)
+12. [Desktop](#desktop)
+* 12.1 [Swing](#swing)
+13. [Advanced](#java-advanced)
+* 13.1 [JMX](#jmx---java-management-extension)
+* 13.2 [Proxy and InvocationHandler](#proxy-and-invocationhandler)
+* 13.3 [Annotations](#annotations)
+* 13.4 [Reflection API](#reflection-api)
 
 
 
 #### Java Basics
 #### Classes, Enums, Interfaces
 #### Exceptions
+#### Date and Time
 #### Generics
 #### Collections
 #### Functional Programming and Stream API
@@ -35,9 +39,11 @@
 ###### Parallel streams
 ###### Collectors
 #### Concurrency
-#### JDBC
+#### JDBC and SQL
 #### Serialization
 #### IO and NIO
+#### Desktop
+###### Swing
 
 `1.` Working with java
 
@@ -267,7 +273,7 @@ com/java/module/service/PrintService.class
 
 Content of MANIFEST.MF
 Manifest-Version: 1.0
-Created-By: 11.0.4 (Ubuntu)
+Created-By: 13.0.4 (Ubuntu)
 Main-Class: com.java.module.ExecutableApp
 
 Compiling App.java
@@ -433,7 +439,7 @@ Integer in = Integer.valueOf(y); // 4 static factory method
 ```
 Autoboxing won't happen when we call `System.out.println(1)`, cause `println` overloaded to take both int and Object.
 
-`6.` int => float conversion
+`7.` int => float conversion
 ```java
 int i = 123456789;
 float f = i;
@@ -726,7 +732,7 @@ public class App {
 }
 ```
 
-`11.` There are 3 ways to create objects in Java:
+`13.` There are 3 ways to create objects in Java:
 new keyword
 clone (the same new keyword)
 deserialization
@@ -859,7 +865,7 @@ Person [name=Mike, age=30]
 
 
 
-`12.` Garbage collection - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
+`13.` Garbage collection - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1095,7 +1101,7 @@ public class App {
 ```
 
 
-`16.` Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign b to true and it always work. 
+`17.` Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign b to true and it always work. 
 In production code it’s better to use `true == b`. In this case if you omit one `=`, compiler will show error, cause that would mean you are trying to assign value to keyword `true`.
 ```java
 public class App {
@@ -1557,7 +1563,7 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 `25.` `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. 
 List is a type of ordered collection that maintains the elements in insertion order while Set is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.
 
-`26.` Java method access keywords
+`27.` Java method access keywords
 ```
 _____________________________________________________________
 |           │ Class │ Package │ Subclass │ Subclass │ World  |
@@ -1805,7 +1811,7 @@ printB => i: 2
 printA => i: 1
 ```
 
-`36.` All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
+`37.` All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2054,7 +2060,7 @@ class Egret4 implements Bird {
 ```
 Here `IOException` is not child of `MyException`, that's why you get compiler error.
 
-`46.` free slot
+`47.` free slot
 
 `47.` When you compile file with public class and it includes inner classes, java compile them into separate files.
 ```java
@@ -2802,7 +2808,7 @@ newMap => {a=1, b=2}
 ```
 
 
-`56.` `Map.merge` very versatile method. With it we can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
+`57.` `Map.merge` very versatile method. With it we can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
 ```java
 import java.util.*;
 import java.util.stream.Collectors;
@@ -3659,7 +3665,7 @@ streamSortedReversedList => [5, 4, 3, 2, 1]
 
 intStreamSum => 6
 longStreamSum => 6
-doubleStreamSum => 6.0
+doubleStreamSum => 7.0
 streamSum => 6
 ```
 
@@ -3850,6 +3856,31 @@ Period          +           -             -                 -
 Duration        -           +             +                 +
 ```
 
+Calculate difference between two localtimes and compare it to n seconds
+```java
+import java.time.Duration;
+import java.time.LocalTime;
+
+public class App{
+    public static void main(String[] args) {
+        int sec = 2;
+        LocalTime start = LocalTime.now();
+        sleep(sec + 1);
+        LocalTime end = LocalTime.now();
+        if(Duration.between(start, end).compareTo(Duration.ofSeconds(sec)) > 0){
+            System.out.println("more than " + sec + " seconds");
+        }
+    }
+    private static void sleep(int sec){
+        try {
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+
 We can easily convert between `TimeUnit` and `ChronoUnit`. Since `TimeUnit` only includes up to hour, but `ChronoUnit` is up to forever, if there is no suitable conversion `IllegalArgumentException` is thrown.
 ```java
 import java.time.temporal.ChronoUnit;
@@ -3918,7 +3949,7 @@ As you can see it the same time, but `Instant` is in UTC, while `ZonedDateTime` 
 
 
 
-`66.` DST(Daylight saving time) is a practice to move time by one hour forward in spring and 1 hour back in fall(november).
+`67.` DST(Daylight saving time) is a practice to move time by one hour forward in spring and 1 hour back in fall(november).
 ```java
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -3980,9 +4011,9 @@ public class App{
 }
 ```
 ```
-Instant =>        2019-11-18T08:37:56.893718Z
-OffsetDateTime => 2019-11-18T16:37:56.937434+08:00
-ZonedDateTime =>  2019-11-18T16:37:56.938073+08:00[Asia/Hong_Kong]
+Instant =>        2019-11-18T08:37:57.893718Z
+OffsetDateTime => 2019-11-18T16:37:57.937434+08:00
+ZonedDateTime =>  2019-11-18T16:37:57.938073+08:00[Asia/Hong_Kong]
 ```
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. 
 TimeZone - is more broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is more broader concept than timeOffset.
@@ -4396,7 +4427,7 @@ class Lion extends Animal{
 ```
 
 
-`76.` Interface static methods can only be called from interface itself
+`77.` Interface static methods can only be called from interface itself
 ```java
 public class App {
     public static void main(String[] args) {
@@ -4760,7 +4791,7 @@ s1.equals(s2) =>true
 s1 == s2 => false
 ```
 
-`86.` Generic overriding. 
+`87.` Generic overriding. 
 Naming convention. 
 Overriding method - B.m1 - method that overrides another method from parent class.
 Overridden method - A.m1 - method from parent class that is being overriding by method from child class.
@@ -5436,7 +5467,7 @@ public class App {
 ```
 As you see, since a=97, we can’t use char & int here, cause they are basically duplicates.
 
-`96.` Static initializer fires when we load class.
+`97.` Static initializer fires when we load class.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -5742,7 +5773,7 @@ class App {
 }
 ```
 
-`106.` Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Also field/method can't be `abstract static`.
+`107.` Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Also field/method can't be `abstract static`.
 ```java
 abstract class App {
     abstract void calculate();
@@ -6089,7 +6120,7 @@ Exception in thread "main" java.lang.IllegalArgumentException
 
 
 
-`111.` Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
+`113.` Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
 ```java
 class App {
     public static void main(String[] args) {
@@ -6124,7 +6155,7 @@ thread finish2
 ```
 As you see, threads were executed sequentially
 
-`112.` `ExecutorService` has 3 versions of submit
+`113.` `ExecutorService` has 3 versions of submit
 * `submit(Runnable)` - take nothing, return `Future<?>`
 * `submit(Runnable, T)` - return `Future<T>` when done
 * `submit(Callable<T>)` - return `Future<T>` from callable
@@ -6391,7 +6422,7 @@ Runnable finish pool-1-thread-3
 If we remove `service.shutdown();` they will run forever.
 
 
-`116.` By default for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
+`117.` By default for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
 ```java
 import java.util.*;
 
@@ -6600,21 +6631,21 @@ Java stack information for the threads listed above:
         - waiting to lock <0x00000007171c6be0> (a java.lang.Object)
         - locked <0x00000007171c6bd0> (a java.lang.Object)
         at com.java.test.App$$Lambda$14/0x0000000800066840.run(Unknown Source)
-        at java.util.concurrent.Executors$RunnableAdapter.call(java.base@11.0.4/Executors.java:515)
-        at java.util.concurrent.FutureTask.run(java.base@11.0.4/FutureTask.java:264)
-        at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@11.0.4/ThreadPoolExecutor.java:1128)
-        at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@11.0.4/ThreadPoolExecutor.java:628)
-        at java.lang.Thread.run(java.base@11.0.4/Thread.java:834)
+        at java.util.concurrent.Executors$RunnableAdapter.call(java.base@13.0.4/Executors.java:515)
+        at java.util.concurrent.FutureTask.run(java.base@13.0.4/FutureTask.java:264)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@13.0.4/ThreadPoolExecutor.java:1128)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@13.0.4/ThreadPoolExecutor.java:628)
+        at java.lang.Thread.run(java.base@13.0.4/Thread.java:834)
 "pool-1-thread-2":
         at com.java.test.App.lambda$main$1(App.java:31)
         - waiting to lock <0x00000007171c6bd0> (a java.lang.Object)
         - locked <0x00000007171c6be0> (a java.lang.Object)
         at com.java.test.App$$Lambda$15/0x0000000800066c40.run(Unknown Source)
-        at java.util.concurrent.Executors$RunnableAdapter.call(java.base@11.0.4/Executors.java:515)
-        at java.util.concurrent.FutureTask.run(java.base@11.0.4/FutureTask.java:264)
-        at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@11.0.4/ThreadPoolExecutor.java:1128)
-        at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@11.0.4/ThreadPoolExecutor.java:628)
-        at java.lang.Thread.run(java.base@11.0.4/Thread.java:834)
+        at java.util.concurrent.Executors$RunnableAdapter.call(java.base@13.0.4/Executors.java:515)
+        at java.util.concurrent.FutureTask.run(java.base@13.0.4/FutureTask.java:264)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@13.0.4/ThreadPoolExecutor.java:1128)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@13.0.4/ThreadPoolExecutor.java:628)
+        at java.lang.Thread.run(java.base@13.0.4/Thread.java:834)
 
 Found 1 deadlock.
 ```
@@ -8421,7 +8452,7 @@ public class App{
 ```
 
 
-`126.` Data traversal - we can use standard BFS and DFS to traverse data, or could use standard implementation of `walk` (work as dfs) method
+`127.` Data traversal - we can use standard BFS and DFS to traverse data, or could use standard implementation of `walk` (work as dfs) method
 ```java
 public class App {
     public static void main(String[] args) {
@@ -9925,7 +9956,7 @@ requires one module at a time (requires moduleA, moduleB - illegal)
 exports one package at a time (exports my.com.java.* - illegal)
 provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
 
-`146.` Java sort order `empty > space > number > uppercase > lowercase` (natural sorting)
+`147.` Java sort order `empty > space > number > uppercase > lowercase` (natural sorting)
 
 `147.` `Locale` - immutable class, once created can't change it's locale. There are 3 ways to create `Locale`. Language, language & country, language & country & variant. So `Locale` at least requires language.
 `getString(str s)` - retreive value by key from current or all parent bundles. Loading happens this way:
@@ -10079,7 +10110,7 @@ person => Person[name=Jack, age=30]
 ```
 
 
-`146.` Division by zero. When we divide double by zero (or int by 0.0) we don't get exception.
+`147.` Division by zero. When we divide double by zero (or int by 0.0) we don't get exception.
 ```java
 public class App {
     public static void main(String[] args){
@@ -10204,8 +10235,8 @@ Constant pool:
    #4 = Class              #23            // java/lang/Object
    #5 = InterfaceMethodref #24.#25        // java/util/List.add:(Ljava/lang/Object;)Z
    #6 = Class              #26            // com/java/test/Printer
-   #7 = Methodref          #6.#21         // com/java/test/Printer."<init>":()V
-   #8 = Methodref          #6.#27         // com/java/test/Printer.print:()V
+   #7 = Methodref          #7.#21         // com/java/test/Printer."<init>":()V
+   #8 = Methodref          #7.#27         // com/java/test/Printer.print:()V
    #9 = Fieldref           #28.#29        // java/lang/System.out:Ljava/io/PrintStream;
   #10 = String             #30            // running app...
   #11 = Methodref          #31.#32        // java/io/PrintStream.println:(Ljava/lang/String;)V
@@ -10453,7 +10484,7 @@ addr1 == addr2 => true
 addr1.equals(addr2) => true
 ```
 
-`156.` Default constructor access modifies. By default if we not explicitly add any constructor, java add default no-arg constructor with the same modifier as class itself. You can check it with `javap` disassembler tool.
+`157.` Default constructor access modifies. By default if we not explicitly add any constructor, java add default no-arg constructor with the same modifier as class itself. You can check it with `javap` disassembler tool.
 ```java
 public class Outer{
     // public default no-arg constructor
@@ -10633,7 +10664,7 @@ Warning:(13, 16) java: print() in com.java.test.Printer has been deprecated
 Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
 Information:java: Recompile with -Xlint:unchecked for details.
 ```
-There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`.
+There are many types supported by different compilers, but according to [jls-9.7.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.7.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`.
 For unchecked compilation fires mostly when we insert, cause there is the possibility to corrupt collection.
 ```java
 void doElements(List l) {
@@ -10855,7 +10886,7 @@ class MyService1{}
 class MyService2{}
 ```
 
-Types of annotation values: according to  [JLS 9.6.1](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.6.1). 
+Types of annotation values: according to  [JLS 9.7.1](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.1). 
 The annotation member types must be one of:                                     
 primitive
 String
