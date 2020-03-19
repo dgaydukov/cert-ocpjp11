@@ -1,30 +1,43 @@
 # Content
 
-1. [Java Basics]()
-2. [Classes and Interfaces]()
-3. [Exceptions]()
-4. [Generics]()
-5. [Collections]()
-6. [Stream API]()
-7. [Concurrency]()
-8. [JDBC]()
-9. [Serialization]()
-10. [Advanced](#java-advanced)
-* 10.1. [JMX](#jmx---java-management-extension)
+1. [Java Basics](#java-basics)
+2. [Classes, Enums, Interfaces](#classes-enums-interfaces)
+3. [Exceptions](#exceptions)
+4. [Generics](#generics)
+5. [Collections](#collections)
+6. [Functional Programming and Stream API](#functional-programming-and-stream-api)
+* 6.1 [Functional interfaces](#functional-interfaces)
+* 6.2 [Method reference](#method-reference)
+* 6.3 [Simple streams](#simple-streams)
+* 6.4 [Parallel streams](#parallel-streams)
+* 6.5 [Collectors](#collectors)
+7. [Concurrency](#concurrency)
+8. [JDBC](#jdbc)
+9. [Serialization](#serialization)
+10. [IO and NIO](#io-and-nio)
+11. [Advanced](#java-advanced)
+* 11.1 [JMX](#jmx---java-management-extension)
+* 11.2 [Proxy and InvocationHandler](#proxy-and-invocationhandler)
+* 11.3 [Annotations](#annotations)
+* 11.4 [Reflection API](#reflection-api)
+
+
 
 #### Java Basics
-#### Classes and Interfaces
+#### Classes, Enums, Interfaces
 #### Exceptions
 #### Generics
 #### Collections
-#### Stream API
+#### Functional Programming and Stream API
+###### Functional interfaces
+###### Method reference
+###### Simple streams
+###### Parallel streams
+###### Collectors
 #### Concurrency
 #### JDBC
 #### Serialization
-
-
-
-### Tips
+#### IO and NIO
 
 `1.` Working with java
 
@@ -9234,178 +9247,7 @@ interrupted on => 275567377
 done thread
 ```
 
-`135.` Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private. Here is a small example
-Reflection is done with the help of `Class` class. There are 3 ways we can get class object
-```java
-public class App {
-    public static void main(String[] args){
-        Object obj = new Object();
-        // get class from object (instance of the class)
-        Class<?> c1 = obj.getClass();
-        // get class from class itself
-        Class<?> c2 = Object.class;
-        try{
-            // get class by explicitly loading it (this method calls java classloader to load this class)
-            Class<?> c3 = Class.forName("java.lang.Object");
-        } catch (ClassNotFoundException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-```
-Example
-```java
-public class App {
-    public static void main(String[] args) {
-        Person p = new Person();
-        System.out.println("name: " + p.getName() + ", age: " + p.getAge());
-        Class clazz = p.getClass();
-        System.out.println();
-        System.out.println("package: " + clazz.getPackage().getName());
-        System.out.println("className: " + clazz.getName());
-        System.out.println("superClass: " + clazz.getSuperclass().getName());
-        System.out.println("number of annotations: " + clazz.getAnnotations().length);
-        System.out.println("number of interfaces: " + clazz.getInterfaces().length);
-        System.out.println("number of constructors: " + clazz.getConstructors().length);
-        // get all methods from all parent
-        System.out.println("total number of methods: " + clazz.getMethods().length);
-        // get methods only declared in this class
-        System.out.println("declared number of methods: " + clazz.getDeclaredMethods().length);
-        System.out.println();
-        try {
-            Method setAgeMethod = clazz.getDeclaredMethod("setAge", int.class);
-            setAgeMethod.invoke(p, 19);
-            System.out.println("age: " + p.getAge());
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
-            System.out.println("getDeclaredMethod ERR: " + ex);
-        }
-        try {
-            Field ageField = clazz.getDeclaredField("age");
-            ageField.setAccessible(true);
-            ageField.set(p, 44);
-            System.out.println("age: " + p.getAge());
-        } catch (NoSuchFieldException | IllegalAccessException ex) {
-            System.out.println("getDeclaredField ERR: " + ex);
-        }
-    }
-}
-class Person {
-    private String name;
-    private int age;
-    public Person() {
-        this("Jack", 30);
-    }
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    public String getName() {
-        return name;
-    }
-    public int getAge() {
-        return age;
-    }
-    public void setAge(int age) {
-        this.age = age;
-    }
-}
-```
-```
-name: Jack, age: 30
-
-package: com.java.test
-className: com.java.test.Person
-superClass: java.lang.Object
-number of annotations: 0
-number of interfaces: 0
-number of constructors: 2
-total number of methods: 12
-declared number of methods: 3
-
-age: 19
-age: 44
-```
-Pay attention, that although `age` field is private, we still can access it and set value directly with the `setAccessible(true)`.
-Practical usage of reflection+annotations. Suppose we want dynamically load services + execute `init` method and handle exception in case this method has suppressException true.
-```java
-import java.lang.annotation.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
-
-public class App {
-    private Map<String, Object> map = new HashMap<>();
-    public static void main(String[] args){
-        App app = new App();
-        app.loadService(MyService.class);
-        app.loadService(LazyService.class);
-        System.out.println(app.map);
-    }
-    public void loadService(Class<?> clazz){
-        Service serviceAnnotation = clazz.getAnnotation(Service.class);
-        if(serviceAnnotation != null){
-            Object instance;
-            try{
-                instance = clazz.newInstance();
-                map.put(serviceAnnotation.name(), instance);
-            } catch(IllegalAccessException|InstantiationException ex){
-                throw new RuntimeException(ex);
-            }
-            for(Method method: clazz.getMethods()){
-                Init initAnnotation = method.getAnnotation(Init.class);
-                if(initAnnotation != null){
-                    try{
-                        method.invoke(instance);
-                    } catch (IllegalAccessException|IllegalArgumentException|InvocationTargetException ex){
-                        if(initAnnotation.suppressException()){
-                            System.out.println("Suppressed: " + ex);
-                        } else {
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@interface Init{
-    boolean suppressException() default false;
-}
-
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@interface Service{
-    String name();
-    boolean lazyLoad() default false;
-}
-
-@Service(name="MyServiceName")
-class MyService{
-    @Init
-    public void init(){
-        System.out.println("init MyService...");
-    }
-}
-
-@Service(name="LazyServiceName", lazyLoad=true)
-class LazyService{
-    @Init(suppressException=true)
-    public void init(){
-        System.out.println("init LazyService...");
-        throw new RuntimeException("oops");
-    }
-}
-```
-```
-init MyService...
-init LazyService...
-Suppressed: java.lang.reflect.InvocationTargetException
-{MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
-```
-
+`135.` 
 
 `137.` Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
 ```java
@@ -10304,300 +10146,7 @@ Java 9 new features
  * String.join - сделали через массивы (раньше был через stringbuilder)
  * properties - добавили concurrenthashmap и теперь операции чтения - не блокирующие
 
-`149.` Java annotations.
-`@Override` can only be used for instance methods. Since we don't override static methods and both instance & static variables (we hide them) you can't use this annotation.
-```java
-class A{
-    public void print(){}
-    public static void staticPrint(){}
-}
-class B extends A{
-    @Override
-    public void print(){}
-    @Override // compile error
-    public static void staticPrint(){}
-}
-```
-
-`@SuppressWarnings` - can be used to suppress compiler warnings. `@SafeVarags` - stronger, suppress warnings in both declaration and invocation.
-```java
-import java.util.*;
-
-public class App {
-    @SuppressWarnings("removal")
-    public static void main(String[] args) {
-        List people = new ArrayList();
-        Object human = new Object();
-        people.add(human);
-
-        Printer printer = new Printer();
-        printer.m1();
-        printer.m2();
-
-        List<String> ls = new ArrayList<>();
-        m1(ls);
-        m2(ls);
-    }
-    private static void m1(List ls){
-        ls.add(new Object());
-    }
-    @SafeVarargs
-    private static void m1(List<String>... ls){}
-    @SuppressWarnings("unchecked")
-    private static void m2(List<String>... ls){}
-}
-
-class Printer{
-    @Deprecated
-    public void m1(){}
-    @Deprecated(forRemoval=true)
-    public void m2(){}
-}
-```
-If you compile you will get following errors
-```
-Warning:(13, 16) java: print() in com.java.test.Printer has been deprecated
-Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
-Information:java: Recompile with -Xlint:unchecked for details.
-```
-There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`.
-For unchecked compilation fires mostly when we insert, cause there is the possibility to corrupt collection.
-```java
-void doElements(List l) {
-    l.add("string"); //compilation warning
-    System.out.println(l.get(0));
-    String s = (String)l.get(0);
-}
-```
-
-```java
-public class App {
-    public static void main(String[] args) {
-        print(List.of("a"));
-    }
-    public static void print(List<String>... args){
-        Object[] arr = args;
-        List<Integer> list = new ArrayList<>(List.of(10));
-        arr[0] = list;
-        String s = args[0].get(0);
-    }
-}
-```
-```
-Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
-Information:java: Recompile with -Xlint:unchecked for details.
-```
-```
-Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String
-```
-
-If we add `@SafeVarags` to `print` methods, compilation warnings would be gone. Although it won't make code safe, you will still get `ClassCastException`.
-
-Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package
-**Annotation value must be compile time constant non-null value.
-`@Retention` [SOURCE, CLASS, RUNTIME] - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
-`@Target` - to which element does annotation applied (like Field, Method, Constructor) 
-`@Repetable`
-Before java8, we couldn't add same annotation twice
-```java
-@Role("user")
-@Role("admin") // compile error: com.java.test.Role is not a repeatable annotation type
-class User{}
-
-@interface Role{
-    String value();
-}
-```
-So if wanted to add 2 roles we have to create new wrapper annotation
-```java
-@Roles(value = {
-    @Role("user"),
-    @Role("admin")
-})
-class User{}
-
-@interface Role{
-    String value();
-}
-@interface Roles{
-    Role[] value();
-}
-```
-Now we can write it like this
-```java
-@Role("user")
-@Role("admin")
-class User{}
-
-@Repeatable(Roles.class)
-@interface Role{
-    String value();
-}
-@interface Roles{
-    Role[] value(); // name should be exactly value
-}
-```
-But still you have to create wrapper annotation. We can simplify it by moving Roles inside Role and rename it to List
-```java
-@Role("user")
-@Role("admin")
-class User{}
-
-@Repeatable(Role.List.class)
-@interface Role{
-    String value();
-    @interface List{
-        Role[] value();
-    }
-}
-```
-
-**Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
-but inside it creates this wrapper, and so if you array named not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
-```java
-@Role("user") // won't compile
-@Role("admin") // won't compile
-class User{}
-
-@Repeatable(Roles.class) // won't compile
-@interface Role{
-    String value();
-}
-@interface Roles{
-    Role[] roles(); // name should be value
-    String name();  // should have default value
-}
-```
-
-`@Documented` - guarantee that annotation would be shown in javadoc
-```java
-@Documented
-@interface Role{
-    String value();
-}
-
-@Role("admin")
-class User{}
-```
-Now javadoc for class User shows that it uses @Role annotation.
-```
-com.java.test @Role("admin") 
-class User
-extends Object
-```
-
-
-`@Inherited` - subclasses of annotated class have the same annotation. Pay attention that it doesn't work for interfaces (yet IAdmin interface extends IUser, it doesn't inherit it annotations).
-```java
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-
-public class App {
-    public static void main(String[] args) {
-        System.out.println("User => " + User.class.getAnnotation(Role.class));
-        System.out.println("Admin => " + Admin.class.getAnnotation(Role.class));
-        System.out.println("IUser => " + IUser.class.getAnnotation(Role.class));
-        System.out.println("IAdmin => " + IAdmin.class.getAnnotation(Role.class));
-    }
-}
-
-@Inherited
-@Retention(RetentionPolicy.RUNTIME)
-@interface Role{
-    String value();
-}
-
-@Role("user")
-class User{}
-
-class Admin extends User{}
-
-
-
-@Role("user")
-interface IUser{}
-
-interface IAdmin extends IUser{}
-```
-```
-User => @com.java.test.Role(value="user")
-Admin => @com.java.test.Role(value="user")
-IUser => @com.java.test.Role(value="user")
-IAdmin => null
-```
-
-You can create your own meta annotations. For this set target as `ElementType.ANNOTATION_TYPE`
-```java
-@Target(ElementType.ANNOTATION_TYPE)
-@interface Meta{
-
-}
-
-@Meta
-@interface Service{}
-
-@Meta //compile error, can only be applied to other annotations
-@Service
-class A{}
-```
-
-If annotation has one field with `value` name - you can put this value into annotation without explicitly naming it. If name of field not `value` or there are other fields you should explicitly name them.
-```java
-@interface Service{
-    String value();
-}
-@interface NamedService{
-    String name();
-}
-@interface MultiValueService{
-    String value();
-    String name();
-}
-
-@Service("cool")
-@NamedService("cool") // won't compile should be @NamedService(name="cool")
-@MultiValueService(value = "cool", name = "abc")
-class A{}
-```
-
-String arrays as annotation values. If annotation value is String[] we can pass one value just as string, but can't pass array of nulls:
-```java
-public class App{
-    public static void main(String[] args) {
-        String[] arr1 = { null };
-        String[] arr2 = "param1"; // compile error, string is not array
-    }
-}
-
-@interface Service{
-    String name();
-    String[] params();
-}
-
-@Service(name = "A", params = "cool")
-class MyService1{}
-
-@Service(name = "A", params = { null }) // compile error, can't pass null
-class MyService2{}
-```
-
-Names can be only primitive types or strings or arrays of primitives or strings
-```java
-@interface Service{
-    int[] arr1();
-    Object name(); // won't compile
-    List<String> params(); // won't compile
-}
-```
-
-Default values should be named without equal sign
-```java
-@interface Service{
-    String value() default "hello";
-    String name()  default = "Jack"; // won't compile, equal sign after default keyword
-}
-```
+`149.` 
 
 `150.` Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block).
 Instance & static variables shouldn't be effectively final in order to be used inside lambda.
@@ -11028,4 +10577,470 @@ Person[name=Jack, age=25]
 ```
 
 ###### Annotations
+
+`@Override` can only be used for instance methods. Since we don't override static methods and both instance & static variables (we hide them) you can't use this annotation.
+```java
+class A{
+    public void print(){}
+    public static void staticPrint(){}
+}
+class B extends A{
+    @Override
+    public void print(){}
+    @Override // compile error
+    public static void staticPrint(){}
+}
+```
+
+`@SuppressWarnings` - can be used to suppress compiler warnings. `@SafeVarags` - stronger, suppress warnings in both declaration and invocation.
+```java
+import java.util.*;
+
+public class App {
+    @SuppressWarnings("removal")
+    public static void main(String[] args) {
+        List people = new ArrayList();
+        Object human = new Object();
+        people.add(human);
+
+        Printer printer = new Printer();
+        printer.m1();
+        printer.m2();
+
+        List<String> ls = new ArrayList<>();
+        m1(ls);
+        m2(ls);
+    }
+    private static void m1(List ls){
+        ls.add(new Object());
+    }
+    @SafeVarargs
+    private static void m1(List<String>... ls){}
+    @SuppressWarnings("unchecked")
+    private static void m2(List<String>... ls){}
+}
+
+class Printer{
+    @Deprecated
+    public void m1(){}
+    @Deprecated(forRemoval=true)
+    public void m2(){}
+}
+```
+If you compile you will get following errors
+```
+Warning:(13, 16) java: print() in com.java.test.Printer has been deprecated
+Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
+Information:java: Recompile with -Xlint:unchecked for details.
+```
+There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`.
+For unchecked compilation fires mostly when we insert, cause there is the possibility to corrupt collection.
+```java
+void doElements(List l) {
+    l.add("string"); //compilation warning
+    System.out.println(l.get(0));
+    String s = (String)l.get(0);
+}
+```
+
+```java
+public class App {
+    public static void main(String[] args) {
+        print(List.of("a"));
+    }
+    public static void print(List<String>... args){
+        Object[] arr = args;
+        List<Integer> list = new ArrayList<>(List.of(10));
+        arr[0] = list;
+        String s = args[0].get(0);
+    }
+}
+```
+```
+Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
+Information:java: Recompile with -Xlint:unchecked for details.
+```
+```
+Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String
+```
+
+If we add `@SafeVarags` to `print` methods, compilation warnings would be gone. Although it won't make code safe, you will still get `ClassCastException`.
+
+Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package
+**Annotation value must be compile time constant non-null value.
+`@Retention` [SOURCE, CLASS, RUNTIME] - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
+`@Target` - to which element does annotation applied (like Field, Method, Constructor) 
+`@Repetable`
+Before java8, we couldn't add same annotation twice
+```java
+@Role("user")
+@Role("admin") // compile error: com.java.test.Role is not a repeatable annotation type
+class User{}
+
+@interface Role{
+    String value();
+}
+```
+So if wanted to add 2 roles we have to create new wrapper annotation
+```java
+@Roles(value = {
+    @Role("user"),
+    @Role("admin")
+})
+class User{}
+
+@interface Role{
+    String value();
+}
+@interface Roles{
+    Role[] value();
+}
+```
+Now we can write it like this
+```java
+@Role("user")
+@Role("admin")
+class User{}
+
+@Repeatable(Roles.class)
+@interface Role{
+    String value();
+}
+@interface Roles{
+    Role[] value(); // name should be exactly value
+}
+```
+But still you have to create wrapper annotation. We can simplify it by moving Roles inside Role and rename it to List
+```java
+@Role("user")
+@Role("admin")
+class User{}
+
+@Repeatable(Role.List.class)
+@interface Role{
+    String value();
+    @interface List{
+        Role[] value();
+    }
+}
+```
+
+**Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
+but inside it creates this wrapper, and so if you array named not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
+```java
+@Role("user") // won't compile
+@Role("admin") // won't compile
+class User{}
+
+@Repeatable(Roles.class) // won't compile
+@interface Role{
+    String value();
+}
+@interface Roles{
+    Role[] roles(); // name should be value
+    String name();  // should have default value
+}
+```
+
+`@Documented` - guarantee that annotation would be shown in javadoc
+```java
+@Documented
+@interface Role{
+    String value();
+}
+
+@Role("admin")
+class User{}
+```
+Now javadoc for class User shows that it uses @Role annotation.
+```
+com.java.test @Role("admin") 
+class User
+extends Object
+```
+
+
+`@Inherited` - subclasses of annotated class have the same annotation. Pay attention that it doesn't work for interfaces (yet IAdmin interface extends IUser, it doesn't inherit it annotations).
+```java
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("User => " + User.class.getAnnotation(Role.class));
+        System.out.println("Admin => " + Admin.class.getAnnotation(Role.class));
+        System.out.println("IUser => " + IUser.class.getAnnotation(Role.class));
+        System.out.println("IAdmin => " + IAdmin.class.getAnnotation(Role.class));
+    }
+}
+
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@interface Role{
+    String value();
+}
+
+@Role("user")
+class User{}
+
+class Admin extends User{}
+
+
+
+@Role("user")
+interface IUser{}
+
+interface IAdmin extends IUser{}
+```
+```
+User => @com.java.test.Role(value="user")
+Admin => @com.java.test.Role(value="user")
+IUser => @com.java.test.Role(value="user")
+IAdmin => null
+```
+
+You can create your own meta annotations. For this set target as `ElementType.ANNOTATION_TYPE`
+```java
+@Target(ElementType.ANNOTATION_TYPE)
+@interface Meta{
+
+}
+
+@Meta
+@interface Service{}
+
+@Meta //compile error, can only be applied to other annotations
+@Service
+class A{}
+```
+
+If annotation has one field with `value` name - you can put this value into annotation without explicitly naming it. If name of field not `value` or there are other fields you should explicitly name them.
+```java
+@interface Service{
+    String value();
+}
+@interface NamedService{
+    String name();
+}
+@interface MultiValueService{
+    String value();
+    String name();
+}
+
+@Service("cool")
+@NamedService("cool") // won't compile should be @NamedService(name="cool")
+@MultiValueService(value = "cool", name = "abc")
+class A{}
+```
+
+String arrays as annotation values. If annotation value is String[] we can pass one value just as string, but can't pass array of nulls:
+```java
+public class App{
+    public static void main(String[] args) {
+        String[] arr1 = { null };
+        String[] arr2 = "param1"; // compile error, string is not array
+    }
+}
+
+@interface Service{
+    String name();
+    String[] params();
+}
+
+@Service(name = "A", params = "cool")
+class MyService1{}
+
+@Service(name = "A", params = { null }) // compile error, can't pass null
+class MyService2{}
+```
+
+Names can be only primitive types or strings or arrays of primitives or strings
+```java
+@interface Service{
+    int[] arr1();
+    Object name(); // won't compile
+    List<String> params(); // won't compile
+}
+```
+
+Default values should be named without equal sign
+```java
+@interface Service{
+    String value() default "hello";
+    String name()  default = "Jack"; // won't compile, equal sign after default keyword
+}
+```
+
 ###### Reflection API
+Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private. Here is a small example
+Reflection is done with the help of `Class` class. There are 3 ways we can get class object
+```java
+public class App {
+    public static void main(String[] args){
+        Object obj = new Object();
+        // get class from object (instance of the class)
+        Class<?> c1 = obj.getClass();
+        // get class from class itself
+        Class<?> c2 = Object.class;
+        try{
+            // get class by explicitly loading it (this method calls java classloader to load this class)
+            Class<?> c3 = Class.forName("java.lang.Object");
+        } catch (ClassNotFoundException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+Example
+```java
+public class App {
+    public static void main(String[] args) {
+        Person p = new Person();
+        System.out.println("name: " + p.getName() + ", age: " + p.getAge());
+        Class clazz = p.getClass();
+        System.out.println();
+        System.out.println("package: " + clazz.getPackage().getName());
+        System.out.println("className: " + clazz.getName());
+        System.out.println("superClass: " + clazz.getSuperclass().getName());
+        System.out.println("number of annotations: " + clazz.getAnnotations().length);
+        System.out.println("number of interfaces: " + clazz.getInterfaces().length);
+        System.out.println("number of constructors: " + clazz.getConstructors().length);
+        // get all methods from all parent
+        System.out.println("total number of methods: " + clazz.getMethods().length);
+        // get methods only declared in this class
+        System.out.println("declared number of methods: " + clazz.getDeclaredMethods().length);
+        System.out.println();
+        try {
+            Method setAgeMethod = clazz.getDeclaredMethod("setAge", int.class);
+            setAgeMethod.invoke(p, 19);
+            System.out.println("age: " + p.getAge());
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
+            System.out.println("getDeclaredMethod ERR: " + ex);
+        }
+        try {
+            Field ageField = clazz.getDeclaredField("age");
+            ageField.setAccessible(true);
+            ageField.set(p, 44);
+            System.out.println("age: " + p.getAge());
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            System.out.println("getDeclaredField ERR: " + ex);
+        }
+    }
+}
+class Person {
+    private String name;
+    private int age;
+    public Person() {
+        this("Jack", 30);
+    }
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    public String getName() {
+        return name;
+    }
+    public int getAge() {
+        return age;
+    }
+    public void setAge(int age) {
+        this.age = age;
+    }
+}
+```
+```
+name: Jack, age: 30
+
+package: com.java.test
+className: com.java.test.Person
+superClass: java.lang.Object
+number of annotations: 0
+number of interfaces: 0
+number of constructors: 2
+total number of methods: 12
+declared number of methods: 3
+
+age: 19
+age: 44
+```
+Pay attention, that although `age` field is private, we still can access it and set value directly with the `setAccessible(true)`.
+Practical usage of reflection+annotations. Suppose we want dynamically load services + execute `init` method and handle exception in case this method has suppressException true.
+```java
+import java.lang.annotation.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+
+public class App {
+    private Map<String, Object> map = new HashMap<>();
+    public static void main(String[] args){
+        App app = new App();
+        app.loadService(MyService.class);
+        app.loadService(LazyService.class);
+        System.out.println(app.map);
+    }
+    public void loadService(Class<?> clazz){
+        Service serviceAnnotation = clazz.getAnnotation(Service.class);
+        if(serviceAnnotation != null){
+            Object instance;
+            try{
+                instance = clazz.newInstance();
+                map.put(serviceAnnotation.name(), instance);
+            } catch(IllegalAccessException|InstantiationException ex){
+                throw new RuntimeException(ex);
+            }
+            for(Method method: clazz.getMethods()){
+                Init initAnnotation = method.getAnnotation(Init.class);
+                if(initAnnotation != null){
+                    try{
+                        method.invoke(instance);
+                    } catch (IllegalAccessException|IllegalArgumentException|InvocationTargetException ex){
+                        if(initAnnotation.suppressException()){
+                            System.out.println("Suppressed: " + ex);
+                        } else {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@interface Init{
+    boolean suppressException() default false;
+}
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@interface Service{
+    String name();
+    boolean lazyLoad() default false;
+}
+
+@Service(name="MyServiceName")
+class MyService{
+    @Init
+    public void init(){
+        System.out.println("init MyService...");
+    }
+}
+
+@Service(name="LazyServiceName", lazyLoad=true)
+class LazyService{
+    @Init(suppressException=true)
+    public void init(){
+        System.out.println("init LazyService...");
+        throw new RuntimeException("oops");
+    }
+}
+```
+```
+init MyService...
+init LazyService...
+Suppressed: java.lang.reflect.InvocationTargetException
+{MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
+```
