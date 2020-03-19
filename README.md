@@ -15,8 +15,5 @@ There are 2 main reasons to get it.
 
 
 ### TODO
-0. Divide list into 12 categories
 1. write custom MinMax collector
 2. java serialization filters (writeResolve, readResolve)
-3. divide document into 12 sections
-4. https://www.youtube.com/watch?v=XC8RmEn5gYA&list=PLlb7e2G7aSpQith1Z6xRpU8jFPgkh_Gvz&index=1
