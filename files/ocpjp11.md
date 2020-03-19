@@ -8767,6 +8767,53 @@ String safeValue = st.enquoteIdentifier(value, true);
 safeValue = st.enquoteLiteral(value);
 ```
 
+You can also use `DataSource` interface. Compare 2 examples
+```java
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import com.mysql.cj.jdbc.MysqlDataSource;
+
+public class App {
+    public static void main(String[] args) throws Exception {
+        String dbUser = "root";
+        String dbPassword = "";
+        String dbHost = "localhost";
+        String dbName = "ocpjp";
+        String url = "jdbc:mysql://"+dbHost+":3306/"+dbName+"?user="+dbUser+"&password="+dbPassword;
+
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement stmt = conn.prepareStatement("select * from people");
+             ResultSet rs = stmt.executeQuery();) {
+            while (rs.next()){
+                System.out.println("name => " + rs.getString("firstname") + " " + rs.getString("lastname"));
+            }
+        }
+
+
+        MysqlDataSource ds = new MysqlDataSource();
+        ds.setUrl(url);
+//        ds.setUser(dbUser);
+//        ds.setPassword(dbPassword);
+//        ds.setServerName(dbHost);
+//        ds.setDatabaseName(dbName);
+        try (Connection conn = ds.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("select * from people");
+             ResultSet rs = stmt.executeQuery();) {
+            while (rs.next()){
+                System.out.println("name => " + rs.getString("firstname") + " " + rs.getString("lastname"));
+            }
+        }
+    }
+}
+```
+```
+name => Gary Larson
+name => Gary Larson
+```
+
 `132.` It’s easy to work with transaction in jdbc. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
 ```java
 import java.sql.Connection;
