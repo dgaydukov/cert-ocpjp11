@@ -10855,12 +10855,30 @@ class MyService1{}
 class MyService2{}
 ```
 
-Names can be only primitive types or strings or arrays of primitives or strings
+Types of annotation values: according to  [JLS 9.6.1](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.6.1). 
+The annotation member types must be one of:                                     
+primitive
+String
+an Enum
+another Annotation
+Class
+an array of any of the above
 ```java
+import java.util.List;
+
+enum Days{
+    SAT,
+    SUN;
+}
 @interface Service{
-    int[] arr1();
+    int i();
+    String s();
+    Days days();
+    Deprecated deprecated();
+    Class cls();
+    int[] arr();
     Object name(); // won't compile
-    List<String> params(); // won't compile
+    List params(); // won't compile
 }
 ```
 
