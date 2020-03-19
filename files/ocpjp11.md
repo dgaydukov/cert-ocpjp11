@@ -10922,6 +10922,7 @@ public class App {
         System.out.println("className: " + clazz.getName());
         System.out.println("superClass: " + clazz.getSuperclass().getName());
         System.out.println("number of annotations: " + clazz.getAnnotations().length);
+        // returns only current interfaces of class, if you want to get all interfaces from all paretn you have to use recursion
         System.out.println("number of interfaces: " + clazz.getInterfaces().length);
         System.out.println("number of constructors: " + clazz.getConstructors().length);
         // get all methods from all parent
