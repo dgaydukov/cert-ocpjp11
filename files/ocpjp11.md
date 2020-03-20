@@ -5,58 +5,62 @@
 * 1.2 [Numeric promotion](#variable-declarations)
 * 1.3 [Short circuit boolean](#wrapper-classes)
 * 1.4 [Wrapper classes](#wrapper-classes)
-* 1.5 [String and StringBuilder](#strings)
-* 1.6 [Arrays](#arrays)
-* 1.7 [Arrays.compare and Arrays.mismatch](#arrays)
+* 1.5 [String and StringBuilder](#string-and-stringbuilder)
+* 1.6 [Arrays](#-arrays)
+* 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 2. [Classes and Objects](#classes-and-objects)
-* 2.1 [toString, equals, hashcode, clone](#classes)
+* 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
 * 2.3 [Interfaces](#interfaces)
 * 2.4 [Enums](#enums)
 * 2.5 [Exceptions](#exceptions)
-* 2.6 [Nested Types](#exceptions)
-* 2.6 [Anonymous classes](#exceptions)
+* 2.6 [Nested Types](#nested-types)
+* 2.6 [Anonymous classes](#anonymous-classes)
 3. [Date and Time](#date-and-time)
 * 3.1 [Old date api (java.util package)](#old-date-api-javautil-package)
 * 3.2 [SQL date api (java.sql package)](#sql-date-api-javasql-package)
 * 3.3 [New date api (java.time package)](#new-date-api-javatime-package)
-* 3.4 [Period and Duration](#sql-date-api-javasql-package)
-* 3.5 [Timezone and DST](#sql-date-api-javasql-package)
+* 3.4 [Period and Duration](#period-and-duration)
+* 3.5 [Timezone and DST](#timezone-and-dst)
 * 3.6 [Formatting](#formatting)
 4. [Generics](#generics)
 * 4.1 [Type erasure](#generics)
 5. [Collections](#collections)
-* 5.1 [List and Set](#array-to-list-and-back)
-* 5.2 [Array and Enumeration to List and back](#array-to-list-and-back)
-* 5.3 [Queue and Stack](#order-and-duplicates)
-* 5.4 [Map](#order-and-duplicates)
-* 5.5 [binarySearch](#enumeration-to-list-and-back)
+* 5.1 [List and Set](#list-and-set)
+* 5.2 [Array and Enumeration to List and back](#array-and-enumeration-to-list-and-back)
+* 5.3 [Queue and Stack](#queue-and-stack)
+* 5.4 [Map](#map)
+* 5.5 [binarySearch](#binarysearch)
 * 5.6 [Order and duplicates](#order-and-duplicates)
 6. [Functional Programming and Stream API](#functional-programming-and-stream-api)
 * 6.1 [Functional interfaces](#functional-interfaces)
 * 6.2 [Method reference](#method-reference)
-* 6.3 [Comparator and Comparable](#method-reference)
+* 6.3 [Comparator and Comparable](#comparator-and-comparable)
 * 6.4 [Simple streams](#simple-streams)
-* 6.4 [Parallel streams](#simple-streams)
+* 6.4 [Parallel streams](#parallel-streams)
 * 6.5 [Collectors](#collectors)
 7. [Concurrency](#concurrency)
-* 7.1 [Threads](#)
-* 7.2 [ExecutorService](#)
-* 7.3 [wait/notify and await/signal](#)
-* 7.3 [Concurrent collections](#)
-* 7.3 [Deadlock and Livelock](#)
+* 7.1 [Threads](#threads)
+* 7.2 [ExecutorService](#executorservice)
+* 7.3 [wait/notify and await/signal](#waitnotify-and-awaitsignal)
+* 7.4 [fork/join framework](#forkjoin-framework)
+* 7.5 [Synchronizers](#-synchronizers)
+* 7.6 [Concurrent collections](#concurrent-collections)
+* 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
 8. [JDBC and SQl](#jdbc-and-sql)
-9. [Serialization](#java-serialization)
-* 12.8 [Serialization with XML and JSON](#serialization-with-xml-and-json)
+9. [Serialization](#serialization)
+* 9.1 [Java serialization](#java-serialization)
+* 9.2 [XML serialization](#xml-serialization)
+* 9.3 [JSON serialization](#json-serialization)
 10. [IO and NIO](#io-and-nio)
 11. [Miscellaneous](#miscellaneous)
 * 11.1 [Modules](#modules)
-* 11.2 [Random numbers](#modules)
-* 11.3 [Locale and ResourceBundle](#modules)
-* 11.4 [Assertions](#modules)
-* 11.5 [Object interning](#)
-* 11.6 [Garbage collector and Weak References](#modules)
-12. [Advanced](#java-advanced)
+* 11.2 [Random numbers](#random-numbers)
+* 11.3 [Locale and ResourceBundle](#locale-and-resourcebundle)
+* 11.4 [Assertions](#assertions)
+* 11.5 [Object interning](#object-interning)
+* 11.6 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
+12. [Advanced](#advanced)
 * 12.1 [Annotations](#annotations)
 * 12.2 [Reflection API](#reflection-api)
 * 12.3 [Compile Time Annotation Processor](#compile-time-annotation-processor)
@@ -6761,7 +6765,7 @@ CountRecursiveTask: 20
 As you can see `fork/jon` framework always divide task on 2, and start to run first task, but second put into queue. And do it until task is small enough to complete. At the same time other threads can read this queue and take tasks from it (work stealing) and others can steal from others, so we have a tree, where all threads always running until all queues (for every thread) is empty and we can get result.
 
 
-####### Syncronizers
+####### Synchronizers
 `Semaphore`, `CountDownLatch`, `CyclicBarrier` - all do pretty the same. For example we have a task to run all threads at the same time.
 `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
 `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
@@ -7710,7 +7714,9 @@ public class App {
 }
 ```
 
-#### Java Serialization
+#### Serialization
+
+###### Java serialization
 
 When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer not fire. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
 Deserialization doesn't invoke constructor & instance initializator because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
@@ -7718,6 +7724,679 @@ It searches all parents until it found one that doesn't implement `Serializable`
 (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), 
 and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor.
 Pay attention that static fields don't serialize.
+
+
+If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`
+**Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
+Otherwise compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
+There are a few ways you can get your serial number
+```java
+public class App {
+    public static void main(String[] args) throws Exception {
+        System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
+    }
+}
+class Person implements Serializable{}
+```
+```
+1733576120003020849
+```
+Using command line
+```
+serialver -classpath target/classes com.java.test.Person
+#com.java.test.Person:    private static final long serialVersionUID = 1733576120003020849L;
+```
+Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail
+
+You can also get serial number from binary data itself
+```java
+/**
+ * https://www.javaworld.com/article/2072752/the-java-serialization-algorithm-revealed.html
+ */
+import java.io.*;
+
+public class App {
+    public static void main(String[] args) {
+        File file = new File("src/main/java/com/java/test/text");
+        Person p1 = new Person("Jack", 30);
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
+            out.writeObject(p1);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
+            Person p2 = (Person) in.readObject();
+            System.out.println(p2);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
+
+        System.out.println(readSerialNumberUID(Person.class, file));
+
+    }
+
+    private static long readSerialNumberUID(Class clazz, File file) {
+        try (FileInputStream in = new FileInputStream(file)) {
+            String className = clazz.getName();
+            StringBuilder hex = new StringBuilder();
+            StringBuilder content = new StringBuilder();
+            int b, i = 0;
+            boolean serialStart = false;
+            while ((b = in.read()) != -1) {
+                content.append((char) b);
+                if (serialStart && i < 8) {
+                    // don't use Integer.toHexString, it removes leading zeros and in case of 15 return just f instead of 0f
+                    hex.append(String.format("%02X", b));
+                    i++;
+                } else if (content.toString().contains(className)) {
+                    serialStart = true;
+                }
+            }
+            return Long.parseLong(hex.toString(), 16);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+class Person implements Serializable{
+    private static final long serialVersionUID = 9999;
+    private String name;
+    private int age;
+    public Person(String name, int age){
+        this.name = name;
+        this.age = age;
+    }
+    @Override
+    public String toString(){
+        return "Person[name="+name+", age="+age+"]";
+    }
+}
+```
+
+`Serialization/Deserialization.` We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
+```java
+import java.util.*;
+import java.io.*;
+
+public class App {
+    public static void main(String[] args) {
+        serializeSingleObject();
+        serializeList();
+    }
+
+    private static void serializeSingleObject(){
+        File file = new File("src/main/java/com/java/test/text");
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+            Person p1 = new Person("Mike", 30);
+            out.writeObject(p1);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            Person p2 = (Person) in.readObject();
+            System.out.println("p2 => " + p2);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private static void serializeList() {
+        File file = new File("src/main/java/com/java/test/text");
+
+        List<Person> people = new ArrayList<>();
+        people.add(new Person("Jack", 25));
+        people.add(new Person("Mike", 35));
+        people.add(new Person("Melanie", 30));
+        people.add(new Person("David", 20));
+
+        List<Person> deserialized = new ArrayList<>();
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+            for (var person : people) {
+                out.writeObject(person);
+            }
+        } catch (IOException ex) {
+            System.out.println("write ERR: " + ex);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            while (true) {
+                Object obj = in.readObject();
+                if (obj instanceof Person) {
+                    deserialized.add((Person) obj);
+                }
+            }
+        } catch (EOFException ex) {
+            System.out.println("end of file");
+        } catch (IOException | ClassNotFoundException ex) {
+            System.out.println("read ERR: " + ex);
+        }
+        System.out.println("deserialized => " + deserialized);
+    }
+}
+class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String toString() {
+        return "Person[name="+name+",age="+age+"]";
+    }
+}
+```
+```
+p2 => Person[name=Mike,age=30]
+end of file
+deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
+```
+
+
+If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise we would get error.
+Since Body object inside Person doesn't implement `Serializible` we got error trying to serialize. 
+If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
+If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`.
+If body inside person is null, we won't get serialization error.
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args) {
+        File file = new File("src/main/java/com/java/test/text");
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+            Person p1 = new Person("Mike", 30, new Body(80));
+            out.writeObject(p1);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            Person p2 = (Person) in.readObject();
+            System.out.println("p2 => " + p2);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String name;
+    private int age;
+    private Body body;
+
+    public Person(String name, int age, Body body) {
+        this.name = name;
+        this.age = age;
+        this.body = body;
+    }
+
+    public String toString() {
+        return "Person[name="+name+",age="+age+",body="+body+"]";
+    }
+}
+class Body{
+    private int weight;
+    public Body(int weight){
+        this.weight = weight;
+    }
+    @Override
+    public String toString(){
+        return "Body[weight=" + weight + "]";
+    }
+}
+```
+```
+Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableException: com.java.test.Body
+```
+
+There are 3 ways we can customize serialization
+* 1. define `serialPersistentFields` array with fields to be serialized
+* 2. define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
+* 3. implement `Externalizable` interface
+
+Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args){
+        File file = new File("src/main/java/com/java/test/text");
+
+        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
+            Person p1 = new Person("Mike", 30, 80);
+            System.out.println(p1);
+            out.writeObject(p1);
+        } catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+
+        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
+            Person p2 = (Person)in.readObject();
+            System.out.println(p2);
+        } catch (IOException | ClassNotFoundException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+class Person implements Serializable {
+    private static final ObjectStreamField[] serialPersistentFields = {
+        new ObjectStreamField("name", String.class),
+        new ObjectStreamField("age", int.class),
+    };
+    private String name;
+    private int age;
+    private int weight;
+    public Person(String name, int age, int weight) {
+        this.name = name;
+        this.age = age;
+        this.weight = weight;
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + ", weight=" + weight + "]";
+    }
+}
+```
+```
+Person [name=Mike, age=30, weight=80]
+Person [name=Mike, age=30, weight=0]
+```
+
+Define custom `writeObject` and `readObject`
+By default java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
+Order of reading should correspond with order of writing. weight was written first so it should be read first.
+By default in every class that implements `Serializable` java inserts 2 methods 
+```java
+private void writeObject(ObjectOutputStream out) throws IOException{
+    out.defaultWriteObject();
+}
+private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
+    in.defaultReadObject();
+}
+```
+If you need more custom logic, you should implement them in your code and add any logic. 
+If you want to prevent serialization just implement them and throw `NotSerializableException`.
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args) {
+        File file = new File("src/main/java/com/java/test/text");
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+            Person p1 = new Person("Mike", 30);
+            p1.weight = 80;
+            p1.currentObject = 100;
+            out.writeObject(p1);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            Person p2 = (Person) in.readObject();
+            System.out.println("p2 => " + p2);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String name;
+    private int age;
+
+    public transient int weight = 1;
+    public static int currentObject = 1;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String toString() {
+        return "Person[name="+name+", age="+age+", weight="+weight+", currentObject="+currentObject+"]";
+    }
+
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        // utilize default serialization
+        out.defaultWriteObject();
+        out.writeInt(weight);
+        out.writeInt(currentObject);
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        // utilize default serialization
+        in.defaultReadObject();
+        weight = in.readInt();
+        currentObject = in.readInt();
+    }
+}
+```
+```
+p2 => Person[name=Mike, age=30, weight=80, currentObject=100]
+```
+
+
+We can also use `writeFields` and `readFields`.
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args){
+        File file = new File("src/main/java/com/java/test/text");
+
+        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
+            Person p1 = new Person("Mike", 30);
+            out.writeObject(p1);
+        } catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+
+        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
+            Person p2 = (Person)in.readObject();
+            System.out.println(p2);
+        } catch (IOException | ClassNotFoundException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+class Person implements Serializable {
+    private String name;
+    private int age;
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + "]";
+    }
+
+    private void writeObject(ObjectOutputStream out) throws IOException{
+        ObjectOutputStream.PutField fields = out.putFields();
+        fields.put("name", name);
+        fields.put("age", age);
+        out.writeFields();
+    }
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
+        ObjectInputStream.GetField fields = in.readFields();
+        name = (String)fields.get("name", "defaultName");
+        age = fields.get("age", 18);
+    }
+}
+```
+```
+Person [name=Mike, age=30]
+```
+
+
+We can also use custom serialization with `Externalizable` interface. In this case you have to override 2 methods + add no-arg constructor
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args){
+        File file = new File("src/main/java/com/java/test/text");
+
+        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
+            Person p1 = new Person("Mike", 30);
+            out.writeObject(p1);
+        } catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+
+        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
+            Person p2 = (Person)in.readObject();
+            System.out.println(p2);
+        } catch (IOException | ClassNotFoundException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+
+class Person implements Externalizable {
+    private String name;
+    private int age;
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + "]";
+    }
+
+    // you need to have no-arg constructor, otherwise you will get exception: InvalidClassException: com.java.test.Person; no valid constructor
+    public Person() {
+        System.out.println("Person no-arg constructor called");
+    }
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException{
+        out.writeObject(name);
+        out.writeInt(age);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        name = (String)in.readObject();
+        age = in.readInt();
+    }
+}
+```
+```
+Person no-arg constructor called
+Person [name=Mike, age=30]
+```
+**The interesting note is although you can change state in no-arg constructor
+```java
+public Person() {
+    System.out.println("Person no-arg constructor called");
+    name = "cool";
+    age = 1;
+}
+```
+Java will overwrite all state that you set here, by using readExternal.
+**Other caveat is different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
+The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData is not called, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
+If your class extends from non serializable class it should have default constructor, otherwise can't reconstruct object
+```java
+import java.io.*;
+
+public class App {
+    public static void main(String[] args){
+        File file = new File("src/main/java/com/java/test/text");
+
+        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
+            Person p1 = new Person("Mike", 30);
+            out.writeObject(p1);
+        } catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+
+        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
+            Person p2 = (Person)in.readObject();
+            System.out.println(p2);
+        } catch (IOException | ClassNotFoundException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+class Human{
+    protected String type;
+    public Human(String type){
+        this.type = type;
+    }
+    public Human(){}
+}
+class Person extends Human implements Serializable {
+    private String name;
+    private int age;
+    public Person(String name, int age) {
+        super("person");
+        this.name = name;
+        this.age = age;
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + ", type="+type+"]";
+    }
+}
+```
+
+Rules of changing serialized classes
+* 1. If you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class jvm will regenerate serival number
+* if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
+* if some fields are removed from new class version, they just ignored during deserialization~~~~
+
+
+
+###### XML serialization
+
+JAXB - java architexture xml binding - ability to dump object into xml and construct object from xml
+first add following into your pom.xml
+```
+<dependency>
+  <groupId>javax.xml.bind</groupId>
+  <artifactId>jaxb-api</artifactId>
+  <version>2.1</version>
+</dependency>
+<dependency>
+  <groupId>com.sun.xml.bind</groupId>
+  <artifactId>jaxb-impl</artifactId>
+  <version>2.2.11</version>
+</dependency>
+<dependency>
+  <groupId>com.sun.xml.bind</groupId>
+  <artifactId>jaxb-core</artifactId>
+  <version>2.2.11</version>
+</dependency>
+```
+```java
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.io.File;
+
+public class App {
+    public static void main(String[] args){
+        File file = new File("src/main/java/com/java/test/text");
+        Person p1 = new Person("John", 30);
+
+        try{
+            JAXBContext jaxbContext = JAXBContext.newInstance(Person.class);
+
+            Marshaller marshaller = jaxbContext.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            marshaller.marshal(p1, file);
+
+            Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+            Person p2 = (Person)unmarshaller.unmarshal(file);
+            System.out.println(p2);
+        } catch (JAXBException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+@XmlRootElement
+class Person{
+    @XmlElement
+    private String name;
+    @XmlElement
+    private int age;
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    public Person(){
+        System.out.println("Person no-arg constructor");
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + "]";
+    }
+}
+```
+```
+Person no-arg constructor
+Person [name=John, age=30]
+```
+xml file
+```
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<person>
+    <name>John</name>
+    <age>30</age>
+</person>
+
+```
+When constructing object from xml, no-arg constructor is called.
+
+
+###### JSON serialization
+
+Add to pom.xml
+```
+<dependency>
+  <groupId>com.google.code.gson</groupId>
+  <artifactId>gson</artifactId>
+  <version>2.8.5</version>
+</dependency>
+```
+```java
+import com.google.gson.Gson;
+
+public class App {
+    public static void main(String[] args){
+        Gson gson = new Gson();
+        Person p1 = new Person("John", 30);
+        String json = gson.toJson(p1);
+        System.out.println(json);
+        Person p2 = gson.fromJson(json, Person.class);
+        System.out.println(p2);
+    }
+}
+
+class Person{
+    private String name;
+    private int age;
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    public Person(){
+        System.out.println("Person no-arg constructor");
+    }
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + "]";
+    }
+}
+```
+```
+{"name":"John","age":30}
+Person no-arg constructor
+Person [name=John, age=30]
+```
+As you see, again we constructing object from json, we call no-arg constructor. Yet here we can comment no-arg constructor and it will work fine.
 
 
 #### IO and NIO
@@ -10144,6 +10823,7 @@ class Printer implements PrinterMBean {
 
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
+###### Desktop
 
 ###### Proxy and InvocationHandler
 They both are used to create mock objects on the fly or to implement proxy pattern in programming.
@@ -10203,678 +10883,6 @@ class ProxyHandler implements InvocationHandler {
 Person[name=John, age=30]
 Person[name=Jack, age=25]
 ```
-
-
-
-If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`
-**Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
-Otherwise compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
-There are a few ways you can get your serial number
-```java
-public class App {
-    public static void main(String[] args) throws Exception {
-        System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
-    }
-}
-class Person implements Serializable{}
-```
-```
-1733576120003020849
-```
-Using command line
-```
-serialver -classpath target/classes com.java.test.Person
-#com.java.test.Person:    private static final long serialVersionUID = 1733576120003020849L;
-```
-Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail
-
-You can also get serial number from binary data itself
-```java
-/**
- * https://www.javaworld.com/article/2072752/the-java-serialization-algorithm-revealed.html
- */
-import java.io.*;
-
-public class App {
-    public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
-        Person p1 = new Person("Jack", 30);
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
-            out.writeObject(p1);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-            Person p2 = (Person) in.readObject();
-            System.out.println(p2);
-        } catch (IOException | ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
-
-        System.out.println(readSerialNumberUID(Person.class, file));
-
-    }
-
-    private static long readSerialNumberUID(Class clazz, File file) {
-        try (FileInputStream in = new FileInputStream(file)) {
-            String className = clazz.getName();
-            StringBuilder hex = new StringBuilder();
-            StringBuilder content = new StringBuilder();
-            int b, i = 0;
-            boolean serialStart = false;
-            while ((b = in.read()) != -1) {
-                content.append((char) b);
-                if (serialStart && i < 8) {
-                    // don't use Integer.toHexString, it removes leading zeros and in case of 15 return just f instead of 0f
-                    hex.append(String.format("%02X", b));
-                    i++;
-                } else if (content.toString().contains(className)) {
-                    serialStart = true;
-                }
-            }
-            return Long.parseLong(hex.toString(), 16);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-class Person implements Serializable{
-    private static final long serialVersionUID = 9999;
-    private String name;
-    private int age;
-    public Person(String name, int age){
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString(){
-        return "Person[name="+name+", age="+age+"]";
-    }
-}
-```
-
-`Serialization/Deserialization.` We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
-```java
-import java.util.*;
-import java.io.*;
-
-public class App {
-    public static void main(String[] args) {
-        serializeSingleObject();
-        serializeList();
-    }
-
-    private static void serializeSingleObject(){
-        File file = new File("src/main/java/com/java/test/text");
-
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            Person p1 = new Person("Mike", 30);
-            out.writeObject(p1);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-            Person p2 = (Person) in.readObject();
-            System.out.println("p2 => " + p2);
-        } catch (IOException | ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    private static void serializeList() {
-        File file = new File("src/main/java/com/java/test/text");
-
-        List<Person> people = new ArrayList<>();
-        people.add(new Person("Jack", 25));
-        people.add(new Person("Mike", 35));
-        people.add(new Person("Melanie", 30));
-        people.add(new Person("David", 20));
-
-        List<Person> deserialized = new ArrayList<>();
-
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            for (var person : people) {
-                out.writeObject(person);
-            }
-        } catch (IOException ex) {
-            System.out.println("write ERR: " + ex);
-        }
-
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-            while (true) {
-                Object obj = in.readObject();
-                if (obj instanceof Person) {
-                    deserialized.add((Person) obj);
-                }
-            }
-        } catch (EOFException ex) {
-            System.out.println("end of file");
-        } catch (IOException | ClassNotFoundException ex) {
-            System.out.println("read ERR: " + ex);
-        }
-        System.out.println("deserialized => " + deserialized);
-    }
-}
-class Person implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public String toString() {
-        return "Person[name="+name+",age="+age+"]";
-    }
-}
-```
-```
-p2 => Person[name=Mike,age=30]
-end of file
-deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
-```
-
-
-If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise we would get error.
-Since Body object inside Person doesn't implement `Serializible` we got error trying to serialize. 
-If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
-If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`.
-If body inside person is null, we won't get serialization error.
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
-
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            Person p1 = new Person("Mike", 30, new Body(80));
-            out.writeObject(p1);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-            Person p2 = (Person) in.readObject();
-            System.out.println("p2 => " + p2);
-        } catch (IOException | ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-}
-class Person implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-    private Body body;
-
-    public Person(String name, int age, Body body) {
-        this.name = name;
-        this.age = age;
-        this.body = body;
-    }
-
-    public String toString() {
-        return "Person[name="+name+",age="+age+",body="+body+"]";
-    }
-}
-class Body{
-    private int weight;
-    public Body(int weight){
-        this.weight = weight;
-    }
-    @Override
-    public String toString(){
-        return "Body[weight=" + weight + "]";
-    }
-}
-```
-```
-Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableException: com.java.test.Body
-```
-
-There are 3 ways we can customize serialization
-* 1. define `serialPersistentFields` array with fields to be serialized
-* 2. define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
-* 3. implement `Externalizable` interface
-
-Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
-
-        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-            Person p1 = new Person("Mike", 30, 80);
-            System.out.println(p1);
-            out.writeObject(p1);
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-
-        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
-            Person p2 = (Person)in.readObject();
-            System.out.println(p2);
-        } catch (IOException | ClassNotFoundException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-class Person implements Serializable {
-    private static final ObjectStreamField[] serialPersistentFields = {
-        new ObjectStreamField("name", String.class),
-        new ObjectStreamField("age", int.class),
-    };
-    private String name;
-    private int age;
-    private int weight;
-    public Person(String name, int age, int weight) {
-        this.name = name;
-        this.age = age;
-        this.weight = weight;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + ", weight=" + weight + "]";
-    }
-}
-```
-```
-Person [name=Mike, age=30, weight=80]
-Person [name=Mike, age=30, weight=0]
-```
-
-Define custom `writeObject` and `readObject`
-By default java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
-Order of reading should correspond with order of writing. weight was written first so it should be read first.
-By default in every class that implements `Serializable` java inserts 2 methods 
-```java
-private void writeObject(ObjectOutputStream out) throws IOException{
-    out.defaultWriteObject();
-}
-private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
-    in.defaultReadObject();
-}
-```
-If you need more custom logic, you should implement them in your code and add any logic. 
-If you want to prevent serialization just implement them and throw `NotSerializableException`.
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
-
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            Person p1 = new Person("Mike", 30);
-            p1.weight = 80;
-            p1.currentObject = 100;
-            out.writeObject(p1);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
-            Person p2 = (Person) in.readObject();
-            System.out.println("p2 => " + p2);
-        } catch (IOException | ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-}
-class Person implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-
-    public transient int weight = 1;
-    public static int currentObject = 1;
-
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public String toString() {
-        return "Person[name="+name+", age="+age+", weight="+weight+", currentObject="+currentObject+"]";
-    }
-
-    private void writeObject(ObjectOutputStream out) throws IOException {
-        // utilize default serialization
-        out.defaultWriteObject();
-        out.writeInt(weight);
-        out.writeInt(currentObject);
-    }
-
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        // utilize default serialization
-        in.defaultReadObject();
-        weight = in.readInt();
-        currentObject = in.readInt();
-    }
-}
-```
-```
-p2 => Person[name=Mike, age=30, weight=80, currentObject=100]
-```
-
-
-We can also use `writeFields` and `readFields`.
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
-
-        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-            Person p1 = new Person("Mike", 30);
-            out.writeObject(p1);
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-
-        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
-            Person p2 = (Person)in.readObject();
-            System.out.println(p2);
-        } catch (IOException | ClassNotFoundException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-class Person implements Serializable {
-    private String name;
-    private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
-
-    private void writeObject(ObjectOutputStream out) throws IOException{
-        ObjectOutputStream.PutField fields = out.putFields();
-        fields.put("name", name);
-        fields.put("age", age);
-        out.writeFields();
-    }
-    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException{
-        ObjectInputStream.GetField fields = in.readFields();
-        name = (String)fields.get("name", "defaultName");
-        age = fields.get("age", 18);
-    }
-}
-```
-```
-Person [name=Mike, age=30]
-```
-
-
-We can also use custom serialization with `Externalizable` interface. In this case you have to override 2 methods + add no-arg constructor
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
-
-        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-            Person p1 = new Person("Mike", 30);
-            out.writeObject(p1);
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-
-        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
-            Person p2 = (Person)in.readObject();
-            System.out.println(p2);
-        } catch (IOException | ClassNotFoundException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-
-class Person implements Externalizable {
-    private String name;
-    private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
-
-    // you need to have no-arg constructor, otherwise you will get exception: InvalidClassException: com.java.test.Person; no valid constructor
-    public Person() {
-        System.out.println("Person no-arg constructor called");
-    }
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        out.writeObject(name);
-        out.writeInt(age);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        name = (String)in.readObject();
-        age = in.readInt();
-    }
-}
-```
-```
-Person no-arg constructor called
-Person [name=Mike, age=30]
-```
-**The interesting note is although you can change state in no-arg constructor
-```java
-public Person() {
-    System.out.println("Person no-arg constructor called");
-    name = "cool";
-    age = 1;
-}
-```
-Java will overwrite all state that you set here, by using readExternal.
-**Other caveat is different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
-The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData is not called, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
-If your class extends from non serializable class it should have default constructor, otherwise can't reconstruct object
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
-
-        try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-            Person p1 = new Person("Mike", 30);
-            out.writeObject(p1);
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-
-        try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
-            Person p2 = (Person)in.readObject();
-            System.out.println(p2);
-        } catch (IOException | ClassNotFoundException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-class Human{
-    protected String type;
-    public Human(String type){
-        this.type = type;
-    }
-    public Human(){}
-}
-class Person extends Human implements Serializable {
-    private String name;
-    private int age;
-    public Person(String name, int age) {
-        super("person");
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + ", type="+type+"]";
-    }
-}
-```
-
-Rules of changing serialized classes
-* 1. If you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class jvm will regenerate serival number
-* if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
-* if some fields are removed from new class version, they just ignored during deserialization~~~~
-
-JAXB - java architexture xml binding - ability to dump object into xml and construct object from xml
-first add following into your pom.xml
-```
-<dependency>
-  <groupId>javax.xml.bind</groupId>
-  <artifactId>jaxb-api</artifactId>
-  <version>2.1</version>
-</dependency>
-<dependency>
-  <groupId>com.sun.xml.bind</groupId>
-  <artifactId>jaxb-impl</artifactId>
-  <version>2.2.11</version>
-</dependency>
-<dependency>
-  <groupId>com.sun.xml.bind</groupId>
-  <artifactId>jaxb-core</artifactId>
-  <version>2.2.11</version>
-</dependency>
-```
-```java
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.io.File;
-
-public class App {
-    public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
-        Person p1 = new Person("John", 30);
-
-        try{
-            JAXBContext jaxbContext = JAXBContext.newInstance(Person.class);
-
-            Marshaller marshaller = jaxbContext.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            marshaller.marshal(p1, file);
-
-            Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            Person p2 = (Person)unmarshaller.unmarshal(file);
-            System.out.println(p2);
-        } catch (JAXBException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-
-@XmlRootElement
-class Person{
-    @XmlElement
-    private String name;
-    @XmlElement
-    private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    public Person(){
-        System.out.println("Person no-arg constructor");
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
-}
-```
-```
-Person no-arg constructor
-Person [name=John, age=30]
-```
-xml file
-```
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<person>
-    <name>John</name>
-    <age>30</age>
-</person>
-
-```
-When constructing object from xml, no-arg constructor is called.
-
-Serialization with json. Add to pom.xml
-```
-<dependency>
-  <groupId>com.google.code.gson</groupId>
-  <artifactId>gson</artifactId>
-  <version>2.8.5</version>
-</dependency>
-```
-```java
-import com.google.gson.Gson;
-
-public class App {
-    public static void main(String[] args){
-        Gson gson = new Gson();
-        Person p1 = new Person("John", 30);
-        String json = gson.toJson(p1);
-        System.out.println(json);
-        Person p2 = gson.fromJson(json, Person.class);
-        System.out.println(p2);
-    }
-}
-
-class Person{
-    private String name;
-    private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    public Person(){
-        System.out.println("Person no-arg constructor");
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
-}
-```
-```
-{"name":"John","age":30}
-Person no-arg constructor
-Person [name=John, age=30]
-```
-As you see, again we constructing object from json, we call no-arg constructor. Yet here we can comment no-arg constructor and it will work fine.
-
-
-
-###### Serialization with XML and JSON
-
 
 
 
