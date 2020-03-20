@@ -10618,11 +10618,13 @@ public class App {
 ```
 Example
 ```java
+import java.lang.reflect.*;
+
 public class App {
     public static void main(String[] args) {
         Person p = new Person();
         System.out.println("name: " + p.getName() + ", age: " + p.getAge());
-        Class clazz = p.getClass();
+        Class<?> clazz = p.getClass();
         System.out.println();
         System.out.println("package: " + clazz.getPackage().getName());
         System.out.println("className: " + clazz.getName());
@@ -10653,6 +10655,8 @@ public class App {
         }
     }
 }
+
+@Service("personService")
 class Person {
     private String name;
     private int age;
@@ -10672,6 +10676,10 @@ class Person {
     public void setAge(int age) {
         this.age = age;
     }
+}
+
+@interface Service{
+    String value();
 }
 ```
 ```
@@ -10770,8 +10778,32 @@ Suppressed: java.lang.reflect.InvocationTargetException
 {MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
 ```
 
+We can also get name of parameters, but for this we should compile with `-parameters` option
+```java
+import java.lang.reflect.*;
 
-
+public class App{
+    public App(String myName, int myAge){}
+    public static void main(String[] args) {
+        for(Constructor<?> con: App.class.getConstructors()){
+            for(Parameter param: con.getParameters()){
+                System.out.println("isNamePresent => " + param.isNamePresent() + ", name => " + param.getName());
+            }
+        }
+    }
+}
+```
+If we just run it from `intelliJ` as it is we get
+```
+isNamePresent => false, name => arg0
+isNamePresent => false, name => arg1
+```
+But if we got to `Settings`=>`Java Compiler`=>`Additional command line parameters` and add there `-parameters`, 
+remove target folder (just to avoid caching) we would get
+```java
+isNamePresent => true, name => myName
+isNamePresent => true, name => myAge
+```
 
 ###### Compile Time Annotation Processor
 
