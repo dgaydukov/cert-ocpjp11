@@ -10395,6 +10395,58 @@ class User{}
 }
 ```
 
+When you use `Repeatable` annotation, and trying to get it by reflection, you will get array annotation, inside which woudl
+be your annotations with values
+```java
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+public class App{
+    public static void main(String[] args) {
+        for(var an: User.class.getAnnotations()){
+            System.out.println(an);
+        }
+    }
+}
+
+@Role("user")
+@Role("admin")
+@Group("user")
+@Group("admin")
+@Service("userService")
+class User{}
+
+
+@Repeatable(Role.List.class)
+@interface Role{
+    String value();
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface List{
+        Role[] value();
+    }
+}
+
+@Repeatable(Groups.class)
+@interface Group{
+    String value();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@interface Groups{
+    Group[] value();
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@interface Service{
+    String value();
+}
+```
+```
+@com.java.test.Role$List(value={@com.java.test.Role(value="user"), @com.java.test.Role(value="admin")})
+@com.java.test.Groups(value={@com.java.test.Group(value="user"), @com.java.test.Group(value="admin")})
+@com.java.test.Service(value="userService")
+```
+
 `@Documented` - guarantee that annotation would be shown in javadoc
 ```java
 @Documented
