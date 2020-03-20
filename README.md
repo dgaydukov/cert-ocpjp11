@@ -10,7 +10,7 @@ But this can be even better, cause with this you will understand java more deepe
 ### Why do you need it.
 There are 2 main reasons to get it.
 1. During preparation you will learn a lot of new stuff
-2. It may (and may not), help your career
+2. It may help your career
 
 ### Contents
 * [Java Tips](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/ocpjp11.md)

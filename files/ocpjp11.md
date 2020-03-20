@@ -24,7 +24,9 @@
 * 3.5 [Timezone and DST](#timezone-and-dst)
 * 3.6 [Formatting](#formatting)
 4. [Generics](#generics)
-* 4.1 [Type erasure](#generics)
+* 4.1 [Type erasure](#type-erasure)
+* 4.2 [PECS - producer extends consumer super](#-pecs---producer-extends-consumer-super)
+* 4.2 [Generic method overriding](#generic-method-overriding)
 5. [Collections](#collections)
 * 5.1 [List and Set](#list-and-set)
 * 5.2 [Array and Enumeration to List and back](#array-and-enumeration-to-list-and-back)
@@ -48,11 +50,25 @@
 * 7.6 [Concurrent collections](#concurrent-collections)
 * 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
 8. [JDBC and SQl](#jdbc-and-sql)
+* 8.1 [Connection](#connection)
+* 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
+* 8.3 [CallableStatement](#callablestatement)
+* 8.4 [Transactions](#transactions)
 9. [Serialization](#serialization)
 * 9.1 [Java serialization](#java-serialization)
 * 9.2 [XML serialization](#xml-serialization)
 * 9.3 [JSON serialization](#json-serialization)
 10. [IO and NIO](#io-and-nio)
+* 10.1 [InputStream/OutputStream and Reader/Writer](#inputstreamoutputstream-and-readerwriter)
+* 10.2 [Console](#console)
+* 10.3 [5 ways to read file](#5-ways-to-read-file)
+* 10.4 [NIO channels](#nio-channels)
+* 10.5 [Directory searching](#directory-searching)
+* 10.6 [Path resolve and relativise](#path-resolve-and-relativise)
+* 10.7 [mark, reset, skip](#mark-reset-skip)
+* 10.8 [Files copy, move, delete](#files-copy-move-delete)
+* 10.9 [Data traversal](#data-traversal)
+* 10.10 [BasicFileAttributes](#basicfileattributes)
 11. [Miscellaneous](#miscellaneous)
 * 11.1 [Modules](#modules)
 * 11.2 [Random numbers](#random-numbers)
@@ -3492,146 +3508,23 @@ public class App{
 
 #### Generics
 
-Generic overriding. 
-Naming convention. 
-Overriding method - B.m1 - method that overrides another method from parent class.
-Overridden method - A.m1 - method from parent class that is being overriding by method from child class.
+###### Type erasure
+
+Type erasure - java by default remove types from generics and change it for object, and later make class casts like
 ```java
-class A{
-    public void m1(){} // overridden method
-}
-class B extends A{
-    @Override
-    public void m1() {} // overriding method
-}
-```
-For one method to correctly override another they should have the same signature (method name + params) and covariant return type.
-Covariant return (let's use <=) - return of the same type or it's subtype. For example `B` <= `A`, and `ArrayList<String>` <= `List<String>`.
-Generic covariant return: 
-`List<B> <= List<? extends B> <= List<? extends A>`
-`List<A> <= List<? super A> <= List<? super B>`
-Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime.
-For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`.
-So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. 
-From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion.
-The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
-Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a place holder for whatever type is actually used while invoking the method. 
-For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
-T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`.
-      
-Overriding example
-```java
-import java.util.*;
+List<String> list = new ArrayList<String>();
+list.add("Hi");
+String x = list.get(0);
 
-public class App{
-    public static void main(String[] args) {
-        List<A> list = new ArrayList<>();
-        A a = null;
-        m2(list, a);
-    }
-    public static  <T extends A> void m2(List<T> ls, T t){}
-}
+//is compiled into
 
-class A{}
-class B extends A{}
-class C extends B{}
-class X{
-    public <T extends A> List<T> m1(T t){
-        return new ArrayList<>();
-    }
-    public <T extends A> void m2(List<T> ls, T t){}
-}
-class Y extends X {
-    @Override
-    public List<A> m1(A t) { // compile warning, but it's ok, return type is covariant
-        return new ArrayList<>();
-    }
-
-    @Override
-    public void m2(List<A> ls, A t) { // compile error, params not matching List<A> (list of concrete class) is not the same as List<T> (list of any class)
-    } 
-}
-
-class X1<T extends A>{
-    public List<T> m1(T t){
-        return new ArrayList<>();
-    }
-    public void m2(List<T> ls, T t){}
-}
-class Y1 extends X1<A>{
-    @Override
-    public List<A> m1(A t) {
-        return new ArrayList<>();
-    }
-
-    @Override
-    public void m2(List<A> ls, A t) {
-    }
-}
-```
-Pay attention, although we can pass to B.m1 return type all 4
-```
-List
-List<A>
-List<B>
-List<C>
-```
-param inside B.getList can be only of type A, otherwise it’s not overriding, but overloading.
-
-     
-      
-`List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. 
-For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
-```java
-public class App {
-    public static void main(String[] args) {
-        var list = new ArrayList<Integer>();
-        B b = new B();
-        b.getNumberListWithParams(list);
-    }
-}
-class A{
-    public Number getNumber(){
-        return null;
-    }
-    public List<? extends Number> getNumberList(){
-        return null;
-    }
-    public List<? extends Number> getNumberListWithParams(List<? extends Number> list){
-        return null;
-    }
-}
-class B extends A{
-    @Override
-    public Integer getNumber(){
-        return null;
-    }
-    @Override
-    public List<Integer> getNumberList(){
-        return null;
-    }
-    @Override
-    public List<Integer> getNumberListWithParams(List<? extends Number> list){
-        return null;
-    }
-}
+List list = new ArrayList();
+list.add("Hi");
+String x = (String) list.get(0);
 ```
 
-Pay attention that due to type erasure we can set return value and params just as `List`. In that case we can pass any list.
-```java
-@Override
-public List getNumberListWithParams(List list){
-    return null;
-}
-```
-Pay attention, that due to type erasure, 2 methods inside same class, can’t be considered overloaded
-```java
-class A{
-    public void getList(List<Number> list){} //won't compile
-    public void getList(List<Integer> list){}
-}
-```
-PECS - producer extends consumer super. This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. The exception if overriding method has `List<anything>` but overriden just `List`.
+####### PECS - producer extends consumer super
+This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. The exception if overriding method has `List<anything>` but overriden just `List`.
 ```java
 import java.util.*;
 
@@ -3815,19 +3708,145 @@ Exception in thread "main" java.lang.ClassCastException: Attempt to insert class
 ```
 
 
-###### Type erasure
+###### Generic method overriding
 
-Type erasure - java by default remove types from generics and change it for object, and later make class casts like
+Naming convention. 
+Overriding method - B.m1 - method that overrides another method from parent class.
+Overridden method - A.m1 - method from parent class that is being overriding by method from child class.
 ```java
-List<String> list = new ArrayList<String>();
-list.add("Hi");
-String x = list.get(0);
+class A{
+    public void m1(){} // overridden method
+}
+class B extends A{
+    @Override
+    public void m1() {} // overriding method
+}
+```
+For one method to correctly override another they should have the same signature (method name + params) and covariant return type.
+Covariant return (let's use <=) - return of the same type or it's subtype. For example `B` <= `A`, and `ArrayList<String>` <= `List<String>`.
+Generic covariant return: 
+`List<B> <= List<? extends B> <= List<? extends A>`
+`List<A> <= List<? super A> <= List<? super B>`
+Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime.
+For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`.
+So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. 
+From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion.
+The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
+Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a place holder for whatever type is actually used while invoking the method. 
+For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
+T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`.
+      
+Overriding example
+```java
+import java.util.*;
 
-//is compiled into
+public class App{
+    public static void main(String[] args) {
+        List<A> list = new ArrayList<>();
+        A a = null;
+        m2(list, a);
+    }
+    public static  <T extends A> void m2(List<T> ls, T t){}
+}
 
-List list = new ArrayList();
-list.add("Hi");
-String x = (String) list.get(0);
+class A{}
+class B extends A{}
+class C extends B{}
+class X{
+    public <T extends A> List<T> m1(T t){
+        return new ArrayList<>();
+    }
+    public <T extends A> void m2(List<T> ls, T t){}
+}
+class Y extends X {
+    @Override
+    public List<A> m1(A t) { // compile warning, but it's ok, return type is covariant
+        return new ArrayList<>();
+    }
+
+    @Override
+    public void m2(List<A> ls, A t) { // compile error, params not matching List<A> (list of concrete class) is not the same as List<T> (list of any class)
+    } 
+}
+
+class X1<T extends A>{
+    public List<T> m1(T t){
+        return new ArrayList<>();
+    }
+    public void m2(List<T> ls, T t){}
+}
+class Y1 extends X1<A>{
+    @Override
+    public List<A> m1(A t) {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public void m2(List<A> ls, A t) {
+    }
+}
+```
+Pay attention, although we can pass to B.m1 return type all 4
+```
+List
+List<A>
+List<B>
+List<C>
+```
+param inside B.getList can be only of type A, otherwise it’s not overriding, but overloading.
+
+     
+      
+`List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. 
+For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
+```java
+public class App {
+    public static void main(String[] args) {
+        var list = new ArrayList<Integer>();
+        B b = new B();
+        b.getNumberListWithParams(list);
+    }
+}
+class A{
+    public Number getNumber(){
+        return null;
+    }
+    public List<? extends Number> getNumberList(){
+        return null;
+    }
+    public List<? extends Number> getNumberListWithParams(List<? extends Number> list){
+        return null;
+    }
+}
+class B extends A{
+    @Override
+    public Integer getNumber(){
+        return null;
+    }
+    @Override
+    public List<Integer> getNumberList(){
+        return null;
+    }
+    @Override
+    public List<Integer> getNumberListWithParams(List<? extends Number> list){
+        return null;
+    }
+}
+```
+
+Pay attention that due to type erasure we can set return value and params just as `List`. In that case we can pass any list.
+```java
+@Override
+public List getNumberListWithParams(List list){
+    return null;
+}
+```
+Pay attention, that due to type erasure, 2 methods inside same class, can’t be considered overloaded
+```java
+class A{
+    public void getList(List<Number> list){} //won't compile
+    public void getList(List<Integer> list){}
+}
 ```
 
 #### Collections
@@ -7213,7 +7232,7 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 
 #### JDBC and SQL
 
-`JDBC`
+###### Connection
 Older jdbc driver used this code `Class.forName("com.mysql.jdbc.Driver")` to load driver to classLoader. Since jdbc4 we don't need this code anymore, it's automatically loaded. 
 `getConnection` and `getDrivers` were rewritten to support Service Provider mechanism. jdbc4 drivers must include `META-INF/services/java.sql.drivers` and this entry must have a name of driver implementation.
 There are 2 ways you can get `Connection`
@@ -7308,49 +7327,6 @@ public class App {
 }
 ```
 
-It's better to always use `PreparedStatement` cause you can:
--avoid sql injection
--reuse query and by that get perfomance hit
--use blob & clob additional datatypes (ps.setBlob(i, Blob b), ps.setClob(i, Clob c))
-```java
-public class App {
-    public static void main(String[] args) {
-        String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
-        try (Connection conn = DriverManager.getConnection(url)
-        ) {
-            String sql = "update people set date=? , time=?, timestamp = ? where id=?";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-
-            preparedStatement.setDate(1, Date.valueOf(LocalDate.now()));
-            preparedStatement.setTime(2, Time.valueOf(LocalTime.now()));
-            preparedStatement.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
-            preparedStatement.setInt  (4, 1);
-
-            preparedStatement.setObject(1, LocalDate.now());
-            preparedStatement.setObject(2, LocalTime.now());
-            preparedStatement.setObject(3, LocalDateTime.now());
-            preparedStatement.setInt  (4, 1);
-
-            int rowsAffected = preparedStatement.executeUpdate();
-            System.out.println("updated: " + rowsAffected);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            System.out.println(e.getSQLState());
-            System.out.println(e.getErrorCode());
-        }
-    }
-}
-```
-As you see you can set date, time, timestamp with both `setDate, setTime, setTimestamp` or with `setObject` ans pass directly `LocalDate, LocalTime, LocalDateTime`.
-
-SQL Injection. `PreparedStatement` by default handles sql injection. For `Statement` there are 3 enquotes method
-```java
-Statement st = conn.createStatement();
-String value = "";
-String safeValue = st.enquoteIdentifier(value, true);
-safeValue = st.enquoteLiteral(value);
-```
-
 You can also use `DataSource` interface. Compare 2 examples
 ```java
 import java.sql.Connection;
@@ -7398,63 +7374,7 @@ name => Gary Larson
 name => Gary Larson
 ```
 
-`132.` It’s easy to work with transaction in jdbc. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
-```java
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.sql.Statement;
-
-public class App {
-    public static void main(String[] args) {
-        String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement stmt = conn.createStatement();
-        ) {
-            System.out.println("start tx");
-            conn.setAutoCommit(false);
-            int result1 = stmt.executeUpdate("update animals set name = 'name-11' where id = 1");
-            System.out.println("result1: " + result1);
-            int result2 = stmt.executeUpdate("update animals set name = 'name-22' where id = 2");
-            System.out.println("result2: " + result2);
-            int result3 = stmt.executeUpdate("update animals set name = 'name-33' where ids = 3");
-            System.out.println("result1: " + result3);
-            System.out.println("commit tx");
-            conn.commit();
-            // the below code also will flush all changes to db
-            //conn.setAutoCommit(true);
-            /**
-             * Generally it's good to call rollback, cause even if you get exception you tx still be in memory and will be rolled back by timeout
-             * But in reality you will never have to call it manually (until you are writing framework)
-             * Since we call rollback after commit it has no effect on the flow
-             */
-            Savepoint savepoint = conn.setSavepoint("MySavePoint");
-            conn.rollback();
-            conn.rollback(savepoint);
-            // after release you can't reuse it again
-            conn.releaseSavepoint(savepoint);
-        } catch (SQLException e) {
-            System.out.println("rollback tx");
-            System.out.println("message => " + e.getMessage());
-            System.out.println("SQLState => " + e.getSQLState());
-            System.out.println("errorCode => " + e.getErrorCode());
-        }
-    }
-}
-```
-```
-start tx
-result1: 1
-result2: 1
-rollback tx
-message => Unknown column 'ids' in 'where clause'
-SQLState => 42S22
-errorCode => 1054
-```
-
-
-`133.` How many db connections can be created. It will vary between 150 and 280, but on average around 200. Here is nice way to check it out. 
+How many db connections can be created. It will vary between 150 and 280, but on average around 200. Here is nice way to check it out. 
 ```java
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -7660,6 +7580,54 @@ time: 7 sec
 ```
 Here we are using pool of connections, and once we have use it, return it to db. We almost tripple speed by this.
 
+###### Statement and PreparedStatement
+
+It's better to always use `PreparedStatement` cause you can:
+-avoid sql injection
+-reuse query and by that get perfomance hit
+-use blob & clob additional datatypes (ps.setBlob(i, Blob b), ps.setClob(i, Clob c))
+```java
+public class App {
+    public static void main(String[] args) {
+        String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
+        try (Connection conn = DriverManager.getConnection(url)
+        ) {
+            String sql = "update people set date=? , time=?, timestamp = ? where id=?";
+            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+
+            preparedStatement.setDate(1, Date.valueOf(LocalDate.now()));
+            preparedStatement.setTime(2, Time.valueOf(LocalTime.now()));
+            preparedStatement.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            preparedStatement.setInt  (4, 1);
+
+            preparedStatement.setObject(1, LocalDate.now());
+            preparedStatement.setObject(2, LocalTime.now());
+            preparedStatement.setObject(3, LocalDateTime.now());
+            preparedStatement.setInt  (4, 1);
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            System.out.println("updated: " + rowsAffected);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            System.out.println(e.getSQLState());
+            System.out.println(e.getErrorCode());
+        }
+    }
+}
+```
+As you see you can set date, time, timestamp with both `setDate, setTime, setTimestamp` or with `setObject` ans pass directly `LocalDate, LocalTime, LocalDateTime`.
+
+SQL Injection. `PreparedStatement` by default handles sql injection. For `Statement` there are 3 enquotes method
+```java
+Statement st = conn.createStatement();
+String value = "";
+String safeValue = st.enquoteIdentifier(value, true);
+safeValue = st.enquoteLiteral(value);
+```
+
+###### CallableStatement
+
+
 There are 3 interfaces to execute queries:
 `Statement` (extends AutoClosable) - can be obtained `Statement s = conn.createStatement("");`
 `PreparedStatement` (extends Statement) - can be obtained `PreparedStatement s = conn.prepareStatement("");`
@@ -7713,6 +7681,65 @@ public class App {
     }
 }
 ```
+
+###### Transactions
+
+It’s easy to work with transaction in jdbc. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
+```java
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+
+public class App {
+    public static void main(String[] args) {
+        String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
+        try (Connection conn = DriverManager.getConnection(url);
+             Statement stmt = conn.createStatement();
+        ) {
+            System.out.println("start tx");
+            conn.setAutoCommit(false);
+            int result1 = stmt.executeUpdate("update animals set name = 'name-11' where id = 1");
+            System.out.println("result1: " + result1);
+            int result2 = stmt.executeUpdate("update animals set name = 'name-22' where id = 2");
+            System.out.println("result2: " + result2);
+            int result3 = stmt.executeUpdate("update animals set name = 'name-33' where ids = 3");
+            System.out.println("result1: " + result3);
+            System.out.println("commit tx");
+            conn.commit();
+            // the below code also will flush all changes to db
+            //conn.setAutoCommit(true);
+            /**
+             * Generally it's good to call rollback, cause even if you get exception you tx still be in memory and will be rolled back by timeout
+             * But in reality you will never have to call it manually (until you are writing framework)
+             * Since we call rollback after commit it has no effect on the flow
+             */
+            Savepoint savepoint = conn.setSavepoint("MySavePoint");
+            conn.rollback();
+            conn.rollback(savepoint);
+            // after release you can't reuse it again
+            conn.releaseSavepoint(savepoint);
+        } catch (SQLException e) {
+            System.out.println("rollback tx");
+            System.out.println("message => " + e.getMessage());
+            System.out.println("SQLState => " + e.getSQLState());
+            System.out.println("errorCode => " + e.getErrorCode());
+        }
+    }
+}
+```
+```
+start tx
+result1: 1
+result2: 1
+rollback tx
+message => Unknown column 'ids' in 'where clause'
+SQLState => 42S22
+errorCode => 1054
+```
+
+
 
 #### Serialization
 
@@ -8401,48 +8428,41 @@ As you see, again we constructing object from json, we call no-arg constructor. 
 
 #### IO and NIO
 
-Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
+###### InputStream/OutputStream and Reader/Writer
+There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
+but Reader/Writer works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
+`StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
+If we try to open non-existing file with `FileInputStrem/FileReader` we will got `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
+File has 2 separators
+`File.separator` - `/` for linux - separates files (/path/to/your/file)
+`File.pathSeparator` - `:` for linux - separates paths (/path/to/jar1.jar:/path/to/jar2.jar:/path/to/jar3.jar)
+We can prohibit file writing by setting `setReadOnly()` or `setWritable(false)` on `File` instance.
 ```java
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.io.*;
 
 public class App {
-    public static void main(String[] args) {
-        try(FileChannel in = FileChannel.open(Paths.get("src/main/java/source"));
-            FileChannel out = FileChannel.open(Paths.get("src/main/java/dest"), StandardOpenOption.WRITE);){
-            ByteBuffer buf = ByteBuffer.allocate(10);
-            while (in.read(buf) != -1) {
-                System.out.println(new String(buf.array(), 0, buf.position()));
-                // since we read from 0 to n, we should flip so we can write in correct order
-                buf.flip();
-                out.write(buf);
-                buf.clear();
-            }
-        } catch (IOException ex){
-            System.out.println("ERR: " + ex);
+    public static void main(String[] args) throws Exception{
+        String path = "src/main/java/com/java/test/text";
+        File file = new File(path);
+        file.setReadOnly();
+        // or equivalent
+        file.setWritable(false);
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(path))){ // we can pass file or path
+            writer.write("hello world");
         }
     }
 }
 ```
 ```
-hello worl
-d, I'm her
-e
+Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java/test/text (Permission denied)
 ```
 
-You can also get it from `FileInputStream/FileOutputStream` and `RandomAccess`
-```java
-FileChannel in = new FileInputStream(absoluteInPath).getChannel();
-FileChannel out = new FileOutputStream(absoluteOutPath).getChannel();
-
-FileChannel in = new RandomAccessFile(absoluteInPath, "r").getChannel();
-FileChannel out = new RandomAccessFile(absoluteOutPath, "rw").getChannel();
-```
+`java.io.File` 
+`mkdir` - create one directory (if one of parent directory missing, return false)
+`mkdirs` - create all non-existent parent directories
 
 
+###### Console
 `Console` method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
 Pay attention that `Console` object is null when execute from IDE. You need to run it manually from console. In order for `Console` to work java should be run from interactive console without redirecting input/output.
 With `Console` you can both read and write to/from console.
@@ -8488,10 +8508,9 @@ reader class => class java.io.Console$LineReader
 helloworld!enter your username: admin
 enter your password: 
 admin [1, 2, 3, 4]
-
 ```
 
-5 methods to read file
+###### 5 ways to read file
 ```java
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -8559,53 +8578,87 @@ hello worldhello worldhello worldhello worldworlhello world
 ```
 
 
-`java.io.File` 
-`mkdir` - create one directory (if one of parent directory missing, return false)
-`mkdirs` - create all non-existent parent directories
+###### NIO channels
 
-There are a few methods to move `InputStream` back or forward:
-`mark(int limit)` - mark the current point with number of bytes to save
-`reset()` - return to the marked point
-`skip(int n)` - skip n bytes 
 
+Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
 ```java
-import java.io.File;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 public class App {
     public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/source"); // ABCDEF
-        try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
-            System.out.println((char) in.read()); // A
-            int count = 3;
-            in.mark(count);
-            for (int i = 0; i < count; i++) {
-                System.out.print((char) in.read()); // BCD
+        try(FileChannel in = FileChannel.open(Paths.get("src/main/java/source"));
+            FileChannel out = FileChannel.open(Paths.get("src/main/java/dest"), StandardOpenOption.WRITE);){
+            ByteBuffer buf = ByteBuffer.allocate(10);
+            while (in.read(buf) != -1) {
+                System.out.println(new String(buf.array(), 0, buf.position()));
+                // since we read from 0 to n, we should flip so we can write in correct order
+                buf.flip();
+                out.write(buf);
+                buf.clear();
             }
-            System.out.println((char) in.read()); // E
-            in.reset(); // return to the mark position
-            System.out.println((char) in.read()); // B
-            in.skip(3);
-            System.out.println((char) in.read()); // F
-            System.out.println(in.read()); // -1, end of stream
-        } catch (IOException ex) {
+        } catch (IOException ex){
             System.out.println("ERR: " + ex);
         }
     }
 }
 ```
 ```
-A
-BCDE
-B
-F
--1
+hello worl
+d, I'm her
+e
 ```
 
-Java nio `Files` allows easily read files.
+You can also get it from `FileInputStream/FileOutputStream` and `RandomAccess`
+```java
+FileChannel in = new FileInputStream(absoluteInPath).getChannel();
+FileChannel out = new FileOutputStream(absoluteOutPath).getChannel();
+
+FileChannel in = new RandomAccessFile(absoluteInPath, "r").getChannel();
+FileChannel out = new RandomAccessFile(absoluteOutPath, "rw").getChannel();
+```
+
+###### Directory searching
+There are 3 ways for searching
+```java
+import java.nio.file.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+public class App {
+    public static void main(String[] args) throws Exception{
+        Path path = Paths.get("src");
+        //DirectoryStream - is iterable and return iterator
+        DirectoryStream<Path> ds =  Files.newDirectoryStream(path.resolve("main/java"), "*.{txt,word}");
+        ds.forEach(System.out::println);
+        // convert DirectoryStream to Stream
+        Stream<Path> dsStream = StreamSupport.stream(ds.spliterator(), false);
+        // just list all files/directories inside current directory, using newDirectoryStream inside
+        Stream<Path> list =  Files.list(path.resolve("main/java"));
+        System.out.println();
+        Stream<Path> walk = Files.walk(path).filter(p->p.toString().endsWith(".txt"));
+        walk.forEach(System.out::println);
+        System.out.println();
+        Stream<Path> find = Files.find(path, 10, (p, a)->p.toString().endsWith(".txt"));
+        find.forEach(System.out::println);
+    }
+}
+```
+```
+src/main/java/test.txt
+src/main/java/test.word
+
+src/main/java/test.txt
+
+src/main/java/test.txt
+```
+
+
+###### Path resolve and relativise
 There are a few methods relating to `Path`
 `resolve` - try bo combine 2 paths into one. If second path absolute, it uses it
 `relativise` - try to get relative path of other against current
@@ -8704,6 +8757,50 @@ public class App {
 a/b/d
 ```
 
+###### mark, reset, skip
+There are a few methods to move `InputStream` back or forward:
+`mark(int limit)` - mark the current point with number of bytes to save
+`reset()` - return to the marked point
+`skip(int n)` - skip n bytes 
+
+```java
+import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+public class App {
+    public static void main(String[] args) {
+        File file = new File("src/main/java/com/java/test/source"); // ABCDEF
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+            System.out.println((char) in.read()); // A
+            int count = 3;
+            in.mark(count);
+            for (int i = 0; i < count; i++) {
+                System.out.print((char) in.read()); // BCD
+            }
+            System.out.println((char) in.read()); // E
+            in.reset(); // return to the mark position
+            System.out.println((char) in.read()); // B
+            in.skip(3);
+            System.out.println((char) in.read()); // F
+            System.out.println(in.read()); // -1, end of stream
+        } catch (IOException ex) {
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+```
+```
+A
+BCDE
+B
+F
+-1
+```
+
+###### Files copy, move, delete
 There are a few useful methods in `Files` class:
 `Files.copy` - copy one file into another, if another file doesn't exists it's created, if exists `FileAlreadyExistsException` throws
 `Files.move` - move (copy & delete)
@@ -8737,6 +8834,197 @@ public class App {
     }
 }
 ```
+
+###### Data traversal
+We can use standard BFS and DFS to traverse data, or could use standard implementation of `walk` (work as dfs) method
+```java
+public class App {
+    public static void main(String[] args) {
+        String absolutePath = "/home/diman/projects/my/mvnjava/files";
+        Files.walk(Paths.get(absolutePath)).forEach(System.out::println);
+        System.out.println();
+        dfs(absolutePath).forEach(System.out::println);
+        System.out.println();
+        bfs(absolutePath).forEach(System.out::println);
+    }
+    private static List<String> dfs(String absolutePath) {
+        File file = new File(absolutePath);
+        List<String> files = new ArrayList<>();
+        files.add(file.getAbsoluteFile().toString());
+        Deque<File> stack = new ArrayDeque<>(Arrays.asList(file.listFiles()));
+        while (stack.size() > 0) {
+            var f = stack.pollLast();
+            files.add(f.getAbsoluteFile().toString());
+            if (f.listFiles() != null) {
+                stack.addAll(Arrays.asList(f.listFiles()));
+            }
+        }
+        return files;
+    }
+    private static List<String> bfs(String absolutePath) {
+        File file = new File(absolutePath);
+        List<String> files = new ArrayList<>();
+        files.add(file.getAbsoluteFile().toString());
+        Deque<File> queue = new ArrayDeque<>(Arrays.asList(file.listFiles()));
+        while (queue.size() > 0) {
+            var f = queue.pollFirst();
+            files.add(f.getAbsoluteFile().toString());
+            if (f.listFiles() != null) {
+                queue.addAll(Arrays.asList(f.listFiles()));
+            }
+        }
+        return files;
+    }
+}
+```
+```
+/home/diman/projects/my/mvnjava/files
+/home/diman/projects/my/mvnjava/files/test
+/home/diman/projects/my/mvnjava/files/test/java
+/home/diman/projects/my/mvnjava/files/main
+/home/diman/projects/my/mvnjava/files/main/scala
+/home/diman/projects/my/mvnjava/files/main/java
+/home/diman/projects/my/mvnjava/files/main/java/source
+
+/home/diman/projects/my/mvnjava/files
+/home/diman/projects/my/mvnjava/files/main
+/home/diman/projects/my/mvnjava/files/main/java
+/home/diman/projects/my/mvnjava/files/main/java/source
+/home/diman/projects/my/mvnjava/files/main/scala
+/home/diman/projects/my/mvnjava/files/test
+/home/diman/projects/my/mvnjava/files/test/java
+
+/home/diman/projects/my/mvnjava/files
+/home/diman/projects/my/mvnjava/files/test
+/home/diman/projects/my/mvnjava/files/main
+/home/diman/projects/my/mvnjava/files/test/java
+/home/diman/projects/my/mvnjava/files/main/scala
+/home/diman/projects/my/mvnjava/files/main/java
+/home/diman/projects/my/mvnjava/files/main/java/source
+```
+
+
+We can list directory's files & subdirectories with 2 ways (with old `java.io.File` api and new `java.nio.file.Files` api)
+```java
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class App {
+    public static void main(String[] args) {
+        String absolutePath = "src/main/java/com/java/test";
+        File file = new File(absolutePath);
+        for(var f: file.listFiles()){
+            System.out.println(f.getName());
+        }
+        System.out.println();
+        Path path = Paths.get(absolutePath);
+        try {
+            Files.list(path)
+                .map(f->f.getFileName())
+                .forEach(System.out::println);
+        } catch (IOException ex){
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+```
+```
+dest
+source
+App.java
+
+dest
+source
+App.java
+```
+
+###### BasicFileAttributes
+Can be useful when you want to access a few attributes at the same time, so you don’t have to call `Files.isAttr` a few times (every time you access attribute with Files.get... it read file from filesystem). Moreover there are a few properties that are system attributes and there is no comparable methods in `Files.` api.
+```java
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+
+public class App {
+   public static void main(String[] args) {
+       Path path = Paths.get("src/main/java/com/java/test/text");
+       try{
+           // throws IOException
+           BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+           // throws IOException
+           System.out.println("lastModifiedTime => " + attributes.lastModifiedTime() + " : " + Files.getLastModifiedTime(path));
+           System.out.println("isRegularFile => " + attributes.isRegularFile() + " : " + Files.isRegularFile(path));
+           System.out.println("isDirectory => " + attributes.isDirectory() + " : " + Files.isDirectory(path));
+           System.out.println("isSymbolicLink => " + attributes.isSymbolicLink() + " : " + Files.isSymbolicLink(path));
+           // throws IOException
+           System.out.println("size => " + attributes.size() + " : " + Files.size(path));
+           System.out.println("isOther => " + attributes.isOther());
+           System.out.println("lastAccessTime => " + attributes.lastAccessTime());
+           System.out.println("creationTime => " + attributes.creationTime());
+           System.out.println("fileKey => " + attributes.fileKey());
+       } catch (IOException ex){
+           throw new RuntimeException(ex);
+       }
+   }
+}
+```
+```
+lastModifiedTime => 2020-02-19T07:33:45.473663Z : 2020-02-19T07:33:45.473663Z
+isRegularFile => true : true
+isDirectory => false : false
+isSymbolicLink => false : false
+size => 11 : 11
+isOther => false
+lastAccessTime => 2020-02-19T07:33:45.793662Z
+creationTime => 2020-02-19T07:33:45.473663Z
+fileKey => (dev=fd01,ino=1314666)
+```
+
+
+`setTimes` can allow to change time of file `setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime)`
+```java
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+
+public class App {
+   public static void main(String[] args) {
+       Path path = Paths.get("src/main/java/com/java/test/text");
+       try{
+           BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class);
+           BasicFileAttributes attributes = view.readAttributes();
+           FileTime time = FileTime.from(Instant.now());
+           System.out.println("old time => " + attributes.creationTime());
+           if (attributes.size() > 0 && attributes.creationTime().toMillis() > 0) {
+               view.setTimes(time, null, null);
+           }
+           System.out.println("new time => " + Files.getLastModifiedTime(path));
+       } catch (IOException ex){
+           throw new RuntimeException(ex);
+       }
+   }
+}
+```
+```
+old time => 2019-11-22T11:08:55.116953Z
+new time => 2019-11-22T11:10:59.370485Z
+```
+       
+--------------------------------------------
+
+
+
+
 
 We can also get `BufferedReader` directly from `Files.newBufferedReader`, and work with string lines instead of bytes. We can also read all lines into memory all at once with `Files.readAllLines`.
 ```java
@@ -8818,223 +9106,15 @@ public class App{
 ```
 
 
-Data traversal - we can use standard BFS and DFS to traverse data, or could use standard implementation of `walk` (work as dfs) method
-```java
-public class App {
-    public static void main(String[] args) {
-        String absolutePath = "/home/diman/projects/my/mvnjava/files";
-        Files.walk(Paths.get(absolutePath)).forEach(System.out::println);
-        System.out.println();
-        dfs(absolutePath).forEach(System.out::println);
-        System.out.println();
-        bfs(absolutePath).forEach(System.out::println);
-    }
-    private static List<String> dfs(String absolutePath) {
-        File file = new File(absolutePath);
-        List<String> files = new ArrayList<>();
-        files.add(file.getAbsoluteFile().toString());
-        Deque<File> stack = new ArrayDeque<>(Arrays.asList(file.listFiles()));
-        while (stack.size() > 0) {
-            var f = stack.pollLast();
-            files.add(f.getAbsoluteFile().toString());
-            if (f.listFiles() != null) {
-                stack.addAll(Arrays.asList(f.listFiles()));
-            }
-        }
-        return files;
-    }
-    private static List<String> bfs(String absolutePath) {
-        File file = new File(absolutePath);
-        List<String> files = new ArrayList<>();
-        files.add(file.getAbsoluteFile().toString());
-        Deque<File> queue = new ArrayDeque<>(Arrays.asList(file.listFiles()));
-        while (queue.size() > 0) {
-            var f = queue.pollFirst();
-            files.add(f.getAbsoluteFile().toString());
-            if (f.listFiles() != null) {
-                queue.addAll(Arrays.asList(f.listFiles()));
-            }
-        }
-        return files;
-    }
-}
-```
-```
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/test/java
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
-
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/test/java
-
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/test/java
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
-```
-
-There are 3 ways for searching
-```java
-import java.nio.file.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-public class App {
-    public static void main(String[] args) throws Exception{
-        Path path = Paths.get("src");
-        //DirectoryStream - is iterable and return iterator
-        DirectoryStream<Path> ds =  Files.newDirectoryStream(path.resolve("main/java"), "*.{txt,word}");
-        ds.forEach(System.out::println);
-        // convert DirectoryStream to Stream
-        Stream<Path> dsStream = StreamSupport.stream(ds.spliterator(), false);
-        // just list all files/directories inside current directory, using newDirectoryStream inside
-        Stream<Path> list =  Files.list(path.resolve("main/java"));
-        System.out.println();
-        Stream<Path> walk = Files.walk(path).filter(p->p.toString().endsWith(".txt"));
-        walk.forEach(System.out::println);
-        System.out.println();
-        Stream<Path> find = Files.find(path, 10, (p, a)->p.toString().endsWith(".txt"));
-        find.forEach(System.out::println);
-    }
-}
-```
-```
-src/main/java/test.txt
-src/main/java/test.word
-
-src/main/java/test.txt
-
-src/main/java/test.txt
-```
 
 
-`126.` We can list directory's files & subdirectories with 2 ways (with old `java.io.File` api and new `java.nio.file.Files` api)
-```java
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
-public class App {
-    public static void main(String[] args) {
-        String absolutePath = "src/main/java/com/java/test";
-        File file = new File(absolutePath);
-        for(var f: file.listFiles()){
-            System.out.println(f.getName());
-        }
-        System.out.println();
-        Path path = Paths.get(absolutePath);
-        try {
-            Files.list(path)
-                .map(f->f.getFileName())
-                .forEach(System.out::println);
-        } catch (IOException ex){
-            System.out.println("ERR: " + ex);
-        }
-    }
-}
-```
-```
-dest
-source
-App.java
-
-dest
-source
-App.java
-```
+ 
 
 
-`setTimes` can allow to change time of file `setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime)`
-```java
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributeView;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.time.Instant;
-
-public class App {
-    public static void main(String[] args) {
-        Path path = Paths.get("src/main/java/com/java/test/text");
-        try{
-            BasicFileAttributeView view = Files.getFileAttributeView(path, BasicFileAttributeView.class);
-            BasicFileAttributes attributes = view.readAttributes();
-            FileTime time = FileTime.from(Instant.now());
-            System.out.println("old time => " + attributes.creationTime());
-            if (attributes.size() > 0 && attributes.creationTime().toMillis() > 0) {
-                view.setTimes(time, null, null);
-            }
-            System.out.println("new time => " + Files.getLastModifiedTime(path));
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-```
-```
-old time => 2019-11-22T11:08:55.116953Z
-new time => 2019-11-22T11:10:59.370485Z
-```
 
 
-`BasicFileAttributes` can be useful when you want to access a few attributes at the same time, so you don’t have to call `Files.isAttr` a few times (every time you access attribute with Files.get... it read file from filesystem). Moreover there are a few properties that are system attributes and there is no comparable methods in `Files.` api.
-```java
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 
-public class App {
-    public static void main(String[] args) {
-        Path path = Paths.get("src/main/java/com/java/test/text");
-        try{
-            // throws IOException
-            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-            // throws IOException
-            System.out.println("lastModifiedTime => " + attributes.lastModifiedTime() + " : " + Files.getLastModifiedTime(path));
-            System.out.println("isRegularFile => " + attributes.isRegularFile() + " : " + Files.isRegularFile(path));
-            System.out.println("isDirectory => " + attributes.isDirectory() + " : " + Files.isDirectory(path));
-            System.out.println("isSymbolicLink => " + attributes.isSymbolicLink() + " : " + Files.isSymbolicLink(path));
-            // throws IOException
-            System.out.println("size => " + attributes.size() + " : " + Files.size(path));
-            System.out.println("isOther => " + attributes.isOther());
-            System.out.println("lastAccessTime => " + attributes.lastAccessTime());
-            System.out.println("creationTime => " + attributes.creationTime());
-            System.out.println("fileKey => " + attributes.fileKey());
-        } catch (IOException ex){
-            throw new RuntimeException(ex);
-        }
-    }
-}
-```
-```
-lastModifiedTime => 2020-02-19T07:33:45.473663Z : 2020-02-19T07:33:45.473663Z
-isRegularFile => true : true
-isDirectory => false : false
-isSymbolicLink => false : false
-size => 11 : 11
-isOther => false
-lastAccessTime => 2020-02-19T07:33:45.793662Z
-creationTime => 2020-02-19T07:33:45.473663Z
-fileKey => (dev=fd01,ino=1314666)
-```
 
 `130.` We can write to file using nio. `Files.writeString`.
 ```java
@@ -9058,34 +9138,6 @@ public class App {
 ```
 
 
-`FileInputStream` vs `FileReader`
-There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
-but Reader/Writer works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
-`StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
-If we try to open non-existing file with `FileInputStrem/FileReader` we will got `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
-File has 2 separators
-`File.separator` - `/` for linux - separates files (/path/to/your/file)
-`File.pathSeparator` - `:` for linux - separates paths (/path/to/jar1.jar:/path/to/jar2.jar:/path/to/jar3.jar)
-We can prohibit file writing by setting `setReadOnly()` or `setWritable(false)` on `File` instance.
-```java
-import java.io.*;
-
-public class App {
-    public static void main(String[] args) throws Exception{
-        String path = "src/main/java/com/java/test/text";
-        File file = new File(path);
-        file.setReadOnly();
-        // or equivalent
-        file.setWritable(false);
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(path))){ // we can pass file or path
-            writer.write("hello world");
-        }
-    }
-}
-```
-```
-Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java/test/text (Permission denied)
-```
 
 `StringReader` - special class that can take a String object and turn it into `Reader` stream.
 ```java
@@ -10956,10 +11008,10 @@ addr1.equals(addr2) => true
 
 
 #### Class Diagram
-* ![exception hierarchy](https://gitlab.com/mycert/ocpjp/raw/master/files/images/exception-hierarchy.png)
+* ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
 
-* ![collection interface](https://gitlab.com/mycert/ocpjp/raw/master/files/images/collection-interface.jpg)
+* ![collection interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/collection-interface.jpg)
 
-* ![map interface](https://gitlab.com/mycert/ocpjp/raw/master/files/images/map-interface.png)
+* ![map interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/map-interface.png)
 
-* ![concurrent collection classes](https://gitlab.com/mycert/ocpjp/raw/master/files/images/concurrent-collection-classes.png)
+* ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
