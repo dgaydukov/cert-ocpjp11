@@ -1433,6 +1433,56 @@ class LazySingleton {
 }
 ```
 
+We can also use `Enum` to create instance
+```java
+import java.util.concurrent.*;
+
+public class App {
+    public static void main(String[] args) {
+        int n = 10;
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch end = new CountDownLatch(n);
+        ExecutorService service = Executors.newFixedThreadPool(n);
+        for (int i = 0; i < n; i++) {
+            service.execute(() -> {
+                wait(start);
+                Singleton.INSTANCE.print();
+                end.countDown();
+            });
+        }
+        System.out.println("start");
+        start.countDown();
+        wait(end);
+        System.out.println("finish");
+        service.shutdown();
+    }
+    private static void wait(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+enum Singleton {
+    INSTANCE;
+
+    Singleton(){
+        System.out.println("Singleton::constructor");
+    }
+
+    public void print(){
+
+    }
+}
+```
+```
+start
+Singleton::constructor
+finish
+```
+
+
 When we use method overloading java itself can determine the most close method to use, but sometimes it’s not the case, so we can get compile error
 ```java
 public class Main {
