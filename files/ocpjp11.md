@@ -11140,8 +11140,6 @@ addr1.equals(addr2) => true
 ```
 
 
-###### Desktop
-
 ###### Custom ClassLoader
 In java there are 3 types of classLoaders. All system classes are loaded by BootStrap ClassLoader. When you try to call `getClassLoader()` on such classes you will get null.
 Extension classLoaders => load all extensions classes
@@ -11191,6 +11189,79 @@ loading class... MyService
 hello world
 ```
 
+
+
+###### Desktop
+There are 2 types of packages to work with desktop: `javafx` and `swing`.
+
+Here is simple gui app that enable you to convert you text to upper case.
+```java
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.TextArea;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+public class App {
+    public static void main(String[] args) {
+
+        JFrame frame = new JFrame();
+        frame.setTitle("UpperCase Converter");
+        frame.setSize(new Dimension(500, 500));
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+        frame.setResizable(true);
+        frame.setVisible(true);
+        frame.setLayout(new GridLayout(2, 1));
+
+        JPanel lowerCasePanel = new JPanel();
+        lowerCasePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        TextArea lowerCaseText = new TextArea();
+        lowerCaseText.setText("hello");
+        lowerCasePanel.add(lowerCaseText);
+        JButton clearButton = new JButton("clear");
+        JButton convertButton = new JButton("convert");
+        lowerCasePanel.add(convertButton);
+        lowerCasePanel.add(clearButton);
+
+        JPanel upperCasePanel = new JPanel();
+        TextArea upperCaseText = new TextArea();
+        upperCaseText.setEditable(false);
+        upperCasePanel.add(upperCaseText);
+        upperCasePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+
+        frame.add(lowerCasePanel);
+        frame.add(upperCasePanel);
+
+        clearButton.addActionListener(e -> {
+            lowerCaseText.setText("");
+        });
+
+        convertButton.addActionListener(e -> {
+            upperCaseText.setText(lowerCaseText.getText().toUpperCase());
+        });
+
+
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int result = JOptionPane.showConfirmDialog(null, "Do you really want to exit?", "Are you sure", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_NO_OPTION) {
+                    System.exit(0);
+                }
+            }
+        });
+    }
+}
+```
+
+Starting from `jdk11`, `jafafx` was decoupled from it.
 
 
 #### Class Diagram
