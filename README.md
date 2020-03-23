@@ -20,7 +20,5 @@ There are 2 main reasons to get it.
 1. write custom MinMax collector
 2. java serialization filters (writeResolve, readResolve)
 3. custom cglib (create with reflection subclass and wrap every method of original class into some logic)
-5. javafx pair
-6. java micro benchmarking https://openjdk.java.net/projects/code-tools/jmh/ to advanced
-dead code elimination (benchmark with million loop)
+6. java micro benchmarking https://openjdk.java.net/projects/code-tools/jmh/ to advanced, dead code elimination (benchmark with million loop)
 8. lombok annotation processor
