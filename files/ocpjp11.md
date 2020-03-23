@@ -82,7 +82,8 @@
 * 12.3 [Compile Time Annotation Processor](#compile-time-annotation-processor)
 * 12.4 [Proxy and InvocationHandler](#proxy-and-invocationhandler)
 * 12.5 [JMX](#jmx---java-management-extension)
-* 12.6 [Desktop](#desktop)
+* 12.6 [Custom ClassLoader](#custom-classloader)
+* 12.7 [Desktop](#desktop)
 13. [Class Diagram](#class-diagram)
 
 
@@ -10875,7 +10876,6 @@ class Printer implements PrinterMBean {
 
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
-###### Desktop
 
 ###### Proxy and InvocationHandler
 They both are used to create mock objects on the fly or to implement proxy pattern in programming.
@@ -11003,6 +11003,58 @@ class Address{
 ```
 addr1 == addr2 => true
 addr1.equals(addr2) => true
+```
+
+
+###### Desktop
+
+###### Custom ClassLoader
+In java there are 3 types of classLoaders. All system classes are loaded by BootStrap ClassLoader. When you try to call `getClassLoader()` on such classes you will get null.
+Extension classLoaders => load all extensions classes
+Application classLoaders => load all application classes.
+If you want to write custom classLoader you have to extend from `ClassLoader` and override `loadClass` function
+```java
+package com.java.test;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+
+public class App{
+    public static void main(String[] args) throws Exception {
+        System.out.println("MyService classLoader => " + MyService.class.getClassLoader());
+        System.out.println("ArrayList classLoader => " + ArrayList.class.getClassLoader());
+
+        System.out.println();
+
+        MyClassLoader loader = new MyClassLoader();
+        Class<?> cls = loader.loadClass("MyService");
+        Object obj = cls.getDeclaredConstructors()[0].newInstance();
+        Method m = cls.getMethod("print");
+        m.invoke(obj);
+    }
+}
+
+class MyService{
+    public void print(){
+        System.out.println("hello world");
+    }
+}
+
+class MyClassLoader extends ClassLoader{
+    @Override
+    public Class<?> loadClass(String name) throws ClassNotFoundException{
+        System.out.println("loading class... " + name);
+        String packageName = "com.java.test.";
+        return super.loadClass(packageName + name);
+    }
+}
+```
+```
+MyService classLoader => jdk.internal.loader.ClassLoaders$AppClassLoader@3d4eac69
+ArrayList classLoader => null
+
+loading class... MyService
+hello world
 ```
 
 
