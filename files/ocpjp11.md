@@ -1434,6 +1434,56 @@ class LazySingleton {
 }
 ```
 
+We can also use `Enum` to create instance
+```java
+import java.util.concurrent.*;
+
+public class App {
+    public static void main(String[] args) {
+        int n = 10;
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch end = new CountDownLatch(n);
+        ExecutorService service = Executors.newFixedThreadPool(n);
+        for (int i = 0; i < n; i++) {
+            service.execute(() -> {
+                wait(start);
+                Singleton.INSTANCE.print();
+                end.countDown();
+            });
+        }
+        System.out.println("start");
+        start.countDown();
+        wait(end);
+        System.out.println("finish");
+        service.shutdown();
+    }
+    private static void wait(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+enum Singleton {
+    INSTANCE;
+
+    Singleton(){
+        System.out.println("Singleton::constructor");
+    }
+
+    public void print(){
+
+    }
+}
+```
+```
+start
+Singleton::constructor
+finish
+```
+
+
 When we use method overloading java itself can determine the most close method to use, but sometimes it’s not the case, so we can get compile error
 ```java
 public class Main {
@@ -10396,6 +10446,58 @@ class User{}
 }
 ```
 
+When you use `Repeatable` annotation, and trying to get it by reflection, you will get array annotation, inside which woudl
+be your annotations with values
+```java
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+public class App{
+    public static void main(String[] args) {
+        for(var an: User.class.getAnnotations()){
+            System.out.println(an);
+        }
+    }
+}
+
+@Role("user")
+@Role("admin")
+@Group("user")
+@Group("admin")
+@Service("userService")
+class User{}
+
+
+@Repeatable(Role.List.class)
+@interface Role{
+    String value();
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface List{
+        Role[] value();
+    }
+}
+
+@Repeatable(Groups.class)
+@interface Group{
+    String value();
+}
+@Retention(RetentionPolicy.RUNTIME)
+@interface Groups{
+    Group[] value();
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@interface Service{
+    String value();
+}
+```
+```
+@com.java.test.Role$List(value={@com.java.test.Role(value="user"), @com.java.test.Role(value="admin")})
+@com.java.test.Groups(value={@com.java.test.Group(value="user"), @com.java.test.Group(value="admin")})
+@com.java.test.Service(value="userService")
+```
+
 `@Documented` - guarantee that annotation would be shown in javadoc
 ```java
 @Documented
@@ -10567,11 +10669,13 @@ public class App {
 ```
 Example
 ```java
+import java.lang.reflect.*;
+
 public class App {
     public static void main(String[] args) {
         Person p = new Person();
         System.out.println("name: " + p.getName() + ", age: " + p.getAge());
-        Class clazz = p.getClass();
+        Class<?> clazz = p.getClass();
         System.out.println();
         System.out.println("package: " + clazz.getPackage().getName());
         System.out.println("className: " + clazz.getName());
@@ -10602,6 +10706,8 @@ public class App {
         }
     }
 }
+
+@Service("personService")
 class Person {
     private String name;
     private int age;
@@ -10621,6 +10727,10 @@ class Person {
     public void setAge(int age) {
         this.age = age;
     }
+}
+
+@interface Service{
+    String value();
 }
 ```
 ```
@@ -10719,8 +10829,32 @@ Suppressed: java.lang.reflect.InvocationTargetException
 {MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
 ```
 
+We can also get name of parameters, but for this we should compile with `-parameters` option
+```java
+import java.lang.reflect.*;
 
-
+public class App{
+    public App(String myName, int myAge){}
+    public static void main(String[] args) {
+        for(Constructor<?> con: App.class.getConstructors()){
+            for(Parameter param: con.getParameters()){
+                System.out.println("isNamePresent => " + param.isNamePresent() + ", name => " + param.getName());
+            }
+        }
+    }
+}
+```
+If we just run it from `intelliJ` as it is we get
+```
+isNamePresent => false, name => arg0
+isNamePresent => false, name => arg1
+```
+But if we got to `Settings`=>`Java Compiler`=>`Additional command line parameters` and add there `-parameters`, 
+remove target folder (just to avoid caching) we would get
+```java
+isNamePresent => true, name => myName
+isNamePresent => true, name => myAge
+```
 
 ###### Compile Time Annotation Processor
 
