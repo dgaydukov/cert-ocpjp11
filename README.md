@@ -22,3 +22,11 @@ There are 2 main reasons to get it.
 3. custom cglib (create with reflection subclass and wrap every method of original class into some logic)
 6. java micro benchmarking https://openjdk.java.net/projects/code-tools/jmh/ to advanced, dead code elimination (benchmark with million loop)
 8. lombok annotation processor
+
+
+1. write list of best certification for java dev
+https://www.redhat.com/en/services/all-certifications-exams
+https://medium.com/@stephane.maarek/how-to-prepare-for-the-confluent-certified-developer-for-apache-kafka-ccdak-exam-ab081994da78
+https://aws.amazon.com/certification/
+
+2. write list of best java presentation topics
