@@ -80,7 +80,7 @@
 * 12.1 [Annotations](#annotations)
 * 12.2 [Reflection API](#reflection-api)
 * 12.3 [Compile Time Annotation Processor](#compile-time-annotation-processor)
-* 12.4 [Proxy and InvocationHandler](#proxy-and-invocationhandler)
+* 12.4 [Proxy and CGLIB](#proxy-and-cglib)
 * 12.5 [JMX](#jmx---java-management-extension)
 * 12.6 [Custom ClassLoader](#custom-classloader)
 * 12.7 [Desktop](#desktop)
@@ -11011,7 +11011,7 @@ class Printer implements PrinterMBean {
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
 
-###### Proxy and InvocationHandler
+###### Proxy and CGLIB
 They both are used to create mock objects on the fly or to implement proxy pattern in programming.
 Proxy can work only with interfaces. If you want to work with concrete classes 
 you should use [cglib](https://github.com/cglib/cglib).
@@ -11042,7 +11042,7 @@ public class App {
         print(p2);
     }
     private static void print(Person p){
-        bSystem.out.println("Person[name=" + p.getName() + ", age=" + p.getAge()+"]");
+        System.out.println("Person[name=" + p.getName() + ", age=" + p.getAge()+"]");
     }
 }
 interface Person {
@@ -11072,8 +11072,70 @@ Person[name=Jack, age=25]
 
 
 
+`java.lang.reflect.Proxy` works only with interfaces. So if you have a class that implement specific interface you can change class behaviour on the fly using this technique.
+If you try to pass class into `Proxy` you will got `IllegalArgumentException: com.java.test.Person is not an interface`.
+In case your class doesn't implement any interfaces you have to use third party libraries like [cglib](https://github.com/cglib/cglib)
+In order to work with cglib you have to add following to your `pom.xml` file
+```
+<dependency>
+  <groupId>cglib</groupId>
+  <artifactId>cglib</artifactId>
+  <version>3.2.12</version>
+</dependency>
+```
+Here java code
+```java
+import java.util.*;
 
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.InvocationHandler;
 
+public class App {
+    public static void main(String[] args) {
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(Person.class);
+        enhancer.setCallback((InvocationHandler) (proxy, method, methodArgs) -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("getName", "Jack");
+            map.put("getAge", 25);
+            String methodName = method.getName();
+            if (map.containsKey(methodName)) {
+                return map.get(methodName);
+            } else {
+                throw new RuntimeException("No value for method: " + methodName);
+            }
+        });
+        Person proxy = (Person) enhancer.create();
+        print(proxy);
+    }
+    private static void print(Person p){
+        System.out.println("Person[name=" + p.getName() + ", age=" + p.getAge()+"]");
+    }
+}
+
+class Person {
+    private String name;
+    private int age;
+
+    // you need no-arg constructor for cglib
+    public Person(){}
+
+    public Person(String name, int age){
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName(){
+        return name;
+    }
+    public int getAge(){
+        return age;
+    }
+}
+```
+```
+Person[name=Jack, age=25]
+```
 
 
 
