@@ -11070,6 +11070,28 @@ Person[name=John, age=30]
 Person[name=Jack, age=25]
 ```
 
+Be careful not to call `hashCode/equals/toString` on proxy object.
+The following code product `StackOverflow` error, cause proxy.toString() again call invoke on this proxy
+```java
+import java.lang.reflect.*;
+
+public class App {
+    public static void main(String[] args) {
+        Class<?> cls = Printer.class;
+        Printer printer = (Printer) Proxy.newProxyInstance(
+                Printer.class.getClassLoader(),
+                new Class<?>[] {Printer.class},
+                (proxy, method, methodArgs) -> {
+                    System.out.println(proxy);
+                    return proxy;
+        });
+        printer.print();
+    }
+}
+interface Printer{
+    void print();
+}
+```
 
 
 `java.lang.reflect.Proxy` works only with interfaces. So if you have a class that implement specific interface you can change class behaviour on the fly using this technique.
