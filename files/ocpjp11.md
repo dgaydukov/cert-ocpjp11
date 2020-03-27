@@ -78,7 +78,8 @@
 * 11.6 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
 12. [Advanced](#advanced)
 * 12.1 [Annotations](#annotations)
-* 12.2 [Reflection API](#reflection-api)
+* 12.2 [Reflection API](#get-param-names)
+    * 12.2.1 [Get param names](#reflection-api)
 * 12.3 [Compile Time Annotation Processor](#compile-time-annotation-processor)
 * 12.4 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
 * 12.5 [JMX](#jmx---java-management-extension)
@@ -10829,6 +10830,7 @@ Suppressed: java.lang.reflect.InvocationTargetException
 {MyServiceName=com.java.test.MyService@174d20a, LazyServiceName=com.java.test.LazyService@66d2e7d9}
 ```
 
+###### Get param names
 We can also get name of parameters, but for this we should compile with `-parameters` option
 ```java
 import java.lang.reflect.*;
