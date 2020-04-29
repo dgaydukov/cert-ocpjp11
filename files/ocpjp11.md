@@ -7288,8 +7288,8 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 Older jdbc driver used this code `Class.forName("com.mysql.jdbc.Driver")` to load driver to classLoader. Since jdbc4 we don't need this code anymore, it's automatically loaded. 
 `getConnection` and `getDrivers` were rewritten to support Service Provider mechanism. jdbc4 drivers must include `META-INF/services/java.sql.drivers` and this entry must have a name of driver implementation.
 There are 2 ways you can get `Connection`
-1 => directly from `DriverManager.getConnection`
-2 => from `Driver.connect`
+* 1. from `Driver.connect` (this is bad, cause this would tightly couple your code to exact driver implementation)
+* 2. directly from `DriverManager.getConnection` (which inside using `driver.connect`)
 
 ```java
 import java.sql.Connection;
@@ -7310,7 +7310,12 @@ public class App {
         //String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
         // we can also create connection using Driver
         try{
-            Driver driver = DriverManager.getDriver(url);
+            // this approach couple your app to exact driver implementation
+            Driver driver = new com.mysql.cj.jdbc.Driver();
+            /**
+             * You can also obtain driver from DriverManager  =>  Driver driver = DriverManager.getDriver(url);
+             */
+            System.out.println(driver.getClass());
             Connection conn = driver.connect(url, props);
         } catch (SQLException ex){
             // logic here
