@@ -85,7 +85,17 @@
 * 12.5 [JMX](#jmx---java-management-extension)
 * 12.6 [Custom ClassLoader](#custom-classloader)
 * 12.7 [Desktop](#desktop)
+* 12.8 [Java Servlet WebApp](#java-servlet-webapp)
 13. [Class Diagram](#class-diagram)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -11339,6 +11349,15 @@ public class App extends Application {
     }
 }
 ```
+
+
+
+###### Java Servlet WebApp
+
+
+
+
+
 
 #### Class Diagram
 * ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
