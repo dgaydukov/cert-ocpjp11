@@ -11353,8 +11353,10 @@ public class App extends Application {
 
 
 ###### Java Servlet WebApp
-
-
+* You need first install [tomcat](https://tomcat.apache.org/download-80.cgi)
+* Then you have to build basic servlet application. Go to `/code/webapp` and just run `./script.sh`. This will create `build/webapp.war` file
+* Copy `webapp.war` to `/tomcat/webapps`. Tomcat will create new dir `webapp` based on your war file
+* Go to `http://localhost:8080/webapp/` to see results
 
 
 

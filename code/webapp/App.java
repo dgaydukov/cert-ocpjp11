@@ -13,10 +13,10 @@ public class App extends HttpServlet {
         PrintWriter writer = res.getWriter();
         writer.println("<html>");
         writer.println("<head>");
-        writer.println("<title>Sample Application Servlet Page</title>");
+        writer.println("<title>Java Application Servlet</title>");
         writer.println("</head>");
         writer.println("<body bgcolor=white>");
-        writer.println("<h1>Sample Application Servlet</h1>");
+        writer.println("<h1>Java Application Servlet</h1>");
         writer.println("This is the simple java tomcat web app");
         writer.println("</body>");
         writer.println("</html>");
