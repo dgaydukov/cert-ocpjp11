@@ -11353,6 +11353,7 @@ public class App extends Application {
 
 
 ###### Java Servlet WebApp
+* We have very basic app that include [controller](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/App.java) and [web.xml](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/web.xml). We also using simple [script](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/script.sh) to build it.
 * You need first install [tomcat](https://tomcat.apache.org/download-80.cgi)
 * Then you have to build basic servlet application. Go to `/code/webapp` and just run `./script.sh`. This will create `build/webapp.war` file
 * Copy `webapp.war` to `/tomcat/webapps`. Tomcat will create new dir `webapp` based on your war file
