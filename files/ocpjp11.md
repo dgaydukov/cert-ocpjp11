@@ -10662,6 +10662,28 @@ Default values should be named without equal sign
 }
 ```
 
+`ElementType.METHOD` - can be applied both above method, and inside method before return value
+```java
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
+
+@Target({ElementType.METHOD})
+@interface TransformReturn{}
+
+class MyService{
+    // applied to method outside method
+    @TransformReturn
+    public String m1(){
+        return "m1";
+    }
+
+    // applied to method inside method
+    public @TransformReturn String m2(){
+        return "m1";
+    }
+}
+```
+
 
 ###### Reflection API
 Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private. Here is a small example
