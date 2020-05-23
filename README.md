@@ -2,9 +2,8 @@
 
 ### Description
 Here is my experience for taking 2 exams 
-* [815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815) and
+* [815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815)
 * [816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816) 
-to become [OCPJP11](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d).
 This guide covers more than you need to pass exam, cause I've added more info evan after I've passed the exam. 
 But this can be even better, cause with this you will understand java more deeper.
 
@@ -25,9 +24,6 @@ There are 2 main reasons to get it.
 
 
 ### My Results
-By passing certification you will get 3 things
-* [Digital badge](http://bcert.me/seavwbxal)
-* [Pivotal Spring Professional eCertificate](https://github.com/dgaydukov/cert-spring5/blob/master/files/eCertificate.pdf)
-* Detailed results on each topic:
-
-![Exam score](https://github.com/dgaydukov/cert-spring5/blob/master/files/images/exam-score.png)
+By passing certification you will get 2 things
+* [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
+* [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/eCertificate.pdf)
