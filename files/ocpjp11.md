@@ -25,7 +25,7 @@
 * 3.6 [Formatting](#formatting)
 4. [Generics](#generics)
 * 4.1 [Type erasure](#type-erasure)
-* 4.2 [PECS - producer extends consumer super](#-pecs---producer-extends-consumer-super)
+* 4.2 [PECS (producer extends consumer super)](#-pecs-producer-extends-consumer-super)
 * 4.2 [Generic method overriding](#generic-method-overriding)
 5. [Collections](#collections)
 * 5.1 [List and Set](#list-and-set)
@@ -76,23 +76,16 @@
 * 11.4 [Assertions](#assertions)
 * 11.5 [Object interning](#object-interning)
 * 11.6 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
-12. [Advanced](#advanced)
-* 12.1 [Annotations](#annotations)
-* 12.2 [Reflection API](#reflection-api)
-    * 12.2.1 [Get param names](#get-param-names)
-* 12.3 [Compile Time Annotation Processor](#compile-time-annotation-processor)
-* 12.4 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
-* 12.5 [JMX](#jmx---java-management-extension)
-* 12.6 [Custom ClassLoader](#custom-classloader)
-* 12.7 [Desktop](#desktop)
-* 12.8 [Java Servlet WebApp](#java-servlet-webapp)
-13. [Class Diagram](#class-diagram)
-
-
-
-
-
-
+* 11.7 [Annotations](#annotations)
+* 11.8 [Reflection API](#reflection-api)
+    * 11.8.2 [Get param names](#get-param-names)
+* 11.9 [Compile Time Annotation Processor](#compile-time-annotation-processor)
+* 11.10 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
+* 11.11 [JMX (java management extension)](#jmx-java-management-extension)
+* 11.12 [Custom ClassLoader](#custom-classloader)
+* 11.13 [Desktop](#desktop)
+* 11.14 [Java Servlet WebApp](#java-servlet-webapp)
+12. [Class Diagram](#class-diagram)
 
 
 
@@ -102,7 +95,6 @@
 #### Basics
 
 ###### Variable Declarations
-
 Line separator. Java allows as many underscores as you want when separating digits
 ```java
 class App {
@@ -320,7 +312,6 @@ short s2 = -s1; // won't compile int
 The key here is that final - is the reference to memory, not the value itself, so rules with constants doesn’t apply here.
 
 ###### Short circuit boolean
-
 Short-circuit logical operators. Operators &&/& and ||/| result the same, when applied to boolean. The difference is that double - is called short-circuit. For example since (true||false) will always return true, if first is true, it won’t even execute second operand. 
 But in case of single operator (& or |), it will execute both.
 ```java
@@ -515,7 +506,6 @@ public class App {
     }
 }
 ```
-
 
 ###### String and StringBuilder
 
@@ -3055,11 +3045,13 @@ class Person{
 printing...
 ```
 
+
 #### Date and Time
 
 ###### Old date api (java.util package)
-###### SQL date api (java.sql package)
+??????????????????????
 
+###### SQL date api (java.sql package)
 There are 3 types in `java.sql` package
 `Date` => corresponds to SQL DATE
 `Time` => corresponds to SQL_TIME
@@ -3098,12 +3090,7 @@ public class App {
 2020-02-04 19:22:20.342169
 ```
 
-
-
-###### New date api (java.time package)
-
-
-
+###### New date api (java.time package
 `LocalDate`, `LocalTime`, `LocalDateTime` => all have private constructor to force you to use methods like `.of`. They also immutable like String, so when make operation on them (plus, minus), make sure to reassign them back.
 `LocalDate.of` - has 2 version, one take month as numbers 1-12, another as `java.time.Month` enum value
 ```java
@@ -3190,9 +3177,7 @@ seconds since 01-01-1970 UTC => 1583843813
 seconds since 01-01-1970 UTC [OffsetDateTime.now().toEpochSecond()] => 1583815013
 ```
 
-
 ###### Period and Duration
-
 For time intervals we have 2 classes `Period` and `Duration`.
 `Period` - used for days, months, years
 `Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
@@ -3299,7 +3284,6 @@ Exception in thread "main" java.lang.IllegalArgumentException: No TimeUnit equiv
 ```
 
 ###### Timezone and DST
-
 `Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(greenwhich mean time) practically the same thing, the difference is how they calculate seconds, gmt - using solar time, utc - atomic clock.
 ```java
 import java.time.Duration;
@@ -3393,7 +3377,6 @@ There is a big difference between timeOffset and timeZone. TimeOffset - is just 
 TimeZone - is more broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is more broader concept than timeOffset.
 
 ###### Formatting
-
 Formatting: There are 3 classes to format date and 1 for numbers
 `java.text.DateFormat extends Format` - private constructor
 `java.text.NumberFormat extends Format` - class for number formatting including currency, private constructor
@@ -3568,10 +3551,10 @@ public class App{
 2019/11/18
 ```
 
+
 #### Generics
 
 ###### Type erasure
-
 Type erasure - java by default remove types from generics and change it for object, and later make class casts like
 ```java
 List<String> list = new ArrayList<String>();
@@ -3585,7 +3568,7 @@ list.add("Hi");
 String x = (String) list.get(0);
 ```
 
-####### PECS - producer extends consumer super
+####### PECS (producer extends consumer super)
 This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. The exception if overriding method has `List<anything>` but overriden just `List`.
 ```java
 import java.util.*;
@@ -3768,7 +3751,6 @@ public class App{
 integerList => [1, hello]
 Exception in thread "main" java.lang.ClassCastException: Attempt to insert class java.lang.String element into collection with element type class java.lang.Integer
 ```
-
 
 ###### Generic method overriding
 
@@ -4891,9 +4873,10 @@ class MyRingBuffer<T> implements RingBuffer<T> {
 [C, D, E, F]
 ```
 
-#### Functional Programming and Stream API
-###### Functional interfaces
 
+#### Functional Programming and Stream API
+
+###### Functional interfaces
 Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block).
 Instance & static variables shouldn't be effectively final in order to be used inside lambda.
 ```java
@@ -5229,7 +5212,6 @@ len: 5
 ```
 
 ###### Method reference
-
 Lambda double colon `::`, also called method reference. Method reference should have the same signature.
 If you have static method you can call it only from class => MyClass::staticMethod,
 if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should use Function and pass instance of that object
@@ -5294,7 +5276,6 @@ WORLD
 ```
 
 ###### Comparator and Comparable
-
 Remember Java sort order `empty > space > number > uppercase > lowercase` (natural sorting)
 ```java
 import java.util.ArrayList;
@@ -5423,10 +5404,7 @@ class Person implements Comparable<Person>{
 If we remove `implements Comparable<Person>` we would get compile time error, cause sort expects list of T extends Comparable. 
 If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.Person cannot be cast to class java.lang.Comparable`.
 
-
 ###### Simple streams
-
-
 If you want to work with stream use `Stream`. If you want primitive type streams use one of these
 `IntStream`
 `LongStream`
@@ -5664,7 +5642,6 @@ parallelSum => 20
 We need for parallel execution third function (combiner), that will combine partial results into one. We don't need it for sequential execution, but because streams designed in such a way that both sequential and parallel executions should work the same way, 
 compiler force us to use combiner for sequential execution, although it's never called. That's why for sequential you can change combiner to `(a, b) => 0`, and it would work fine, but if you change it for parallel you will got 0 as result.
 
-
 ###### Parallel streams
 By default for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
 ```java
@@ -5715,7 +5692,6 @@ Also when we transform stream from parallel to sequential all stream would be se
 at the beginning or before terminal, whole stream would work either parallel or sequential.
 
 ###### Collectors
-
 `Collectors` - list of functions that terminate streams and allow you to transform your stream into string, list, set, map. `Stream.collect` take `Collector` interface as input parameter.
 There is no `.toArray` collector, but you can collect toList, and then call `toArray()` from stream.
 So almost all methods in `Collectors` class that we pass into `collect` return `Collector` object. Generally there should be enough methods in `Collectors` class, but if you need you can create our own by implementing this interface.
@@ -6096,7 +6072,6 @@ max2 => Optional[5]
 #### Concurrency
 
 ###### Threads
-
 Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have clearly override one method `run` to run it.
 If you extends from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
 ```java
@@ -6385,7 +6360,6 @@ done thread
 ```
 
 ###### ExecutorService
-
 `ExecutorService` has 3 versions of submit
 * `submit(Runnable)` - take nothing, return `Future<?>`
 * `submit(Runnable, T)` - return `Future<T>` when done
@@ -6620,7 +6594,6 @@ Runnable finish pool-1-thread-3
 ```
 If we remove `service.shutdown();` they will run forever.
 
-
 ###### wait/notify and await/signal
 `wait/notify` is the old way to build concurrency, but `await/signal` is new one from `java.util.concurrent.locks` package. We can implement BlockingQueue using old and new way
 ```java
@@ -6771,7 +6744,6 @@ put done Thread-0
 put done 100 Thread-1
 ```
 
-
 ###### fork/join framework
 The `fork/join` framework famous for it work stealing - it is specifically design to tackle recursive algorithms. Although you can write you own recursive traverse (which would definitely be proned to error) and use threadpool, `fork/join` has such logic out of the box.
 ```java
@@ -6844,7 +6816,6 @@ CountRecursiveTask: 20
 ```
 
 As you can see `fork/jon` framework always divide task on 2, and start to run first task, but second put into queue. And do it until task is small enough to complete. At the same time other threads can read this queue and take tasks from it (work stealing) and others can steal from others, so we have a tree, where all threads always running until all queues (for every thread) is empty and we can get result.
-
 
 ####### Synchronizers
 `Semaphore`, `CountDownLatch`, `CyclicBarrier` - all do pretty the same. For example we have a task to run all threads at the same time.
@@ -6963,7 +6934,6 @@ pool-1-thread-2: done
 pool-1-thread-3: done
 pool-1-thread-1: done
 ```
-
 
 ###### Concurrent collections
 `ConcurrentMap` and `ConcurrentSkipListMap` and `Hashtable` are not allowing null keys or values. The reason is that in simple `HashMap` you can have null key/value, and if you run `map.get` and get null you can easily check it with `containsKey`. But in concurrent- since value may be deleted this won't work.
@@ -7291,6 +7261,7 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
     }
 }
 ```
+
 
 #### JDBC and SQL
 
@@ -7648,7 +7619,6 @@ time: 7 sec
 Here we are using pool of connections, and once we have use it, return it to db. We almost tripple speed by this.
 
 ###### Statement and PreparedStatement
-
 It's better to always use `PreparedStatement` cause you can:
 -avoid sql injection
 -reuse query and by that get perfomance hit
@@ -7693,8 +7663,6 @@ safeValue = st.enquoteLiteral(value);
 ```
 
 ###### CallableStatement
-
-
 There are 3 interfaces to execute queries:
 `Statement` (extends AutoClosable) - can be obtained `Statement s = conn.createStatement("");`
 `PreparedStatement` (extends Statement) - can be obtained `PreparedStatement s = conn.prepareStatement("");`
@@ -7750,7 +7718,6 @@ public class App {
 ```
 
 ###### Transactions
-
 It’s easy to work with transaction in jdbc. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
 ```java
 import java.sql.Connection;
@@ -7807,11 +7774,9 @@ errorCode => 1054
 ```
 
 
-
 #### Serialization
 
 ###### Java serialization
-
 When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer not fire. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
 Deserialization doesn't invoke constructor & instance initializator because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
 It searches all parents until it found one that doesn't implement `Serializable` and have default constructor,
@@ -8357,10 +8322,7 @@ Rules of changing serialized classes
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
 * if some fields are removed from new class version, they just ignored during deserialization~~~~
 
-
-
 ###### XML serialization
-
 JAXB - java architexture xml binding - ability to dump object into xml and construct object from xml
 first add following into your pom.xml
 ```
@@ -8444,9 +8406,7 @@ xml file
 ```
 When constructing object from xml, no-arg constructor is called.
 
-
 ###### JSON serialization
-
 Add to pom.xml
 ```
 <dependency>
@@ -8527,7 +8487,6 @@ Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java
 `java.io.File` 
 `mkdir` - create one directory (if one of parent directory missing, return false)
 `mkdirs` - create all non-existent parent directories
-
 
 ###### Console
 `Console` method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
@@ -8644,10 +8603,7 @@ public class App {
 hello worldhello worldhello worldhello worldworlhello world
 ```
 
-
 ###### NIO channels
-
-
 Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
 ```java
 import java.io.IOException;
@@ -8723,7 +8679,6 @@ src/main/java/test.txt
 
 src/main/java/test.txt
 ```
-
 
 ###### Path resolve and relativise
 There are a few methods relating to `Path`
@@ -9087,11 +9042,6 @@ old time => 2019-11-22T11:08:55.116953Z
 new time => 2019-11-22T11:10:59.370485Z
 ```
        
---------------------------------------------
-
-
-
-
 
 We can also get `BufferedReader` directly from `Files.newBufferedReader`, and work with string lines instead of bytes. We can also read all lines into memory all at once with `Files.readAllLines`.
 ```java
@@ -9712,178 +9662,8 @@ public class App {
 
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
+
 #### Miscellaneous
-
-###### Assertions
-By default assertions are turned off. You should use `-ea` or `-enableassertions` flag on `java` in order for them to work. Since assertion fail throws `AssertionError`, it's considered a bad practice trying to catch and recover. Although you can do it.
-If you want to disable assertion use `-da` or `-disableassertions`. You can enable/disable assertions from specific class/package `-ea:mypackage`.
-You can have multiple line ea or da. For example if you want to enable them in general but disable for mypackage `java -ea -da:mypackage`.
-If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`
-If you want to enable/disable assertions for all subpckages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
-
-Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods.
-The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
-
-If you want assertions to be enabled you can force user of your program to use it
-```java
-public class App {
-    static {
-        boolean ea = false;
-        assert ea = true; // intentional side effect
-        if(!ea){
-            throw new RuntimeException("Assertions must be enabled");
-        }
-    }
-    public static void main(String[] args) {
-    }
-}
-```
-If assertions are enabled program would run fine, but if disabled user will get following error
-```
-Exception in thread "main" java.lang.ExceptionInInitializerError
-Caused by: java.lang.RuntimeException: Assertions must be enabled
-```
-
-
-#### Advanced
-
-###### Garbage collector and Weak References
-
-
-Garbage collection - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
-```java
-public class App {
-    public static void main(String[] args) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("run when jvm exits");
-        }));
-        My my = new My();
-        my = null;
-        System.gc();
-        sleep(1);
-        System.out.println("done");
-    }
-    public static void sleep(int sec){
-        try {
-            Thread.sleep(sec * 1000);
-        } catch (InterruptedException ex) {
-            System.out.println("ERR: " + ex);
-        }
-    }
-}
-class My{
-    public My(){
-        System.out.println("object of type My has been created");
-    }
-    protected void finalize() throws Throwable {
-        System.out.println("object of type My has been garbage-collected");
-    }
-}
-```
-```
-object of type My has been created
-object of type My has been garbage-collected
-done
-run when jvm exits
-```
-
-`finalize` - became deprecated since Java9. You should use `Cleaner` instead.
-```java
-public class App {
-    public static void main(String[] args) {
-        Cleaner cleaner = Cleaner.create();
-        My my = new My();
-        cleaner.register(my, ()->{
-            System.out.println("object of type My has been garbage-collected");
-        });
-        my = null;
-        // some memory-intensive allocation
-        for (int i = 1; i <= 10; i++) {
-            int[] a = new int[10_000_000];
-            System.out.println(i);
-        }
-        System.out.println("done");
-    }
-}
-class My{
-    public My(){
-        System.out.println("object of type My has been created");
-    }
-}
-```
-```
-object of type My has been created
-1
-2
-object of type My has been garbage-collected
-3
-4
-5
-6
-7
-8
-9
-10
-done
-```
-
-Java has concept of strong/weak/soft/phantom reference
-```java
-import java.lang.ref.PhantomReference;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
-
-public class App {
-    public static void main(String[] args) {
-        WeakReference<Object> weakReference = new WeakReference<>(new Object());
-        SoftReference<Object> softReference = new SoftReference<>(new Object());
-        ReferenceQueue<Object> queue = new ReferenceQueue<>();
-        PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
-        System.out.println("weakReference => " + weakReference.get());
-        System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get());
-        System.gc();
-        System.out.println("weakReference => " + weakReference.get());
-        System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get());
-    }
-}
-```
-```
-weakReference => java.lang.Object@404b9385
-softReference => java.lang.Object@6d311334
-phantomReference => null
-weakReference => null
-softReference => java.lang.Object@6d311334
-phantomReference => null
-```
-As you see, phantom - always null, weak - becomes null after calling `System.gc()`, soft - still holds object, that's why it will remove it only in urgent need of memory
-
-You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed.
-```java
-import java.util.*;
-
-public class App {
-    public static void main(String[] args){
-        Map<Object, Integer> map = new WeakHashMap<>();
-        Object obj = new Object();
-        map.put(obj, 1);
-        obj = null;
-        System.gc();
-        // since it's not guarantee that garbage collector would be called imediately, we would iterate for some time
-        for(int i = 0; i < 1_000_000; i++){
-            if(map.isEmpty()){
-                System.out.println("done => " + i);
-                break;
-            }
-        }
-    }
-}
-```
-```
-done => 185
-```
 
 ###### Modules
 
@@ -10296,6 +10076,231 @@ list => [apple, banana, mango]
 person => Person[name=Jack, age=30]
 ```
 
+###### Assertions
+By default assertions are turned off. You should use `-ea` or `-enableassertions` flag on `java` in order for them to work. Since assertion fail throws `AssertionError`, it's considered a bad practice trying to catch and recover. Although you can do it.
+If you want to disable assertion use `-da` or `-disableassertions`. You can enable/disable assertions from specific class/package `-ea:mypackage`.
+You can have multiple line ea or da. For example if you want to enable them in general but disable for mypackage `java -ea -da:mypackage`.
+If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`
+If you want to enable/disable assertions for all subpckages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
+
+Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods.
+The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
+
+If you want assertions to be enabled you can force user of your program to use it
+```java
+public class App {
+    static {
+        boolean ea = false;
+        assert ea = true; // intentional side effect
+        if(!ea){
+            throw new RuntimeException("Assertions must be enabled");
+        }
+    }
+    public static void main(String[] args) {
+    }
+}
+```
+If assertions are enabled program would run fine, but if disabled user will get following error
+```
+Exception in thread "main" java.lang.ExceptionInInitializerError
+Caused by: java.lang.RuntimeException: Assertions must be enabled
+```
+
+###### Object interning
+
+In case you want to guarantee that class is immutable and you won't create new objects for the same data you can make constructor private (will ensure nobody can extend the class) and add static method and intern similar objects there.
+```java
+import java.util.*;
+
+public class App {
+    public static void main(String... args){
+        Address addr1 = Address.getAddress("Russia", "Moscow");
+        Address addr2 = Address.getAddress("Russia", "Moscow");
+        System.out.println("addr1 == addr2 => " + (addr1 == addr2));
+        System.out.println("addr1.equals(addr2) => " + addr1.equals(addr2));
+    }
+}
+
+class Address{
+    private static Map<Integer, Address> map = new HashMap<>();
+    private final String country;
+    private final String city;
+    private Address(String country, String city){
+        this.country = country;
+        this.city = city;
+    }
+    @Override
+    public String toString(){
+        return country+":"+city;
+    }
+    @Override
+    public int hashCode(){
+        return getHashCode(country, city);
+    }
+    @Override
+    public boolean equals(Object obj){
+        if (obj instanceof Address) {
+            return this.hashCode() == obj.hashCode();
+        }
+        return false;
+    }
+
+    public static Address getAddress(String country, String city){
+        int hashCode = getHashCode(country, city);
+        if (map.containsKey(hashCode)) {
+            return map.get(hashCode);
+        }
+        Address address = new Address(country, city);
+        map.put(hashCode, address);
+        return address;
+    }
+
+    private static int getHashCode(String country, String city){
+        return 31 + country.hashCode() + city.hashCode();
+    }
+}
+```
+```
+addr1 == addr2 => true
+addr1.equals(addr2) => true
+```
+
+###### Garbage collector and Weak References
+Garbage collection - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
+```java
+public class App {
+    public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("run when jvm exits");
+        }));
+        My my = new My();
+        my = null;
+        System.gc();
+        sleep(1);
+        System.out.println("done");
+    }
+    public static void sleep(int sec){
+        try {
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException ex) {
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+class My{
+    public My(){
+        System.out.println("object of type My has been created");
+    }
+    protected void finalize() throws Throwable {
+        System.out.println("object of type My has been garbage-collected");
+    }
+}
+```
+```
+object of type My has been created
+object of type My has been garbage-collected
+done
+run when jvm exits
+```
+
+`finalize` - became deprecated since Java9. You should use `Cleaner` instead.
+```java
+public class App {
+    public static void main(String[] args) {
+        Cleaner cleaner = Cleaner.create();
+        My my = new My();
+        cleaner.register(my, ()->{
+            System.out.println("object of type My has been garbage-collected");
+        });
+        my = null;
+        // some memory-intensive allocation
+        for (int i = 1; i <= 10; i++) {
+            int[] a = new int[10_000_000];
+            System.out.println(i);
+        }
+        System.out.println("done");
+    }
+}
+class My{
+    public My(){
+        System.out.println("object of type My has been created");
+    }
+}
+```
+```
+object of type My has been created
+1
+2
+object of type My has been garbage-collected
+3
+4
+5
+6
+7
+8
+9
+10
+done
+```
+
+Java has concept of strong/weak/soft/phantom reference
+```java
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+
+public class App {
+    public static void main(String[] args) {
+        WeakReference<Object> weakReference = new WeakReference<>(new Object());
+        SoftReference<Object> softReference = new SoftReference<>(new Object());
+        ReferenceQueue<Object> queue = new ReferenceQueue<>();
+        PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
+        System.out.println("weakReference => " + weakReference.get());
+        System.out.println("softReference => " + softReference.get());
+        System.out.println("phantomReference => " + phantomReference.get());
+        System.gc();
+        System.out.println("weakReference => " + weakReference.get());
+        System.out.println("softReference => " + softReference.get());
+        System.out.println("phantomReference => " + phantomReference.get());
+    }
+}
+```
+```
+weakReference => java.lang.Object@404b9385
+softReference => java.lang.Object@6d311334
+phantomReference => null
+weakReference => null
+softReference => java.lang.Object@6d311334
+phantomReference => null
+```
+As you see, phantom - always null, weak - becomes null after calling `System.gc()`, soft - still holds object, that's why it will remove it only in urgent need of memory
+
+You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed.
+```java
+import java.util.*;
+
+public class App {
+    public static void main(String[] args){
+        Map<Object, Integer> map = new WeakHashMap<>();
+        Object obj = new Object();
+        map.put(obj, 1);
+        obj = null;
+        System.gc();
+        // since it's not guarantee that garbage collector would be called imediately, we would iterate for some time
+        for(int i = 0; i < 1_000_000; i++){
+            if(map.isEmpty()){
+                System.out.println("done => " + i);
+                break;
+            }
+        }
+    }
+}
+```
+```
+done => 185
+```
+
 ###### Annotations
 
 `@Override` can only be used for instance methods. Since we don't override static methods and both instance & static variables (we hide them) you can't use this annotation.
@@ -10684,7 +10689,6 @@ class MyService{
 }
 ```
 
-
 ###### Reflection API
 Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private. Here is a small example
 Reflection is done with the help of `Class` class. There are 3 ways we can get class object
@@ -10996,60 +11000,6 @@ javac -d . App.java
 java my.App 
 hello world!
 
-
-
-###### JMX - java management extension
-Allows us to manage java without reloading app. So you can call method to class from `jconsole`.
-interface should be public, so we put it into separate file `PrinterMBean.java`.
-If we want to have some attributes and change them dynamically, we have to add getter/setter to interface
-```java
-public interface PrinterMBean{
-    void print();
-
-    int getValue();
-    void setValue(int value);
-}
-```
-
-The main logic:
-
-```java
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import java.lang.management.ManagementFactory;
-
-public class App{
-    public static void main(String[] args) throws Exception {
-        PrinterMBean my = new Printer();
-        ObjectName objectName = new ObjectName("com.java.test:type=Printer");
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        server.registerMBean(my, objectName);
-        Thread.sleep(Integer.MAX_VALUE);
-    }
-}
-
-class Printer implements PrinterMBean {
-    private int value;
-    @Override
-    public void print(){
-        System.out.println("value => " + value);
-    }
-
-    @Override
-    public int getValue() {
-        return value;
-    }
-
-    @Override
-    public void setValue(int value) {
-        this.value = value;
-    }
-}
-```
-
-Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
-
-
 ###### JDK Proxy, Cglib, Javassist
 There are 3 ways you can create java classes on the fly
 * Jdk Proxy - work only with interfaces
@@ -11152,69 +11102,56 @@ Person[name=Jack, age=25]
 Person[name=Jack, age=25]
 ```
 
-
-
-
-
-###### Object interning
-
-In case you want to guarantee that class is immutable and you won't create new objects for the same data you can make constructor private (will ensure nobody can extend the class) and add static method and intern similar objects there.
+###### JMX (java management extension)
+Allows us to manage java without reloading app. So you can call method to class from `jconsole`.
+interface should be public, so we put it into separate file `PrinterMBean.java`.
+If we want to have some attributes and change them dynamically, we have to add getter/setter to interface
 ```java
-import java.util.*;
+public interface PrinterMBean{
+    void print();
 
-public class App {
-    public static void main(String... args){
-        Address addr1 = Address.getAddress("Russia", "Moscow");
-        Address addr2 = Address.getAddress("Russia", "Moscow");
-        System.out.println("addr1 == addr2 => " + (addr1 == addr2));
-        System.out.println("addr1.equals(addr2) => " + addr1.equals(addr2));
+    int getValue();
+    void setValue(int value);
+}
+```
+
+The main logic:
+
+```java
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
+
+public class App{
+    public static void main(String[] args) throws Exception {
+        PrinterMBean my = new Printer();
+        ObjectName objectName = new ObjectName("com.java.test:type=Printer");
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        server.registerMBean(my, objectName);
+        Thread.sleep(Integer.MAX_VALUE);
     }
 }
 
-class Address{
-    private static Map<Integer, Address> map = new HashMap<>();
-    private final String country;
-    private final String city;
-    private Address(String country, String city){
-        this.country = country;
-        this.city = city;
-    }
+class Printer implements PrinterMBean {
+    private int value;
     @Override
-    public String toString(){
-        return country+":"+city;
-    }
-    @Override
-    public int hashCode(){
-        return getHashCode(country, city);
-    }
-    @Override
-    public boolean equals(Object obj){
-        if (obj instanceof Address) {
-            return this.hashCode() == obj.hashCode();
-        }
-        return false;
+    public void print(){
+        System.out.println("value => " + value);
     }
 
-    public static Address getAddress(String country, String city){
-        int hashCode = getHashCode(country, city);
-        if (map.containsKey(hashCode)) {
-            return map.get(hashCode);
-        }
-        Address address = new Address(country, city);
-        map.put(hashCode, address);
-        return address;
+    @Override
+    public int getValue() {
+        return value;
     }
 
-    private static int getHashCode(String country, String city){
-        return 31 + country.hashCode() + city.hashCode();
+    @Override
+    public void setValue(int value) {
+        this.value = value;
     }
 }
 ```
-```
-addr1 == addr2 => true
-addr1.equals(addr2) => true
-```
 
+Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
 ###### Custom ClassLoader
 In java there are 3 types of classLoaders. All system classes are loaded by BootStrap ClassLoader. When you try to call `getClassLoader()` on such classes you will get null.
@@ -11264,8 +11201,6 @@ ArrayList classLoader => null
 loading class... MyService
 hello world
 ```
-
-
 
 ###### Desktop
 There are 2 types of packages to work with desktop: `javafx` and `swing`.
@@ -11372,8 +11307,6 @@ public class App extends Application {
 }
 ```
 
-
-
 ###### Java Servlet WebApp
 * We have very basic app that include [controller](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/App.java) and [web.xml](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/web.xml). We also using simple [script](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/script.sh) to build it.
 * You need first install [tomcat](https://tomcat.apache.org/download-80.cgi). Download latest version and put it under `~Documents/tomcat`
@@ -11381,8 +11314,6 @@ public class App extends Application {
 * Then you have to build basic servlet application. Go to `/code/webapp` and just run `./script.sh`. This will create `build/webapp.war` file
 * Copy `webapp.war` to `/tomcat/webapps`. Tomcat will create new dir `webapp` based on your war file
 * Go to `http://localhost:8080/webapp/` to see results
-
-
 
 
 #### Class Diagram
