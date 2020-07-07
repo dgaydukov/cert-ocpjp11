@@ -85,6 +85,7 @@
 * 11.12 [Custom ClassLoader](#custom-classloader)
 * 11.13 [Desktop](#desktop)
 * 11.14 [Java Servlet WebApp](#java-servlet-webapp)
+* 11.15 [Java Virtual Methods](#java-virtual-methods)
 12. [Class Diagram](#class-diagram)
 
 
@@ -1779,7 +1780,7 @@ class B implements A {
 }
 ```
 
-Since interface default methods - virtual, but variables - static, when a class implements 2 interfaces with the same default method, class should redeclare it to remove ambiguity. 
+Since interface default methods - instance, but variables - static, when a class implements 2 interfaces with the same default method, class should redeclare it to remove ambiguity. 
 Java won’t compile such a class. But when we have 2 variables with the same name, the class will compile, but won’t compile when we try to access it.
 ```java
 public class App {
@@ -11359,6 +11360,41 @@ public class App extends Application {
 * Copy `webapp.war` to `/tomcat/webapps`. Tomcat will create new dir `webapp` based on your war file
 * Go to `http://localhost:8080/webapp/` to see results
 
+###### Java Virtual Methods
+Virtual method in OOP is inheritable and overridable method. In java it's just simple instance method.
+So we can say that any instance method (not static) that doesn't have `private` modifier is virtual method.
+```java
+class A {
+    // virtual method (public & instance)
+    public void m1(){}
+    // not virtual, cause static method are hidden, but not overridden
+    public static void m2(){}
+    // although instance method but not virtual, cause private modifier will not allow to override it
+    private void m3(){}
+}
+```
+
+The concept of virtual methods is very important in polymorphism and OOP. Take a look, that alghough object of type A, but method is called on type B, that means it's virtual.
+```java
+public class App{
+    public static void main(String[] args) {
+        A a = new B();
+        a.m1();
+    }
+}
+
+class A{
+    void m1(){
+        System.out.println("A");
+    }
+}
+
+class B extends A{
+    void m1(){
+        System.out.println("B");
+    }
+}
+```
 
 #### Class Diagram
 * ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
