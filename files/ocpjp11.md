@@ -17,7 +17,7 @@
 * 2.6 [Nested Types](#nested-types)
 * 2.6 [Anonymous classes](#anonymous-classes)
 3. [Date and Time](#date-and-time)
-* 3.1 [Old date api (java.util package)](#old-date-api-javautil-package)
+* 3.1 [Old date api (java.util.Date & java.util.Calendar)](#old-date-api-javautildate--javautilcalendar)
 * 3.2 [SQL date api (java.sql package)](#sql-date-api-javasql-package)
 * 3.3 [New date api (java.time package)](#new-date-api-javatime-package)
 * 3.4 [Period and Duration](#period-and-duration)
@@ -3048,8 +3048,52 @@ printing...
 
 #### Date and Time
 
-###### Old date api (java.util package)
-??????????????????????
+###### Old date api (java.util.Date & java.util.Calendar)
+Before 2014 (introduction of `java.time`) java used these 2 classes `Date/Calendar` to work with dates. But it has a lot of problems
+* no time zone
+* no formatting
+* month starts from 0
+* classes are mutable
+* `Date` represents DateTime, but `java.sql.Date` represents single day
+
+```java
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+public class App{
+    public static void main(String[] args) {
+        Date currentDate = new Date();
+        System.out.println("currentDate => " + currentDate);
+        Date dateFromNanoSec = new Date(1234567899123L);
+        System.out.println("dateFromNanoSec => "+ dateFromNanoSec);
+
+        // constructor is protected, so create by calling static getInstance
+        Calendar calendar = Calendar.getInstance();
+        System.out.println("calendar => "+ calendar);
+
+        // since GregorianCalendar extends Calendar, getInstance returns Calendar object, that's why we use constructor
+        GregorianCalendar gregorianCalendar = new GregorianCalendar();
+        System.out.println("gregorianCalendar => "+ gregorianCalendar);
+
+        /**
+         * converting to new api
+         */
+
+        Date date = new Date();
+        Instant instant = date.toInstant();
+        ZonedDateTime zdt = instant.atZone(ZoneId.systemDefault());
+        LocalDate localDate = zdt.toLocalDate();
+        System.out.println("localDate => "+ localDate);
+        // second way to convert ot LocalDate
+        LocalDate localDate2 = LocalDate.ofInstant(date.toInstant(), ZoneId.systemDefault());
+    }
+}
+```
 
 ###### SQL date api (java.sql package)
 There are 3 types in `java.sql` package
@@ -3090,7 +3134,7 @@ public class App {
 2020-02-04 19:22:20.342169
 ```
 
-###### New date api (java.time package
+###### New date api (java.time package)
 `LocalDate`, `LocalTime`, `LocalDateTime` => all have private constructor to force you to use methods like `.of`. They also immutable like String, so when make operation on them (plus, minus), make sure to reassign them back.
 `LocalDate.of` - has 2 version, one take month as numbers 1-12, another as `java.time.Month` enum value
 ```java
