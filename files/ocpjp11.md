@@ -49,6 +49,7 @@
 * 7.5 [Synchronizers](#-synchronizers)
 * 7.6 [Concurrent collections](#concurrent-collections)
 * 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
+* 7.8 [Synchronized on ID](#synchronized-on-id)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -94,7 +95,6 @@
 
 
 #### Basics
-
 ###### Variable Declarations
 Line separator. Java allows as many underscores as you want when separating digits
 ```java
@@ -7307,9 +7307,96 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 }
 ```
 
+###### Synchronized on ID
+Sometimes you have to do some not idempotent operation, for this you set some flag in db, and if second request came you throw exception.
+But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
+But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
+For this purpose it's better to use some id
+
+```java
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class App{
+    public static void main(String[] args) {
+        App app = new App();
+
+        int threads = 4;
+        ExecutorService service = Executors.newFixedThreadPool(threads);
+        for (int i = 0; i < threads; i++){
+            service.submit(()->{
+                app.doWork(1);
+            });
+            service.submit(()->{
+                app.doWork(2);
+            });
+            service.submit(()->{
+                app.doWork(3);
+            });
+        }
+        service.shutdown();
+    }
+
+    /**
+     * syncronized on method => same as syncronized(this)
+     * That's why we need some id on which to syncronize, in this case it's personId
+     * So all threads go to this method and stopped on id and from there start execute one by one
+     */
+    public void doWork(Integer id) {
+        synchronized (id){
+            var person = getPerson(id);
+            //System.out.println(id + " => " + person);
+            if (person != null) {
+                throw new RuntimeException("Person with id=" + id + " already exists");
+            }
+            savePerson(id);
+            sleep(2);
+            System.out.println("Job Done => " + id);
+        }
+    }
+
+    private void sleep(int sec) {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private Map<Integer, Person> db = new ConcurrentHashMap<>();
+    public void savePerson(int id){
+        Map<Integer, String> people = new HashMap<>();
+        people.put(1, "Jack");
+        people.put(2, "Mike");
+        people.put(3, "Dennis");
+        Person person = new Person(id, people.get(id));
+        db.put(id, person);
+    }
+    public Person getPerson(int id){
+        return db.get(id);
+    }
+}
+
+class Person{
+    private int id;
+    private String name;
+
+    public Person(int id, String name){
+        this.id = id;
+        this.name = name;
+    }
+}
+```
+```
+Job Done => 1
+Job Done => 2
+Job Done => 3
+```
 
 #### JDBC and SQL
-
 ###### Connection
 Older jdbc driver used this code `Class.forName("com.mysql.jdbc.Driver")` to load driver to classLoader. Since jdbc4 we don't need this code anymore, it's automatically loaded. 
 `getConnection` and `getDrivers` were rewritten to support Service Provider mechanism. jdbc4 drivers must include `META-INF/services/java.sql.drivers` and this entry must have a name of driver implementation.
