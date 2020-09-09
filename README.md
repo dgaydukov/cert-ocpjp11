@@ -1,4 +1,4 @@
-# OCPJP11 (Java SE 11 Programmer I (1Z0-815) & Java SE 11 Programmer II(1Z0-816))
+# OCPJP11 (Oracle Certified Professional: Java SE 11 Developer)
 
 ### Description
 Here is my experience for taking 2 exams 
