@@ -1,4 +1,4 @@
-# OCPJP11
+# OCPJP11 (Java SE 11 Programmer I (1Z0-815) & Java SE 11 Programmer II(1Z0-816))
 
 ### Description
 Here is my experience for taking 2 exams 
@@ -10,21 +10,13 @@ To become certified and get eCertificate you have to pass both of them.
 This guide covers more than you need to pass exam, cause I've added more info evan after I've passed the exam. 
 But this can be even better, cause with this you will understand java more deeper.
 
-### Why do you need it.
+### Why do you need it
 There are 2 main reasons to get it.
 1. During preparation you will learn a lot of new stuff
 2. It may help your career
 
-### Contents
+### Content
 * [Java Tips](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/ocpjp11.md)
-
-
-### TODO
-1. write custom MinMax collector
-2. java serialization filters (writeResolve, readResolve)
-6. java micro benchmarking https://openjdk.java.net/projects/code-tools/jmh/ to advanced, dead code elimination (benchmark with million loop)
-8. lombok annotation processor
-
 
 ### My Results
 By passing certification you will get 3 things
