@@ -485,7 +485,6 @@ System.out.println(i + " " + f + " " +(i-(int)f));
 123456789 1.23456792E8 -3
 ```
 When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
-
 Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 7 types). We can use it when working with List of integers, boolean and so on. 
 So we can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
 ```java
@@ -509,7 +508,6 @@ public class App {
 ```
 
 ###### String and StringBuilder
-
 Strings are immutable, so all operations on them return always new object. `a +=b => new StringBuilder().append(a).append(b).toString()` - always return new object.
 ```java
 public class App {
@@ -553,7 +551,6 @@ System.out.println(obj + "hello");
 nullhello
 ```
 That’s the reason, why we can concatenate with null, cause when stringify null became just `null` string.
-
 String interning - capture the link to string pool object.
 ```java
 String s1 = "hello";
@@ -716,7 +713,6 @@ System.out.println('a' + 'b');
 195
 ```
 
-
 Compare 2 `StringBuilder` classes: Because `StringBuilder` doesn’t implement `equals` method and use it from `Object.equals` it returns true only we we compare the same instances. 
 To compare them by their content, we can use `compareTo` method. `Objects.equals` also won’t work since it’s just a safe call to a.equals(b). So we can use 2 ways to compare
 ```java
@@ -756,8 +752,7 @@ A => 65, a => 97
 ```
 
 ####### Arrays
-
-Valid array declarations:
+Valid array declarations
 ```java
 class App {
     public static void main(String[] args) {
@@ -801,8 +796,6 @@ Mike
 John
 ```
 As you see, after we change name of object inside cloned array, it was also changed inside main array.
-
-
 
 Java arrays are reified - their types are checked in runtime
 ```java
@@ -871,7 +864,7 @@ Objects.equals(arr1, arr2) =>false
 Arrays.equals(arr1, arr2) =>true
 ```
 
-If you need to split string on multiple keys, you can use regex []
+If you need to split string on multiple keys, you can use regex `[]`
 ```java
 import java.util.Arrays;
 public class App{
@@ -886,8 +879,7 @@ public class App{
 ```
 
 ###### Arrays.compare and Arrays.mismatch
-
-`Arrays.compare` vs. `Arrays.mismatch`. These 2 functions used to compare 2 arrays and found their common prefix.
+These 2 functions used to compare 2 arrays and found their common prefix.
 ```java
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -979,13 +971,11 @@ Arrays.mismatch => 0
 ```
 
 #### Classes and Objects
-
 ###### toString, equals, hashcode, clone
 These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods.
 Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called
 it won't use your version, but from `Object` itself.
 If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
-
 ```java
 public class App{
     public static void main(String[] args) {
@@ -1058,12 +1048,10 @@ p1.equals(clone) => true
 ```
 
 ###### Classes
-
 Type vs state: classes, interfaces and enums - types. Since java support multiple interface implementation => java support multiple inheritance of types. 
 State - instance variables of class, so only class can have state. Since java support only one class inheritance => java support one state inheritance. 
 One reason why the Java programming language does not permit you to extend more than one class is to avoid the issues of multiple inheritance of state, 
 which is the ability to inherit fields from multiple classes. [Multiple Inheritance of State, Implementation, and Type](https://docs.oracle.com/javase/tutorial/java/IandI/multipleinheritance.html).
-
 Java method access keywords
 ```
 _____________________________________________________________
@@ -1135,8 +1123,11 @@ class B extends A{
 }
 ```
 
-Method overriding vs method hiding: When we override non-static method - it’s method overriding, if we override static method - its method hiding. The difference is - when we override method it’s overridden in both child and parent class, 
-but when we hide it - it’s only for child class. Check out the following code. Notice when we call printA, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
+Method overriding vs method hiding: 
+* overriding - override non-static method
+* hiding - override static method
+The difference is - when we override method it’s overridden in both child and parent class, but when we hide it - it’s only for child class. 
+Notice when we call printA, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1274,9 +1265,9 @@ public class App {
 ```
 
 Static and instance initializers - order of execution:
-First => static variable/block in order they are in code
-Second => instance variable/block of code, in order they are in code
-Third => constructor
+* first - static variable/block in order they are in code
+* second - instance variable/block of code, in order they are in code
+* third - constructor
 In case one class extends other, fist all initializers of parent fires than of child.
 ```java
 public class App {
@@ -1485,14 +1476,13 @@ Singleton::constructor
 finish
 ```
 
-
 When we use method overloading java itself can determine the most close method to use, but sometimes it’s not the case, so we can get compile error
 ```java
 public class Main {
     public static void main(String[] args) {
         int i = 1;
         short s = 2;
-        print(i, s);
+        print(i, s); // reference to print is ambiguous: both method print(java.lang.Integer,short) in com.java.app.Main and method print(int,java.lang.Short) in com.java.app.Main match
     }
     public static void print(Integer i, short s){
         System.out.println(1);
@@ -1502,11 +1492,11 @@ public class Main {
     }
 }
 ```
-```
-reference to print is ambiguous: both method print(java.lang.Integer,short) in com.java.app.Main and method print(int,java.lang.Short) in com.java.app.Main match
-```
 
-If we have final instance field and multiple constructors it should be initialized in all of them. The following code won’t compile
+If we have:
+* final static field - it should be initialized in all static{} blocks
+* final instance field and multiple constructors - it should be initialized in all of them
+The following code won’t compile (cause final var `x` not initialized in third constructor)
 ```java
 class A{
     private final int x;
@@ -1519,7 +1509,6 @@ class A{
     public A(int x, int y){} // won't compile
 }
 ```
-*If we have final static field, it should be initialized in all static{} blocks.
 
 Static members can be accessed even if object is point to null, cause static binding is compile time binding (access to static method is decided at compile time, not in runtime).
 ```java
@@ -1575,8 +1564,8 @@ Static initializer fires when we load class.
 ```java
 public class App {
     public static void main(String[] args) {
-        B b = null; // no B static initializer
-        System.out.println(B.NAME); // no B static initializer
+        B b = null; // B static initializer not run at this stage
+        System.out.println(B.NAME); // B static initializer not run at this stage
         System.out.println(B.B_NAME);
     }
 }
@@ -1625,7 +1614,7 @@ class A implements X{}
 class B{}
 ```
 
-Overloading resolution. Java tries to find the exactMatch=>widening=>autoboxing=>varags
+Overloading resolution. Java tries to find the `exactMatch => widening => autoboxing => varags`
 ```java
 public class App {
     void print(int x){}
@@ -1640,7 +1629,7 @@ public class App {
 ```
 by default `(int x)` would be called. If we comment it, `(long x)` would be called, if we comment that, `(Integer x)` would be called, and finally `(int... x)` would be called.
 
-Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Also field/method can't be `abstract static`.
+Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Notice that field/method can't be `abstract static`.
 ```java
 abstract class App {
     abstract void calculate();
@@ -1692,7 +1681,6 @@ init App
 ```
 
 ###### Interfaces
-
 All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
 ```java
 public class App {
@@ -1715,12 +1703,13 @@ class A implements I{}
 1 2 3 4
 ```
 
-Interfaces can have `default` (which can be only called on instance of class that implements interface)  and `static`(which can only be called on interface itself) methods.
+Interfaces can have `default` (which can be only called on instance of class that implements interface)  and `static` (which can only be called on interface itself) methods.
 ```java
 public class App {
     public static void main(String[] args) {
         A a = new A();
         System.out.println(a.m1());
+        System.out.println(a.m2()); // won't compile
         System.out.println(I.m2());
     }
 }
@@ -1739,24 +1728,7 @@ class A implements I{}
 2
 ```
 
-Interface static methods can only be called from interface itself
-```java
-public class App {
-    public static void main(String[] args) {
-        A.print();
-        B.print(); // compiler's error
-        (new B()).print(); // compiler's error
-    }
-}
-interface A{
-    static void print(){
-        System.out.println("A");
-    }
-}
-class B implements A{}
-```
-
-So unlike with classes there is no such thing as method hiding. If we overwrite static method it behaves like newly created static method
+So unlike with classes there is no such thing as method hiding for interface. If we overwrite static method, it behaves like newly created static method
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1845,7 +1817,6 @@ interface Y{
 class A implements X, Y{} // compilation error
 ```
 The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another.
-
 Yet it works fine in case class has method's implementation, or if `Y extends X`
 ```java
 interface X{
@@ -2039,7 +2010,6 @@ y
 As you see, we call super on interface with it’s name.
 
 ###### Enums
-
 Enum extension. There is no such thing as enum extension in java, but you can employ interface for this purpose.
 ```java
 public class App {
@@ -2270,9 +2240,8 @@ public class App{
 }
 ```
 ```
-finallyException in thread "main" 
-java.lang.RuntimeException: 3
-	at com.java.test.App.main(App.java:15)
+finallyException in thread "main"
+java.lang.RuntimeException: at com.java.test.App.main(App.java:15)
 ```
 
 If you have checked exception you can’t catch them until they are clearly thrown from the method itself
@@ -2285,15 +2254,14 @@ public class App {
             System.out.println(ex);
         }
     }
-    private static void print(){
-    }
+    private static void print(){}
 }
 class MyException extends Exception{}
 ```
 This can be fixed by throwing exception from the method itself. It just declares that this method may throw checked exception `private static void print() throws MyException{}`
 This only true to checked exception - because we are forced to catch them, for unchecked (runtime) you can catch them.
 
-You can catch any type of exception: unchecked(runtime), checked(Exception) and errors(Error). So technically you can handle any of `Throwable` subclasses. But it’s better never to catch Errors, cause of some you will not be able to recover
+You can catch any type of exception: unchecked(RuntimeException), checked(Exception) and errors(Error). So technically you can handle any of `Throwable` subclasses. But it’s better never to catch Errors, cause of some you will not be able to recover
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2350,9 +2318,9 @@ As you can see when we throw `throw new RuntimeException();` it wan’t be caugh
 
 
 When you overriding method that throws checked exception you are allowed:
-- not to throw any exception
-- throw any unchecked exception or error
-- throw itself or any child of itself
+* not to throw any exception
+* throw any unchecked exception or error
+* throw itself or any child of itself
 ```java
 class MyException extends Exception {}
 interface Bird {
@@ -2423,11 +2391,8 @@ public class App{
 ```
 
 For checked only (not for `RuntimeException`) exception when overriding method there is a rule:
-any method - only more specific exception
-constructor - only more generic exception
-```java
-
-```
+* any method - only more specific exception
+* constructor - only more generic exception
 As you see `B1.method` - compile error, cause we try to throw more generic (and we can throw only less - children and exception itself), but for C1.constructor - compile error, cause we can only throw less generic. The reason is - that we are forced to catch checked exceptions. 
 ```java
 class MyException extends RuntimeException{}
@@ -2541,8 +2506,7 @@ class App {
 java.lang.NullPointerException
 ```
 
-Try with resources guarantees that resources would be closed
-In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`: 
+Try with resources guarantees that resources would be closed. In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`.
 The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. 
 It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case.
 So they introduced the AutoClosable interface with a less restrictive close() semantic ... and retro-fitted Closeable as a subtype of AutoCloseable.
@@ -2557,7 +2521,7 @@ public class App {
         try(r1){}
         
         Resource r4;
-        try(r4 = new Resource()){} // won't compile
+        try(r4 = new Resource()){} // won't compile, cause r4 is not effectively final
 
         try(new Resource()){} // won't compile cause this declaration doesn't create final variable
 
@@ -2652,7 +2616,6 @@ Exception in thread "main" java.lang.RuntimeException: something went wrong with
 In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way more simpler.
 In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code.
 Pay attention, that by default try-with-resources close resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
-
 Suppressed exception - exception that is thrown in try-with-resources. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
 ```java
 import java.util.Arrays;
@@ -2760,7 +2723,7 @@ catch: java.lang.RuntimeException: xxx
 finally
 ```
 
-**If we didn't run `run` method, and no exception in try block, so only resources would be closed, and after finally would run
+**If we didn't call `run` method, and no exception in try block, so only resources would be closed, and after finally would run
 ```
 MyResource created
 MyResource closed
@@ -2769,9 +2732,9 @@ finally
 
 ###### Nested Types
 Classes, interfaces, enums, can be declared inside classes and have modifiers.
-Nested classes can be of 2 types
-1. Static nested classes (called just static classes) - those delcared with `static` keyword
-2. Instance nested classes (called just inner classes) - those declared without `static` keyword
+Nested classes can be of 2 types:
+* static nested classes (called just static classes) - those declared with `static` keyword
+* instance nested classes (called just inner classes) - those declared without `static` keyword
 
 By default java expects every class to have it's own file and be declared `public` there. But you can declare many classes in single file (but only one that matches filename can be public).
 When you compile file with public class and it includes inner classes, java compile them into separate files.
@@ -2805,7 +2768,6 @@ App$D.class
 App.java
 ```
 As you see for every class it creates separate file with template like `{MainClassName}${InnerClassName}.class`
-
 
 Static classes are not related with parent classes. You can create them only using parent class name with new keyword. They are just like separate classes that can access static members from parent classes.
 Inner classes on the other hand are associated with instances of outer class. So we can't create them without instance of outer class.
@@ -2854,9 +2816,8 @@ class Outer{
 }
 ```
 
-Nested non-static class can’t have static members, except `final static` methods. Static inner classes can't access parent instance members.
-Since inner class not static => it belongs to instance of outer. Since we can have many instances of outer class and each has it's own instance of inner, they can't have static members.
-Inner class can extend other classes and implement interfaces.
+Nested non-static class can’t have static members, except `final static` methods. Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. 
+Since we can have many instances of outer class and each has it's own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
 ```java
 class A {
     private int i1=1;
@@ -2888,9 +2849,9 @@ Default constructor access modifies. By default if we not explicitly add any con
 ```java
 public class Outer{
     // public default no-arg constructor
-    class A{} // package-private default no-arg constructor
-    protected class B{} // protected default no-arg constructor
-    private class C{} // private default no-arg constructor
+    class A{} // package-private no-arg constructor
+    protected class B{} // protected no-arg constructor
+    private class C{} // private no-arg constructor
 }
 ```
 
@@ -2941,14 +2902,11 @@ class Outer{
 ```
 
 ###### Anonymous classes
-
-
-Anonymous classes - can be created out of interface/(abstract)class by implementing class body on the fly. 
-They can't:
-1. extends other classes or implement interfaces
-2. add constructors
-3. have static fields (yet they can have final static fields)
-4. have static methods (both final & non-final)
+Anonymous classes - can be created out of interface/(abstract)class by implementing class body on the fly. They can't:
+* extends other classes or implement interfaces
+* add constructors
+* have static fields (yet they can have final static fields)
+* have static methods (both final & non-final)
 
 You can add private & public members, but only public members declared in original type would be accesible.
 ```java
@@ -3048,7 +3006,6 @@ printing...
 
 
 #### Date and Time
-
 ###### Old date api (java.util.Date & java.util.Calendar)
 Before 2014 (introduction of `java.time`) java used these 2 classes `Date/Calendar` to work with dates. But it has a lot of problems
 * no time zone
@@ -3398,10 +3355,10 @@ diff => PT1H
 ```
 In 13th of march 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 
-Instant vs OffsetDateTime vs ZonedDateTime.
-`Instant` - just store current datetime from utc
-`OffsetDateTime` - `Instant` + utc offset
-`ZonedDateTime` - `OffsetDateTime` + time zone
+Instant vs OffsetDateTime vs ZonedDateTime:
+* `Instant` - just store current datetime from utc
+* `OffsetDateTime` - `Instant` + utc offset
+* `ZonedDateTime` - `OffsetDateTime` + time zone
 ```java
 import java.time.*;
 
@@ -3598,7 +3555,6 @@ public class App{
 
 
 #### Generics
-
 ###### Type erasure
 Type erasure - java by default remove types from generics and change it for object, and later make class casts like
 ```java
@@ -3738,8 +3694,7 @@ list => []
 ```
 
 Pay attention when we extend or implement generic interface and don't set it's generic type. As you see although MusicPlayer can take only Music (or it's children) as generic param, this generic doesn't go to Player. 
-And since Player has no generic we can pass any object into musicPlayer.play.
-Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
+And since Player has no generic we can pass any object into `musicPlayer.play`. Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -3798,10 +3753,9 @@ Exception in thread "main" java.lang.ClassCastException: Attempt to insert class
 ```
 
 ###### Generic method overriding
-
-Naming convention. 
-Overriding method - B.m1 - method that overrides another method from parent class.
-Overridden method - A.m1 - method from parent class that is being overriding by method from child class.
+Naming convention:
+* overriding method - B.m1 - method that overrides another method from parent class.
+* overridden method - A.m1 - method from parent class that is being overriding by method from child class.
 ```java
 class A{
     public void m1(){} // overridden method
@@ -3940,7 +3894,6 @@ class A{
 
 #### Collections
 `Vector` - is synchronized (almost all methods has `syncronized` keyword), only one thread at a time can use it. `ArrayList` - is not synchronized.
-
 Collections lambda methods
 ```java
 import java.util.*;
@@ -4051,7 +4004,6 @@ public class App {
 ```
 
 ###### List and Set
-
 All collections has a method `contains(Object o)` to check if element in collection. But `Map` doesn’t have such a method. Instead it has 2 methods `containsKey(Object o)` and `containsValue(Object o)`.
 If you pass wrong object, you won't get `ClassCastException`, just false. The reason, is that inside they compare by `equals` method.
 ```java
@@ -4232,7 +4184,6 @@ false
 ```
 
 ###### Array and Enumeration to List and back
-
 Array to List. When convert from array to list, they both become linked and change in one is reflecting in another. Moreover such a list is fixed like an array. 
 You can change values, but can’t add new one. If you don’t want this use `new ArrayList<>(Arrays.asList(arr))`.
 ```java
@@ -4316,7 +4267,6 @@ public class App {
 ```
 
 ###### Map
-
 `HashMap` and `HashTable` are not iteration-determenistic. So in 2 iterations, you can get different order. If you need to preserve order use `LinkedHashMap` or `TreeMap`. `Set` - unordered collection, but `List` - ordered.
 Constructor of LinkedHashMap takes 3 params: 
 capacity - default size of map
@@ -4496,10 +4446,7 @@ map => {Bob=4, Melanie=3, Janet=1, Jack=2}
 collectorMap => {Bob=4, Melanie=3, Janet=1, Jack=2}
 ```
 
-As you see, no need for condition and use of `put` and `putIfAbsent` or `computeIfAbsent`. We can also rewrite it as
-```java
-map.merge(name, 1, Integer::sum);
-```
+As you see, no need for condition and use of `put` and `putIfAbsent` or `computeIfAbsent`. We can also rewrite it as `map.merge(name, 1, Integer::sum)`.
 
 Here is more complicated example. Imagine you have list of operations with start and end balance. And you need to calculate total balance for all days. (balance per day = start - end, and then sum all balances for all days per account)
 ```java
@@ -4553,8 +4500,6 @@ collectorMap => {1=30, 2=20, 3=10}
 ```
 
 ###### binarySearch
-
-
 `Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It return  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside.
 So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. 
 Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4.
@@ -4920,7 +4865,6 @@ class MyRingBuffer<T> implements RingBuffer<T> {
 
 
 #### Functional Programming and Stream API
-
 ###### Functional interfaces
 Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block).
 Instance & static variables shouldn't be effectively final in order to be used inside lambda.
