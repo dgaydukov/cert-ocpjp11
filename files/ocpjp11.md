@@ -38,7 +38,7 @@
 * 6.1 [Functional interfaces](#functional-interfaces)
 * 6.2 [Method reference](#method-reference)
 * 6.3 [Comparator and Comparable](#comparator-and-comparable)
-* 6.4 [Simple streams](#simple-streams)
+* 6.4 [Primitive streams](#primitive-streams)
 * 6.4 [Parallel streams](#parallel-streams)
 * 6.5 [Collectors](#collectors)
 7. [Concurrency](#concurrency)
@@ -3570,7 +3570,8 @@ String x = (String) list.get(0);
 ```
 
 ####### PECS (producer extends consumer super)
-This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. The exception if overriding method has `List<anything>` but overriden just `List`.
+This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. 
+The exception if overriding method has `List<anything>` but overriden just `List`.
 ```java
 import java.util.*;
 
@@ -3754,8 +3755,8 @@ Exception in thread "main" java.lang.ClassCastException: Attempt to insert class
 
 ###### Generic method overriding
 Naming convention:
-* overriding method - B.m1 - method that overrides another method from parent class.
-* overridden method - A.m1 - method from parent class that is being overriding by method from child class.
+* overriding method (B.m1) - method that overrides another method from parent class.
+* overridden method (A.m1) - method from parent class that is being overriding by method from child class.
 ```java
 class A{
     public void m1(){} // overridden method
@@ -3777,9 +3778,7 @@ From compile perspective - it's valid overloading, but from jvm it's valid overr
 The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
 Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a place holder for whatever type is actually used while invoking the method. 
 For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
-T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`.
-      
-Overriding example
+T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
 ```java
 import java.util.*;
 
@@ -3838,8 +3837,6 @@ List<C>
 ```
 param inside B.getList can be only of type A, otherwise it’s not overriding, but overloading.
 
-     
-      
 `List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. 
 For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
 ```java
@@ -4569,9 +4566,7 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 ###### Order and duplicates
  `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. 
 List is a type of ordered collection that maintains the elements in insertion order while Set is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.
-
-`Set` is not preserving order. If you want to preserve order use `LinkedHashSet`.
-All elements inside set are unique. Internally set using map, and use it's keys as values.
+`Set` is not preserving order. If you want to preserve order use `LinkedHashSet`. All elements inside set are unique. Internally set using map, and use it's keys as values.
 ```java
 import java.util.*;
 
@@ -4638,8 +4633,8 @@ java.lang.ClassCastException: class com.java.test.A cannot be cast to class java
 set with compatator that returns 0 => [1]
 ```
 
-HashSet(HashMap) - uniquness is guarantees by `equeals` method
-TreeSet(TreeMap) - uniquness is guarantess by `compare/compareTo` methods
+HashSet(HashMap) - uniqueness is guaranteed by `equeals` method
+TreeSet(TreeMap) - uniqueness is guaranteed by `compare/compareTo` methods
 
 `SortedSet` has 2 methods to finds subsets `headSet` and `tailSet`
 ```java
@@ -4973,7 +4968,7 @@ mandarin: 8
 hello world
 hello world
 ```
-**Although NewCounter is valid functional interface (has only one abstract method doIt), we call not doIt, but count method => which is default and already defined. So that's why in second `forEach` we calling not lambda defined in newCounter, but default method. If you declare count `static` it won't compiled, cause static can be called from interface object directly.
+Although NewCounter is valid functional interface (has only one abstract method doIt), we call not doIt, but count method => which is default and already defined. So that's why in second `forEach` we calling not lambda defined in newCounter, but default method. If you declare count `static` it won't compiled, cause static can be called from interface object directly.
 
 You can use annotation `@FunctionalInterface` to check whether `interface` is functional or not
 ```java
@@ -5243,7 +5238,7 @@ class My{
 Method reference works a little bit different from lambda.
 It creates reference of the current object (if we change object, method would be called for old value)
 lambda - just wrap(delay) object invocation (so if we change object, method would be called on new object)
-**Pay attention, since str is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda)
+Notice that since str is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda)
 ```java
 import java.util.function.Supplier;
 
@@ -5393,7 +5388,7 @@ class Person implements Comparable<Person>{
 If we remove `implements Comparable<Person>` we would get compile time error, cause sort expects list of T extends Comparable. 
 If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.Person cannot be cast to class java.lang.Comparable`.
 
-###### Simple streams
+###### Primitive streams
 If you want to work with stream use `Stream`. If you want primitive type streams use one of these
 `IntStream`
 `LongStream`
@@ -6059,7 +6054,6 @@ max2 => Optional[5]
 
 
 #### Concurrency
-
 ###### Threads
 Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have clearly override one method `run` to run it.
 If you extends from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
@@ -6090,10 +6084,9 @@ MyThread => Thread-1
 MyRunnable => Thread-0
 ```
 
-Thread error handling
-There are a few ways to handle error inside thread
-1. We can set exception handler for thread using `setUncaughtExceptionHandler` method
-2. When we call `get` it usually throws 2 errors `InterruptedException` and `ExecutionException` - so this is our common exception for any exception inside thread 
+There are a few ways to handle error inside thread:
+* we can set exception handler for thread using `setUncaughtExceptionHandler` method
+* when we call `get` it usually throws 2 errors `InterruptedException` and `ExecutionException` - so this is our common exception for any exception inside thread 
 ```java
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -6134,7 +6127,7 @@ start thread
 futureTask: java.util.concurrent.ExecutionException: java.lang.RuntimeException: oops
 Thread[Thread-0,5,main] java.lang.RuntimeException: oops
 ```
-**By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause FutureTask(class)=>RunnableFuture(interface)=>Runnable, Future.
+By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause FutureTask(class)=>RunnableFuture(interface)=>Runnable, Future.
 `Future` - interface returned by ExecutorService submit,invoke methods, `FutureTask` - concrete task. You can pass it into new Thread or ExecutorService submit/invoke methods.
 
 
@@ -6734,7 +6727,7 @@ put done 100 Thread-1
 ```
 
 ###### fork/join framework
-The `fork/join` framework famous for it work stealing - it is specifically design to tackle recursive algorithms. Although you can write you own recursive traverse (which would definitely be proned to error) and use threadpool, `fork/join` has such logic out of the box.
+The `fork/join` framework famous for it work stealing - it is specifically design to tackle recursive algorithms. Although you can write you own recursive traverse (which would definitely be prone to error) and use threadpool, `fork/join` has such logic out of the box.
 ```java
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -7256,7 +7249,6 @@ Sometimes you have to do some not idempotent operation, for this you set some fl
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
 But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
 For this purpose it's better to use some id
-
 ```java
 import java.util.HashMap;
 import java.util.Map;
@@ -7696,9 +7688,9 @@ Here we are using pool of connections, and once we have use it, return it to db.
 
 ###### Statement and PreparedStatement
 It's better to always use `PreparedStatement` cause you can:
--avoid sql injection
--reuse query and by that get perfomance hit
--use blob & clob additional datatypes (ps.setBlob(i, Blob b), ps.setClob(i, Clob c))
+* avoid sql injection
+* reuse query and by that get performance hit
+* use blob/clob additional datatypes (ps.setBlob(i, Blob b), ps.setClob(i, Clob c))
 ```java
 public class App {
     public static void main(String[] args) {
@@ -7745,7 +7737,7 @@ There are 3 interfaces to execute queries:
 `CallableStatement` (extends PreparedStatement) - can be obtained `CallableStatement s = conn.prepareCall("");` 
 
 Sql example of stored procedure to fetch lastname by id. Although it's pretty useless, cause you can achieve the same with simple query, you can write more complex precedures to get some complex data.
-```roomsql
+```
 # create procedure
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `getLastName` $$
@@ -7794,7 +7786,7 @@ public class App {
 ```
 
 ###### Transactions
-It’s easy to work with transaction in jdbc. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
+It’s easy to work with transaction in JDBC. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
 ```java
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -7851,18 +7843,14 @@ errorCode => 1054
 
 
 #### Serialization
-
 ###### Java serialization
 When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer not fire. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
 Deserialization doesn't invoke constructor & instance initializator because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
 It searches all parents until it found one that doesn't implement `Serializable` and have default constructor,
 (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), 
 and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor.
-Pay attention that static fields don't serialize.
-
-
-If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`
-**Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
+Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`.
+Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
 Otherwise compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
 There are a few ways you can get your serial number
 ```java
@@ -8344,8 +8332,9 @@ public Person() {
     age = 1;
 }
 ```
+
 Java will overwrite all state that you set here, by using readExternal.
-**Other caveat is different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
+Notice that different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
 The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData is not called, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
 If your class extends from non serializable class it should have default constructor, otherwise can't reconstruct object
 ```java
@@ -8393,14 +8382,13 @@ class Person extends Human implements Serializable {
 }
 ```
 
-Rules of changing serialized classes
-* 1. If you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class jvm will regenerate serival number
+Rules of changing serialized classes:
+* if you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class, jvm will regenerate serial number
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
-* if some fields are removed from new class version, they just ignored during deserialization~~~~
+* if some fields are removed from new class version, they just ignored during deserialization.
 
 ###### XML serialization
-JAXB - java architexture xml binding - ability to dump object into xml and construct object from xml
-first add following into your pom.xml
+JAXB - java architecture xml binding - ability to dump object into xml and construct object from xml first add following into your pom.xml
 ```
 <dependency>
   <groupId>javax.xml.bind</groupId>
@@ -8478,7 +8466,6 @@ xml file
     <name>John</name>
     <age>30</age>
 </person>
-
 ```
 When constructing object from xml, no-arg constructor is called.
 
@@ -8530,7 +8517,6 @@ As you see, again we constructing object from json, we call no-arg constructor. 
 
 
 #### IO and NIO
-
 ###### InputStream/OutputStream and Reader/Writer
 There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
 but Reader/Writer works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
@@ -8560,9 +8546,9 @@ public class App {
 Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java/test/text (Permission denied)
 ```
 
-`java.io.File` 
-`mkdir` - create one directory (if one of parent directory missing, return false)
-`mkdirs` - create all non-existent parent directories
+`java.io.File`:
+* `mkdir` - create one directory (if one of parent directory missing, return false)
+* `mkdirs` - create all non-existent parent directories
 
 ###### Console
 `Console` method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
@@ -8857,10 +8843,9 @@ a/b/d
 
 ###### mark, reset, skip
 There are a few methods to move `InputStream` back or forward:
-`mark(int limit)` - mark the current point with number of bytes to save
-`reset()` - return to the marked point
-`skip(int n)` - skip n bytes 
-
+* `mark(int limit)` - mark the current point with number of bytes to save
+* `reset()` - return to the marked point
+* `skip(int n)` - skip n bytes 
 ```java
 import java.io.File;
 import java.io.BufferedInputStream;
@@ -8900,10 +8885,10 @@ F
 
 ###### Files copy, move, delete
 There are a few useful methods in `Files` class:
-`Files.copy` - copy one file into another, if another file doesn't exists it's created, if exists `FileAlreadyExistsException` throws
-`Files.move` - move (copy & delete)
-`Files.delete` - delete a file, if file doesn't exist throws `FileNotFoundException`.
-*One caveat - they both don't distinguish between directory & file. So if your destination valid directory, they will think that your directory is existing file and throw `FileAlreadyExistsException`. This is differ from linux command line where if you pass second param as directory, shell automatically copy/move file into this directory. If you pass third param as `StandardCopyOption.REPLACE_EXISTING`, then it will try to replace but realize that i's impossible to overwrite directory with file and throws `DirectoryNotEmptyException`.
+* `Files.copy` - copy one file into another, if another file doesn't exists it's created, if exists `FileAlreadyExistsException` throws
+* `Files.move` - move (copy & delete)
+* `Files.delete` - delete a file, if file doesn't exist throws `FileNotFoundException`.
+Notice that they both don't distinguish between directory & file. So if your destination valid directory, they will think that your directory is existing file and throw `FileAlreadyExistsException`. This is differ from linux command line where if you pass second param as directory, shell automatically copy/move file into this directory. If you pass third param as `StandardCopyOption.REPLACE_EXISTING`, then it will try to replace but realize that i's impossible to overwrite directory with file and throws `DirectoryNotEmptyException`.
 If source and dest are the same, no exception for both copy and move is thrown.
 ```java
 import java.nio.file.*;
@@ -9198,18 +9183,7 @@ public class App{
 }
 ```
 
-
-
-
-
- 
-
-
-
-
-
-
-`130.` We can write to file using nio. `Files.writeString`.
+We can write to file using nio. `Files.writeString`.
 ```java
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -9229,8 +9203,6 @@ public class App {
     }
 }
 ```
-
-
 
 `StringReader` - special class that can take a String object and turn it into `Reader` stream.
 ```java
@@ -9648,7 +9620,7 @@ public class App {
 50 2
 51 3
 ```
-**Pay attention, that if dest contains any data, it would be overwritten. There is no way to write from another position in outputstream.
+Pay attention, that if dest contains any data, it would be overwritten. There is no way to write from another position in outputstream.
 
 But it’s better to use `Buffered` streams, cause `File` reads char by char, that is not effective
 ```java
@@ -9683,7 +9655,6 @@ public class App {
 [32, 119, 111, 114, 108] 5
 [100, 33, 111, 114, 108] 2
 ```
-
 Pay attention that on the 3rd iteration, only 2 elements of buffer has been written (cause it was end of file), yet buffer contains 5 elements, 3 of which from previous write. That means, that buffer filled char by char, without prior clearing.
 
 We can also use `BufferedReader/BufferedWriter` classes to read and write by line
@@ -9735,14 +9706,11 @@ public class App {
     }
 }
 ```
-
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
 
 #### Miscellaneous
-
 ###### Modules
-
 There are 3 types of modules
 1. named module (NM) - one with `module-info.java` file loaded from `--module-path`
 2. automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so mysql-java-connector-1.2.3.jar => mysql.java.connector. You can also set it explicitly by adding to MANIFEST.MF => Automatic-Module-Name: <module name>)
@@ -9785,10 +9753,10 @@ We can also use custom module inside maven project.
 ```
 Pay attention that groupId, artifactId and version can be any value.
 
-`ServiceLoader` - used for loading services. There are 2 ways we can use it
+`ServiceLoader` - used for loading services. There are 2 ways we can use it:
 * old jar way - creating file `META-INF/services/NameOfService` and putting name of your implementation there
 * new module way - with module definition `provides/uses`
-There are also 2 ways to implement loading
+There are also 2 ways to implement loading:
 * extend you class from abstract class(or concrete class) or implement interface. In this case implementation should have no-arg constructor. If no no-arg constructor, 
 ServiceLoader won't be able to load the implementation you will get compile error (`foo/module-info.java:5: error: the service implementation does not have a default constructor: SecondFooInterfacePrinter`)
 * add `public static NameOfService provider(){}` to your class. In this case these method calls. No need for no-args constructor.
@@ -9916,21 +9884,15 @@ moduleD -> java.base
 moduleD -> moduleC
 ```
 
-`-jdkinternals` or `--jdk-internals` - Finds class-level dependencies on JDK internal
-                                        APIs. By default, it analyzes all classes
-                                        on --class-path and input files unless -include
-                                        option is specified. This option cannot be
-                                        used with -p, -e and -s options.
-                                        WARNING: JDK internal APIs are inaccessible.
+`-jdkinternals` or `--jdk-internals` - Finds class-level dependencies on JDK internal APIs.
 
 ###### Random numbers
-
-Random number generation. There are 5 ways to generate number
-`java.lang.Math.random()` - generate random between 0 and 1. Using internally `new Random().nextDouble()`.
-`java.util.Random` - standard class to get numbers
-`java.util.SplittableRandom` - not thread-safe, but very quick
-`java.util.concurrent.ThreadLocalRandom` - enhanced version of Random designed to generate multi-threaded safe randoms.
-`java.security.SecureRandom` - generate cryptographically secure randoms (mostly used in secure app)
+Random number generation. There are 5 ways to generate number:
+* `java.lang.Math.random()` - generate random between 0 and 1. Using internally `new Random().nextDouble()`.
+* `java.util.Random` - standard class to get numbers
+* `java.util.SplittableRandom` - not thread-safe, but very quick
+* `java.util.concurrent.ThreadLocalRandom` - enhanced version of Random designed to generate multi-threaded safe randoms.
+* `java.security.SecureRandom` - generate cryptographically secure randoms (mostly used in secure app)
 All methods in `Random` are instance.
 There are 2 constructors one is empty another with seed of `long`. When you use no-arg it generate seed based on nanotime.
 ```java
@@ -10031,15 +9993,12 @@ myapp_en.properties
 myapp_en_US.properties
 myapp_fr.properties
 ```
-If we don't pass anything `myapp_en` would be loaded, cause default locale is en.
-If we pass existing locale (like fr or en_US) corresponding file would be loaded
-(if we pass en_us locale all 3 bundles would be loaded. 
-first => myapp, then myapp_en => values from this file will overwrite values from base bundle
-thrid myapp_en_us => values from this bundle will overwrite values from second bundle.
-so totally 3 bundles would be loaded. So the value would be searched in this order
-myapp_en_us => myapp_en => myapp)
-If we pass non-existing locale (like german) default locale would be loaded
-If we set default locale as german, then `myappp` would be loaded.
+Then we have following order of execution:
+* if we don't pass anything `myapp_en` would be loaded, cause default locale is en.
+* if we pass existing locale (like `fr` or `en_US`) corresponding file would be loaded
+* if we pass `en_us` locale 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
+* If we pass non-existing locale (like `german`) default locale would be loaded
+* If we set default locale as `german`, then `myappp` would be loaded.
 `Locale.setDefault` has 2 overloaded methods. One takes `Locale` object, another (Locale.Category, Locale).
 `Locale.getDefault` has 2 overloaded methods. () - get all, (Locale.Category)
 
@@ -10105,7 +10064,7 @@ country => france
 test3 => test3
 ```
 
-We can create custom bundle where we can call methods like `getString`, `getObject`, `getStringArray`
+We can create custom bundle where we can call methods like `getString/getObject/getStringArray`
 ```java
 import java.util.*;
 
@@ -10157,7 +10116,7 @@ By default assertions are turned off. You should use `-ea` or `-enableassertions
 If you want to disable assertion use `-da` or `-disableassertions`. You can enable/disable assertions from specific class/package `-ea:mypackage`.
 You can have multiple line ea or da. For example if you want to enable them in general but disable for mypackage `java -ea -da:mypackage`.
 If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`
-If you want to enable/disable assertions for all subpckages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
+If you want to enable/disable assertions for all subpackages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
 
 Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods.
 The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
@@ -10183,7 +10142,6 @@ Caused by: java.lang.RuntimeException: Assertions must be enabled
 ```
 
 ###### Object interning
-
 In case you want to guarantee that class is immutable and you won't create new objects for the same data you can make constructor private (will ensure nobody can extend the class) and add static method and intern similar objects there.
 ```java
 import java.util.*;
@@ -10378,7 +10336,6 @@ done => 185
 ```
 
 ###### Annotations
-
 `@Override` can only be used for instance methods. Since we don't override static methods and both instance & static variables (we hide them) you can't use this annotation.
 ```java
 class A{
@@ -10466,10 +10423,8 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 ```
 
 If we add `@SafeVarags` to `print` methods, compilation warnings would be gone. Although it won't make code safe, you will still get `ClassCastException`.
-
-Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package
-**Annotation value must be compile time constant non-null value.
-`@Retention` [SOURCE, CLASS, RUNTIME] - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
+Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package. Annotation value must be compile time constant non-null value.
+`@Retention(SOURCE/CLASS/RUNTIME)` - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
 `@Target` - to which element does annotation applied (like Field, Method, Constructor) 
 `@Repetable`
 Before java8, we couldn't add same annotation twice
@@ -10526,7 +10481,7 @@ class User{}
 }
 ```
 
-**Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
+Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
 but inside it creates this wrapper, and so if you array named not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
 ```java
 @Role("user") // won't compile
@@ -10543,8 +10498,7 @@ class User{}
 }
 ```
 
-When you use `Repeatable` annotation, and trying to get it by reflection, you will get array annotation, inside which woudl
-be your annotations with values
+When you use `Repeatable` annotation, and trying to get it by reflection, you will get array annotation, inside which would be your annotations with values
 ```java
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
@@ -10639,8 +10593,6 @@ class User{}
 
 class Admin extends User{}
 
-
-
 @Role("user")
 interface IUser{}
 
@@ -10709,13 +10661,7 @@ class MyService2{}
 ```
 
 Types of annotation values: according to  [JLS 9.6.1](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.6.1). 
-The annotation member types must be one of:                                     
-primitive
-String
-an Enum
-another Annotation
-Class
-an array of any of the above
+The annotation member types must be one of: `primitive/String/Enum/Annotation/Class/Array`.
 ```java
 import java.util.List;
 
@@ -10766,7 +10712,7 @@ class MyService{
 ```
 
 ###### Reflection API
-Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private. Here is a small example
+Reflection - is an ability to modify on the fly the code from the same source code. It’s useful for testing system or when you write your own framework or when you are writing annotations. With the help of reflection you can call any method or set any field directly, even if they are private.
 Reflection is done with the help of `Class` class. There are 3 ways we can get class object
 ```java
 public class App {
@@ -10976,7 +10922,6 @@ isNamePresent => true, name => myAge
 ```
 
 ###### Compile Time Annotation Processor
-
 Compile time annotation processor - we can create custom annotation and set some rules (for example constructor should have 3 arguments), and use it in compile time. 
 Here is basic example, where custom annotation has a name, and that name should correspond to class name.
 We have 3 files
