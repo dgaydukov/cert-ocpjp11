@@ -1753,7 +1753,7 @@ class B implements A {
 ```
 
 Since interface default methods - instance, but variables - static, when a class implements 2 interfaces with the same default method, class should redeclare it to remove ambiguity. 
-Java won’t compile such a class. But when we have 2 variables with the same name, the class will compile, but won’t compile when we try to access it.
+Java won’t compile such a class. In case of 2 variables with same name - you anyway can't access interface variable from instance of class - so if you try it won't compile.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1816,7 +1816,7 @@ interface Y{
 
 class A implements X, Y{} // compilation error
 ```
-The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another.
+The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another implementation of this interface.
 Yet it works fine in case class has method's implementation, or if `Y extends X`
 ```java
 interface X{
@@ -1910,7 +1910,7 @@ class B extends A{
 }
 ```
 
-If class extends other class and implement interface with same final static variable, no compile error, but when we try to access this variable, we got compile error. The same true if class implement 2 interfaces with same variable.
+If class extends other class and implement interface with same final static variable we got compile error. The same true if class implement 2 interfaces with same variable.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -1927,7 +1927,7 @@ class A{
 class B extends A implements X{}
 ```
 
-Class and interface can’t have static & instance method with the same signature. The same applies to overriding it's illegal to override instance with static & vice versaa.
+Class and interface can’t have static & instance method with the same signature. The same applies to overriding, it's illegal to override instance with static & vice versa.
 ```java
 interface X{
     default void print(){}
