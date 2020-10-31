@@ -46,10 +46,11 @@
 * 7.2 [ExecutorService](#executorservice)
 * 7.3 [wait/notify and await/signal](#waitnotify-and-awaitsignal)
 * 7.4 [fork/join framework](#forkjoin-framework)
-* 7.5 [Synchronizers](#-synchronizers)
+* 7.5 [Synchronizers](#synchronizers)
 * 7.6 [Concurrent collections](#concurrent-collections)
 * 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
 * 7.8 [Synchronized on ID](#synchronized-on-id)
+* 7.9 [Future & CompletableFuture](#future--completablefuture)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -6799,7 +6800,7 @@ CountRecursiveTask: 20
 
 As you can see `fork/jon` framework always divide task on 2, and start to run first task, but second put into queue. And do it until task is small enough to complete. At the same time other threads can read this queue and take tasks from it (work stealing) and others can steal from others, so we have a tree, where all threads always running until all queues (for every thread) is empty and we can get result.
 
-####### Synchronizers
+###### Synchronizers
 `Semaphore`, `CountDownLatch`, `CyclicBarrier` - all do pretty the same. For example we have a task to run all threads at the same time.
 `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
 `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
@@ -7330,6 +7331,104 @@ class Person{
 Job Done => 1
 Job Done => 2
 Job Done => 3
+```
+
+###### Future & CompletableFuture
+* Future - java5 interface to help with async computation
+* CompletableFuture - java8 class with over 50 functions for async computation (so it's basically whole mini-framework)
+You can get result with completable future in 2 ways:
+* get - throws `InterruptedException, ExecutionException`
+* join - doesn't throw any exception
+```java
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+public class App {
+    public static void main(String[] args) {
+        // consecutive execution
+        CompletableFuture<String> future = CompletableFuture
+            .supplyAsync(() -> fetchResourceA())
+            .thenApplyAsync(r -> r + fetchResourceB());
+        System.out.println("done");
+        try{
+            System.out.println(future.get());
+        } catch (InterruptedException | ExecutionException ex){
+            throw new RuntimeException(ex);
+        }
+
+        /**
+         * You can also use async call
+         */
+        future.whenComplete((res, err)->{
+            System.out.println("res=" + res + ", err=" + err);
+        });
+        //imitate program running, otherwise program would exit
+        sleep(10);
+    }
+
+    public static String fetchResourceA(){
+        sleep(2);
+        return "A";
+    }
+    public static String fetchResourceB(){
+        sleep(3);
+        return "B";
+    }
+    public static void sleep(int sec){
+        try{
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+
+You can run futures in parallel with `allOf`, so it would be completed when last futures from list would be done. 
+Yet it returns void, so if you need results from these futures, you should call get/join to each of the future separately.
+```java
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public class App {
+    public static void main(String[] args) {
+        List<CompletableFuture<String>> futures = new ArrayList<>(List.of(
+            CompletableFuture.supplyAsync(() -> fetchResourceA()),
+            CompletableFuture.supplyAsync(() -> fetchResourceB())
+        ));
+        CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
+        future.whenComplete((res, err)->{
+            System.out.println("res=" + res + ", err=" + err);
+            // since out future is completed, join on all children futures will complete immediately, cause they all completed by this time
+            futures.forEach(f -> System.out.println(f.join()));
+        });
+        System.out.println("done");
+        sleep(10);
+    }
+
+    public static String fetchResourceA(){
+        sleep(2);
+        return "A";
+    }
+    public static String fetchResourceB(){
+        sleep(3);
+        return "B";
+    }
+    public static void sleep(int sec){
+        try{
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+```
+done
+res=null, err=null
+A
+B
 ```
 
 #### JDBC and SQL
