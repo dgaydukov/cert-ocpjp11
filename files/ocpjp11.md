@@ -4265,7 +4265,10 @@ public class App {
 ```
 
 ###### Map
-`HashMap` and `HashTable` are not iteration-determenistic. So in 2 iterations, you can get different order. If you need to preserve order use `LinkedHashMap` or `TreeMap`. `Set` - unordered collection, but `List` - ordered.
+`HashMap` and `HashTable` are not iteration-determenistic. So in 2 iterations, you can get different order. If you need to preserve order use:
+* `LinkedHashMap` - ordered, use order in which elements where inserted 
+* `TreeMap` - ordered and sorted, sort elements on insert
+`Set` - unordered collection, but `List` - ordered.
 Constructor of LinkedHashMap takes 3 params: 
 capacity - default size of map
 loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
