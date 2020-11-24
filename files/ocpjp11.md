@@ -71,6 +71,7 @@
 * 10.8 [Files copy, move, delete](#files-copy-move-delete)
 * 10.9 [Data traversal](#data-traversal)
 * 10.10 [BasicFileAttributes](#basicfileattributes)
+* 10.11 [DirectByteBuffer vs HeapByteBuffer](#directbytebuffer-vs-heapbytebuffer)
 11. [Miscellaneous](#miscellaneous)
 * 11.1 [Modules](#modules)
 * 11.2 [Random numbers](#random-numbers)
@@ -5836,7 +5837,7 @@ public class App {
         /**
          * toMap and groupingBy very similar, both return new map. But there is a general rule
          * To collect into a Map that contains a single value by key (Map<MyKey, MyObject>), use Collectors.toMap().
-         * To collect into a Map that contains multiple values by key (Map<MyKey, List<MyObject>>), use Collectors.groupingBy().
+         * To collect into a Map that contains list/set/map value by key (Map<MyKey, List<MyObject>>), use Collectors.groupingBy().
          */
         // default grouping return list of objects as value of map
         Map<Integer, List<Person>> groupByAge = people.stream().collect(Collectors.groupingBy(k->k.age));
@@ -5845,10 +5846,17 @@ public class App {
         Map<Integer, List<String>> groupNamesByAge = people.stream().collect(Collectors.groupingBy(k->k.age, Collectors.mapping(p->p.name, Collectors.toList())));
         System.out.println("groupNamesByAge => " + groupNamesByAge);
 
-        Map<Integer, List<Person>> toMapByAge = people.stream().collect(Collectors.toMap(k->k.age, v->new ArrayList<>(List.of(v)), (acc, v)->{
-            acc.addAll(v);
-            return acc;
-        }));
+        /**
+        * You can use toMap for multiple values, but code would be clunky
+        * especially merge function, you should accumulate values into list and retun it (there is no way to do it single line)
+        */
+        Map<Integer, List<Person>> toMapByAge = people.stream()
+                    .collect(Collectors.toMap(k->k.age, 
+                            v->new ArrayList<>(List.of(v)), 
+                            (v, acc)->{
+                                acc.addAll(v);
+                                return acc;
+                            }));
         System.out.println("toMapByAge => " + toMapByAge);
         Map<Integer, List<Person>> groupByAgeCustomCollector = people.stream().collect(HashMap::new, (map, s) -> {
             map.merge(s.age, new ArrayList<>(List.of(s)), (acc, v)->{
@@ -9810,6 +9818,29 @@ public class App {
 ```
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
+###### DirectByteBuffer vs HeapByteBuffer
+ByteBuffer provides view into some (undefined) underlying storage of bytes
+There are 2 abstract classes: `Buffer => ByteBuffer => MappedByteBuffer (content is a memory-mapped region of a file)`, and 2 concrete implementation:
+* `DirectByteBuffer extends MappedByteBuffer` - backed by array of bytes (not subject to the GC).
+* `HeapByteBuffer extends ByteBuffer` - backed by direct (off-heap, native) byte buffers
+Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
+Below is example how to create 2 types of buffer
+```java
+import java.nio.ByteBuffer;
+
+public class App{
+    public static void main(String[] args) {
+        ByteBuffer directBuffer = ByteBuffer.allocateDirect(10);
+        ByteBuffer heapBuffer = ByteBuffer.allocate(10);
+        System.out.println("directBuffer => " + directBuffer.getClass().getName());
+        System.out.println("heapBuffer => " + heapBuffer.getClass().getName());
+    }
+}
+```
+```
+directBuffer => java.nio.DirectByteBuffer
+heapBuffer => java.nio.HeapByteBuffer
+```
 
 #### Miscellaneous
 ###### Modules
