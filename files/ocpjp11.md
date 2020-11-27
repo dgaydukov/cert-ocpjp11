@@ -89,6 +89,7 @@
 * 11.13 [Desktop](#desktop)
 * 11.14 [Java Servlet WebApp](#java-servlet-webapp)
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
+* 11.16 [sun.misc.Unsafe](#sunmiscunsafe)
 12. [Class Diagram](#class-diagram)
 
 
@@ -11501,6 +11502,162 @@ class A{
 class B extends A{
     void m1(){
         System.out.println("B");
+    }
+}
+```
+
+###### sun.misc.Unsafe
+`sun.misc` - special package for 2 low-level classes:
+* Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
+* Signal - low level system signals handling
+**Note that you shouldn't use these 2 classes in your code, otherwise your code would be too os-dependant.
+Fatal error - technically it's impossible to get fatal error with java, cause it designed in such a way to handle this. Yet if you use `Unsafe` directly you can get it
+```java
+import java.lang.reflect.Field;
+import sun.misc.Unsafe;
+
+public class App{
+    public static void main(String[] args) {
+        Unsafe unsafe = getUnsafe();
+        // put into wrong address
+        unsafe.putAddress(1, 10);
+    }
+
+    public static Unsafe getUnsafe(){
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+```
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x00007fa6425266f3, pid=2136, tid=2138
+#
+# JRE version: OpenJDK Runtime Environment (11.0.9.1+1) (build 11.0.9.1+1-Ubuntu-0ubuntu1.18.04)
+# Java VM: OpenJDK 64-Bit Server VM (11.0.9.1+1-Ubuntu-0ubuntu1.18.04, mixed mode, sharing, tiered, compressed oops, g1 gc, linux-amd64)
+# Problematic frame:
+# V  [libjvm.so+0xea86f3]
+#
+# Core dump will be written. Default location: Core dumps may be processed with "/usr/share/apport/apport %p %s %c %d %P %E" (or dumping to /home/diman/projects/my/ocpjp11/core.2136)
+
+Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
+```
+
+There are several examples where you can use `Unsafe`:
+* allocateInstance - allocate memory but doesn't call constructor
+* change private fields (by the way reflection use `Unsafe` under-the-hood)
+But if you use `Unsafe` for this you can modify any object, even if you don't have direct reference to it. For example you have Object A1 with reference and next to it object A2 in memory.
+So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 123);` - this would modify next object in memory (32 - size of object in memory)
+* throw any exception (java compiler doesn't validate Unsafe same way as other code, so you can throw any checked exception)
+* use off-heap memory (this memory is not managed by java, so GC is not called to clean it, so you just clean it manually)
+Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuffer` under-the-hood, which in turn use `Unsafe` to handle memory
+* compare-and-swap - all classes from `java.util.concurrent.atomic` like `AtomicInteger` using one of 3 `Unsafe` implementation of this algorithm:
+    * compareAndSwapInt
+    * compareAndSwapLong
+    * compareAndSwapObject
+* wait with `park/unpark` methods - similar to `Object.wait` but use native OS implementation
+* create function sizeOf to get size of objects
+* remove strings from memory
+
+Basic example with class instantiation & throwing checked exception
+```java
+import java.lang.reflect.Field;
+import sun.misc.Unsafe;
+
+public class App{
+    public static void main(String[] args) throws InstantiationException {
+        Unsafe unsafe = getUnsafe();
+
+        Person p2 = (Person) unsafe.allocateInstance(Person.class);
+        System.out.println(p2.getAge());
+
+        unsafe.throwException(new Exception("oops"));
+    }
+
+    public static Unsafe getUnsafe(){
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+class Person{
+    private int age;
+    public Person(){
+        age = 10;
+    }
+    public int getAge(){
+        return age;
+    }
+}
+```
+```
+0
+Exception in thread "main" java.lang.Exception: oops
+```
+As you see class was created, but constructor not called.
+
+Below is example of off-heap byte array (again use `ByteBuffer.allocate` instead).
+```java
+import java.lang.reflect.Field;
+import sun.misc.Unsafe;
+
+public class App{
+    public static void main(String[] args)  {
+        try(OffHeapByteArray buffer = new OffHeapByteArray(100)){
+            int position = 5;
+            byte value = 10;
+            buffer.set(position, value);
+            System.out.println(buffer.get(position));
+        }
+    }
+}
+
+class OffHeapByteArray implements AutoCloseable{
+    private static final Unsafe UNSAFE = getUnsafe();
+    private final int capacity;
+    private final long address;
+
+    public OffHeapByteArray(int capacity){
+        this.capacity = capacity;
+        this.address = UNSAFE.allocateMemory(capacity);
+    }
+
+    public void set(int position, byte value) {
+        UNSAFE.putByte(address + position, value);
+    }
+
+    public int get(int position) {
+        return UNSAFE.getByte(address + position);
+    }
+
+    public int size(){
+        return capacity;
+    }
+
+    private static Unsafe getUnsafe(){
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    @Override
+    public void close() {
+        UNSAFE.freeMemory(address);
     }
 }
 ```
