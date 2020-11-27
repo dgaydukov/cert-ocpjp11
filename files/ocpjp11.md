@@ -4271,10 +4271,10 @@ public class App {
 * `LinkedHashMap` - ordered, use order in which elements where inserted 
 * `TreeMap` - ordered and sorted, sort elements on insert
 `Set` - unordered collection, but `List` - ordered.
-Constructor of LinkedHashMap takes 3 params: 
-capacity - default size of map
-loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
-accessOrder - if true, those you get goes up
+Constructor of `HashMap/LinkedHashMap` can have 2 and 3 params: 
+* capacity - default size of underlying array
+* loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
+* accessOrder (only for LinkedHashMap cause we have order here) - if true, those you get goes up
 Giving these 3 params you can easily create your own LRU cache.
 ```java
 import java.util.*;
@@ -4309,7 +4309,6 @@ class LruCache<K, V> extends LinkedHashMap<K, V>{
 {1=1, 2=1, 3=1}
 {3=1, 1=1, 4=1}
 ```
-
 
 `NavigableMap` - has ability to navigate back and forth.
 There are 4 methods to navigate in both `NavigableMap` and `NavigableSet`
@@ -4372,7 +4371,6 @@ pollFirstEntry => a=One
 pollLastEntry => c=Three
 ```
 
-
 Since subMap, headMap, tailMap - return view of the original map, we can't put new values (throws IllegalArgumentException), but we can remove and change existing values - all these are reflected in original map.
 ```java
 import java.util.*;
@@ -4423,7 +4421,6 @@ oldMap => {a=5, b=6}
 newMap => {a=1, b=2}
 ```
 
-
 `Map.merge` very versatile method. With it we can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
 ```java
 import java.util.*;
@@ -4450,7 +4447,6 @@ collectorMap => {Bob=4, Melanie=3, Janet=1, Jack=2}
 ```
 
 As you see, no need for condition and use of `put` and `putIfAbsent` or `computeIfAbsent`. We can also rewrite it as `map.merge(name, 1, Integer::sum)`.
-
 Here is more complicated example. Imagine you have list of operations with start and end balance. And you need to calculate total balance for all days. (balance per day = start - end, and then sum all balances for all days per account)
 ```java
 import java.math.BigDecimal;
