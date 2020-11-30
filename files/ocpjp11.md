@@ -51,6 +51,7 @@
 * 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
 * 7.8 [Synchronized on ID](#synchronized-on-id)
 * 7.9 [Future & CompletableFuture](#future--completablefuture)
+* 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -7438,6 +7439,54 @@ res=null, err=null
 A
 B
 ```
+
+###### ReentrantLock/ReentrantReadWriteLock/StampedLock
+There are 3 main class to work with `Lock` interface:
+* ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method.
+* ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
+This can be same as using `synchronized` + `volatile` and not synchronized read.
+* StampedLock - same as ReentrantReadWriteLock, but using a few additional methods:
+    * `tryConvertToWriteLock` - convert read lock to write lock
+    * `tryOptimisticRead` - use optimistic read
+```java
+class BankAccount {
+    private final StampedLock sl = new StampedLock();
+    private int balance;
+
+    public void deposit(int amount) {
+        long stamp = sl.writeLock();
+        try {
+            balance += amount;
+        } finally {
+            sl.unlockWrite(stamp);
+        }
+    }
+
+    public void withdraw(int amount) {
+        long stamp = sl.writeLock();
+        try {
+            balance -= amount;
+        } finally {
+            sl.unlockWrite(stamp);
+        }
+    }
+
+    public int getBalance() {
+        long stamp = sl.tryOptimisticRead();
+        int balance = this.balance;
+        if (!sl.validate(stamp)) {
+            stamp = sl.readLock();
+            try {
+                balance = this.balance;
+            } finally {
+                sl.unlockRead(stamp);
+            }
+        }
+        return balance;
+    }
+}
+```
+
 
 #### JDBC and SQL
 ###### Connection
