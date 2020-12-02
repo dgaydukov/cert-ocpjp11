@@ -4273,21 +4273,129 @@ public class App {
 * `TreeMap` - ordered and sorted, sort elements on insert
 `Set` - unordered collection, but `List` - ordered.
 Constructor of `HashMap/LinkedHashMap` can have 2 and 3 params: 
-* capacity - default size of underlying array
+* capacity - default size of underlying array (number of buckets)
 * loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
 * accessOrder (only for LinkedHashMap cause we have order here) - if true, those you get goes up
 Giving these 3 params you can easily create your own LRU cache.
+How HashMap works:
+* inside there is list of buckets (backed by array of `HashMap.Node`)
+* each bucket is instance of `java.util.HashMap.Node`
+* for each distinct hashcode there is separate bucket
+* bucket number grows proportionally, or you can set `capacity` in constructor
+* if `hashcode` is same for 2 objects, then `equals` is used. If it differs then in inside bucket not single object but linked list (not `java.util.LinkedList`, some simple implementation) or `TreeMap` is stored.
+Objects are searched from this linked list by using `equals` method.
+So below is rule:
+    * if 2 objects has same `hashcode` - 2 objects in same bucket
+    * if 2 objects has same `equals` - 2 objects in 2 different buckets (cause `hashcode` is different)
+    * if 2 object has same `hashcode` & `equals` - 1 object in 1 bucket
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class App{
+    public static void main(String[] args) {
+        Map<Person, Integer> map = new HashMap<>(100);
+        map.put(new Person(), 1);
+        map.put(new Person(), 1);
+        System.out.println(map);
+    }
+}
+
+class Person{
+    @Override
+    public int hashCode(){
+        return 0;
+    }
+}
+```
+```
+{com.java.test.Person@0=1, com.java.test.Person@0=1}
+```
+Although hashcode are same, yet we still have 2 objects
+* if you have poorly written `hashcode`, then bucket would use `TreeMap` otherwise `LinkedList`
+How ConcurrentHashMap works:
+* null are not allowed as key/value. Cause in concurrent implementation when `get` return null is not clear if object mapped to null or object doesn't exists
+In simple map we can call `containsKey` to check if key exists, but in concurrent the value can be modified in between this call
+* it provides functionality of `HashTable` but with speed comparable with `HashMap`
+* `HashTable` is slow, cause it locks whole map to perform update/delete/read/create
+* `concurrencyLevel` - third param to constructor (first two `capacity` & `loadFactor` same as for `HashMap`) - estimated number of concurrently updating threads (by default 16)
+* so all buckets divided into 16 (or more) lock zones and only specific zone is blocked during create/update (reads are not blocked). So 16 threads can modify map given they work on different buckets
+* `HashMap` is fail fast, but `ConcurrentHashMap` is fail safe
+```java
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+public class App{
+    public static void main(String[] args) {
+        Map<String, Integer> people = new HashMap<>();
+        people.put("Mike", 25);
+        people.put("Jack", 30);
+        Iterator iterator = people.keySet().iterator();
+        while (iterator.hasNext()){
+            System.out.println(people.get(iterator.next()));
+            people.put("Kelvin", 35);
+        }
+    }
+}
+```
+```
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class App{
+    public static void main(String[] args) {
+        System.out.println("failSafe");
+        failSafe();
+        System.out.println("failFast");
+        failFast();
+    }
+
+    private static void failSafe(){
+        Map<String, Integer> people = new ConcurrentHashMap<>();
+        people.put("Mike", 25);
+        people.put("Jack", 30);
+        Iterator iterator = people.keySet().iterator();
+        while (iterator.hasNext()){
+            System.out.println(people.get(iterator.next()));
+            people.put("Kelvin", 35);
+        }
+    }
+    private static void failFast(){
+        Map<String, Integer> people = new HashMap<>();
+        people.put("Mike", 25);
+        people.put("Jack", 30);
+        Iterator iterator = people.keySet().iterator();
+        while (iterator.hasNext()){
+            System.out.println(people.get(iterator.next()));
+            people.put("Kelvin", 35);
+        }
+    }
+}
+```
+```
+failSafe
+25
+30
+failFast
+25
+Exception in thread "main" java.util.ConcurrentModificationException
+```
+In case of `HashMap` if we try to modify object we got exception, but for concurrent - it's ok
+
+Simple example of RingBuffer
 ```java
 import java.util.*;
 
 public class App {
     public static void main(String[] args){
         LruCache<Integer, Integer> cache = new LruCache<>(3);
-        for(int i = 1; i <=3; i++){
+        for(int i = 1; i <= 3; i++){
             cache.put(i, 1);
         }
         System.out.println(cache);
-        cache.get(1);
         cache.put(4, 1);
         System.out.println(cache);
     }
