@@ -7367,6 +7367,11 @@ Sometimes you have to do some not idempotent operation, for this you set some fl
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
 But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
 For this purpose it's better to use some id
+Plz note that sometimes for each string new object created (for example you use this logic to syncronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
+in this case there are 2 solutions:
+* use `intern` method for string (convert either whole object or particular fields `obj.toString().intern()`)
+* use `ConcurrentHashMap` with key as your string and value just `new Object()`. This would guarantee that each time same string came, you already have this value in your amp, and then use `synchronized (map.get(yourString)){}`
+Below example use integer as object.
 ```java
 import java.util.HashMap;
 import java.util.Map;
