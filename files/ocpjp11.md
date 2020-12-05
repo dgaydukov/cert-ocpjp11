@@ -52,6 +52,7 @@
 * 7.8 [Synchronized on ID](#synchronized-on-id)
 * 7.9 [Future & CompletableFuture](#future--completablefuture)
 * 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
+* 7.11 [Agrona Library](#agrona-library)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -5797,9 +5798,9 @@ Collectors.mapping takes a function and another collector, and creates a new col
 items.stream().map(f).collect(c);
 items.stream().collect(Collectors.mapping(f, c));
 ```
-Collectors.mapping is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using Collectors.groupingBy.
-`items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` yields a `Map<BigDecimal, Set<Item>>` (assuming getPrice() returns a BigDecimal). However, 
-`items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`. Before collecting the items, it first applies Item.getName to them
+Collectors.mapping is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
+* `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
+* `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
 
 This is the case with `Collectors.filtering`
 ```java
@@ -6333,8 +6334,11 @@ Exception in thread "main" java.lang.IllegalArgumentException
 	at com.java.test.App.main(App.java:21)
 ```
 
-
-`Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute.
+* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it
+* `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
+* `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
+* wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
+* join - call on other thread and make current thread wait until other thread finish execution
 
 
 Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
@@ -6697,9 +6701,15 @@ If we remove `service.shutdown();` they will run forever.
 ###### wait/notify and await/signal
 `wait/notify` is the old way to build concurrency, but `await/signal` is new one from `java.util.concurrent.locks` package. We can implement BlockingQueue using old and new way
 ```java
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public class App {
     public static void main(String[] args) {
-        MyBlockingQueue<Integer> queue = new MyHighLevelBlockingQueue<>();
+        MyQueue<Integer> queue = new MyLowLevelQueue<>();
         new Thread(()->{
             System.out.println("Getting queue value");
             System.out.println("queue value: " + queue.poll());
@@ -6711,7 +6721,7 @@ public class App {
             queue.put(value);
         }).start();
         sleep(1);
-        MyBlockingQueue<Integer> highLevelQueue = new MyHighLevelBlockingQueue<>();
+        MyQueue<Integer> highLevelQueue = new MyHighLevelQueue<>();
         new Thread(()->{
             System.out.println("Getting highLevelQueue value");
             System.out.println("highLevelQueue value: " + highLevelQueue.poll());
@@ -6731,15 +6741,14 @@ public class App {
         }
     }
 }
-interface MyBlockingQueue<T>{
+interface MyQueue<T>{
     void put(T t);
     T poll();
 }
 /**
  * We are using low-level constructs wait/notify
- * @param <T>
  */
-class MyLowLevelBlockingQueue<T> implements MyBlockingQueue<T> {
+class MyLowLevelQueue<T> implements MyQueue<T> {
     private List<T> queue = new ArrayList<>();
     @Override
     public void put(T value) {
@@ -6766,7 +6775,7 @@ class MyLowLevelBlockingQueue<T> implements MyBlockingQueue<T> {
  * We are using high-level constructs like ReentrantLock/Condition
  * @param <T>
  */
-class MyHighLevelBlockingQueue<T> implements MyBlockingQueue<T> {
+class MyHighLevelQueue<T> implements MyQueue<T> {
     private List<T> queue = new ArrayList<>();
     private Lock lock = new ReentrantLock();
     private Condition condition = lock.newCondition();
@@ -7600,6 +7609,58 @@ class BankAccount {
 }
 ```
 
+###### Agrona Library
+[Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
+To work with it, add dependency to your `pom.xml`
+```
+<dependency>
+  <groupId>org.agrona</groupId>
+  <artifactId>agrona</artifactId>
+  <version>1.8.0</version>
+</dependency>
+```
+Below is a list of some common classes:
+* IdleStrategy - interface to do nothing, common implementation `SleepingMillisIdleStrategy`, using `Thread.sleep` under the hood (yet there are other implementations as well)
+```java
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
+
+public class App{
+    public static void main(String[] args) {
+        IdleStrategy idle = new SleepingMillisIdleStrategy(1000);
+        System.out.println("start");
+        idle.idle();
+        System.out.println("end");
+    }
+}
+```
+* Queue (for producer/consumer):
+    * `ArrayBlockingQueue/LinkedBlockingQueue` (implements `BlockingQueue`) - has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
+    The downside is that this thread blocking can create contention
+    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms. But because it's lock-free it put/poll returns immediately if queue is full/empty.
+    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`
+    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
+* `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
+```java
+import java.nio.ByteOrder;
+import org.agrona.concurrent.UnsafeBuffer;
+
+public class App{
+    public static void main(String[] args) {
+        UnsafeBuffer buffer = new UnsafeBuffer();
+        /**
+         * first you need to tell where the buffer starts, it's called wrapping the buffer
+         */
+        final int offset = 0;
+        final int length = 10;
+        buffer.wrap(new byte[length], offset, length);
+        final int address = 0;
+        buffer.putLong(address, 11, ByteOrder.BIG_ENDIAN);
+        System.out.println(buffer.getLong(address, ByteOrder.BIG_ENDIAN));
+
+    }
+}
+```
 
 #### JDBC and SQL
 ###### Connection
