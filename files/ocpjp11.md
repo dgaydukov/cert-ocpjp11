@@ -1316,6 +1316,15 @@ public class App {
 There are 2 ways to create singleton. 
 First - create instance the same time we load our class. In this case field is `final`.
 ```java
+class Singleton {
+    private Singleton() {
+        System.out.println("Singleton::constructor");
+    }
+    private static final Singleton instance = new Singleton();
+    public static Singleton getInstance() {
+        return instance;
+    }
+}
 public class App {
     public static void main(String[] args) {
         int n = 10;
@@ -1341,15 +1350,6 @@ public class App {
         } catch (InterruptedException ex) {
             System.out.println("ERR: " + ex);
         }
-    }
-}
-class Singleton {
-    private Singleton() {
-        System.out.println("Singleton::constructor");
-    }
-    private static final Singleton instance = new Singleton();
-    public static Singleton getInstance() {
-        return instance;
     }
 }
 ```
@@ -1413,6 +1413,7 @@ finish
 
 But this approach is not thread save, cause a few thread may create instance at the same time. To make it thread-safe add `syncronized` keyword to `getInstance` method. The problem to make the whole method `syncronized` is that whenever it’s called it can be called only by one thread. 
 We don’t want it, what we would like is to synchronize it the first time, all other times we would like just to return object. You can do this with so called `double-checked locking`. Notice we’ve also made instance as `volatile` just to prevent compiler to rearrange source code.
+Yet if we remove `volatile`, code would still be thread-safe, and only 1 instance would be created.
 ```java
 class LazySingleton {
     private static volatile LazySingleton instance;
@@ -1465,20 +1466,29 @@ public class App {
 }
 enum Singleton {
     INSTANCE;
-
     Singleton(){
         System.out.println("Singleton::constructor");
     }
-
-    public void print(){
-
-    }
+    public void print(){}
 }
 ```
 ```
 start
 Singleton::constructor
 finish
+```
+We can also use lazy-loading singleton with internal class. As you see we don't need to have any `synchronized` code inside `getInstance` method.
+```java
+class Singleton {
+    private Singleton() {}
+    public static Singleton getInstance() {
+        return Holder.INSTANCE;
+    }
+    private static class Holder {
+        static final Singleton INSTANCE = new Singleton();
+        private Holder() {}
+    }
+}
 ```
 
 When we use method overloading java itself can determine the most close method to use, but sometimes it’s not the case, so we can get compile error
@@ -7374,12 +7384,25 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 ###### Synchronized on ID
 Sometimes you have to do some not idempotent operation, for this you set some flag in db, and if second request came you throw exception.
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
+This keyword syncronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
 But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
 For this purpose it's better to use some id
 Plz note that sometimes for each string new object created (for example you use this logic to syncronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
 in this case there are 2 solutions:
 * use `intern` method for string (convert either whole object or particular fields `obj.toString().intern()`)
 * use `ConcurrentHashMap` with key as your string and value just `new Object()`. This would guarantee that each time same string came, you already have this value in your amp, and then use `synchronized (map.get(yourString)){}`
+```java
+class User{}
+class Handler{
+    private static final Map<User, Object> map = new ConcurrentHashMap<>();
+    public void handle(User user){
+        map.putIfAbsent(user, new Object());
+        synchronized (map.get(user)) {
+            
+        }
+    }
+}
+```
 Below example use integer as object.
 ```java
 import java.util.HashMap;
@@ -10040,9 +10063,10 @@ This approach is best when working with strings, cause it abstracts away from wo
 
 ###### DirectByteBuffer vs HeapByteBuffer
 ByteBuffer provides view into some (undefined) underlying storage of bytes
-There are 2 abstract classes: `Buffer => ByteBuffer => MappedByteBuffer (content is a memory-mapped region of a file)`, and 2 concrete implementation:
-* `DirectByteBuffer extends MappedByteBuffer` - backed by array of bytes (not subject to the GC).
-* `HeapByteBuffer extends ByteBuffer` - backed by direct (off-heap, native) byte buffers
+There are 2 abstract classes: `ByteBuffer extends Buffer`, and 3 concrete implementation:
+* `MappedByteBuffer extends ByteBuffer` (same as `mmap`) - abstract class
+* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`)- backed by array of bytes (not subject to the GC).
+* `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - backed by direct (off-heap, native) byte buffers
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
 Below is example how to create 2 types of buffer
 ```java
