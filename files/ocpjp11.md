@@ -4755,8 +4755,67 @@ java.lang.ClassCastException: class com.java.test.A cannot be cast to class java
 set with compatator that returns 0 => [1]
 ```
 
-HashSet(HashMap) - uniqueness is guaranteed by `equeals` method
-TreeSet(TreeMap) - uniqueness is guaranteed by `compare/compareTo` methods
+How sets work:
+* CopyOnWriteArraySet (use internally `CopyOnWriteArrayList`) - uniqueness is guaranteed by `equals` method. CopyOnWriteArrayList (thread-safe implementation of `ArrayList`):
+    * use volatile array as internal structure
+    * all write methods `add/set/remove` are `synchronized`, inside they add/remove new value and then replace array
+    * get is not synchronized, it just return element from array. Since array is volatile, once write operation is done, it would be replaced, and volatile guarantee happened-before, so read would always read latest value
+    * since under-the-hood implementation is based on array, `contains` takes O(n) time
+    * if you want `contains` to run O(n) you have to use `ConcurrentHashMap.newKeySet` or combine `AtomicReference` with `HashSet` and replace set on each modification (atomic use volatile inside, so on replace it would guarantee happened-before)
+    Don't confuse:
+    * volatile array - means whole object is volatile. If you just change one element in one thread, it may be not visible in another. But if you replace whole array (with 1 new element) in first thread, then new value would be seen from second thread. Basically `CopyOnWriteArrayList` is doing this
+    * array of volatile elements - you can use one of `AtomicLongArray/AtomicIntegerArray/AtomicReferenceArray`
+* HashSet (use internally `HashMap`) - uniqueness is guaranteed by `hashcode/equals` method (first compare by `hashcode` and if they match then use `equals`, so it would be same bucket with LinkedList)
+* TreeSet (use internally `TreeMap`) - uniqueness is guaranteed by `compare/compareTo` methods
+```java
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
+public class App{
+    public static void main(String[] args) {
+        List<Person> people = List.of(new Person(1, "Mike"), new Person(2, "Mike"));
+        Set<Person> treeSet = new TreeSet<>();
+        treeSet.addAll(people);
+        System.out.println("treeSet => " + treeSet);
+        Set<Person> hashSet = new HashSet<>();
+        hashSet.addAll(people);
+        System.out.println("hashSet => " + hashSet);
+    }
+}
+
+
+class Person implements Comparable<Person>{
+    private int id;
+    private String name;
+    public Person(int id, String name){
+        this.id = id;
+        this.name = name;
+    }
+    @Override
+    public String toString(){
+        return "Person[id=" + id + ", name=" + name + "]";
+    }
+    @Override
+    public int hashCode(){
+        return 0;
+    }
+    @Override
+    public boolean equals(Object o){
+        return true;
+    }
+    @Override
+    public int compareTo(Person person) {
+        return id + name.hashCode() - person.id - person.name.hashCode();
+    }
+}
+```
+```
+treeSet => [Person[id=1, name=Mike], Person[id=2, name=Mike]]
+hashSet => [Person[id=1, name=Mike]]
+```
+As you see simple hash has single object cause `hashcode/equlas` return same value, but `TreeSet` use comparable to compare objects, that's why there are 2 objects there.
 
 `SortedSet` has 2 methods to finds subsets `headSet` and `tailSet`
 ```java
@@ -6938,6 +6997,7 @@ As you can see `fork/jon` framework always divide task on 2, and start to run fi
 
 ###### Synchronizers
 `Semaphore`, `CountDownLatch`, `CyclicBarrier` - all do pretty the same. For example we have a task to run all threads at the same time.
+`Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
 `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
 `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
 ```java
