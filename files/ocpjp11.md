@@ -4949,6 +4949,8 @@ stack =>
 ```
 
 `ArrayDeque` is generally consider a faster implementation then `LinkedList`. Be careful using `PriorityQueue`. It sorts elements based on some internal sorting or on passed comparator.
+LinkedList is good for stack/queue data structures (so that's why it implements `Deque` interface). So if you want to store some history (of web pages visited), linked list is good choice.
+Yet `LinkedHashMap/LinkedHashSet` just extends `HashMap/HashSet` and guarantee order of processing - it stores internally double linked list and maintain order on iteration using this list.
 ```java
 import java.util.*;
 
