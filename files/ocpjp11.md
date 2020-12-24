@@ -53,6 +53,7 @@
 * 7.9 [Future & CompletableFuture](#future--completablefuture)
 * 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
 * 7.11 [Agrona Library](#agrona-library)
+* 7.12 [LMAX Disruptor](#lmax-disruptor)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -7747,8 +7748,26 @@ public class App{
 }
 ```
 
+###### LMAX Disruptor
+Add this to your pom.xml to work with disruptor
+```
+<dependency>
+  <groupId>com.lmax</groupId>
+  <artifactId>disruptor</artifactId>
+  <version>3.4.2</version>
+</dependency>
+```
+
 #### JDBC and SQL
 ###### Connection
+Mysql driver is not part of sdk so you have to manually add it to `pom.xml`
+```
+<dependency>
+  <groupId>mysql</groupId>
+  <artifactId>mysql-connector-java</artifactId>
+  <version>8.0.18</version>
+</dependency>
+```
 Older jdbc driver used this code `Class.forName("com.mysql.jdbc.Driver")` to load driver to classLoader. Since jdbc4 we don't need this code anymore, it's automatically loaded. 
 `getConnection` and `getDrivers` were rewritten to support Service Provider mechanism. jdbc4 drivers must include `META-INF/services/java.sql.drivers` and this entry must have a name of driver implementation.
 There are 2 ways you can get `Connection`
