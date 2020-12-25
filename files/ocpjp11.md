@@ -4865,6 +4865,10 @@ Queue
 boolean add(IllegalStateException)/offer(false) - add to the tail
 T remove(NoSuchElementException)/poll(null)     - remove from the head
 T element(NoSuchElementException)/peek(null)    - view element from the head
+
+For `BlockingQueue` there are blocking operations:
+* T take (InterruptedException) - wait until elements appear in queue and poll it. Keep in mind that simple `poll` would immediately return null if queue is empty
+* void put (InterruptedException) - wait until there is space in queue and add new element
 ```java
 import java.util.ArrayDeque;
 import java.util.NoSuchElementException;
@@ -6886,6 +6890,7 @@ Putting 1 into highLevelQueue
 highLevelQueue value: 1
 ```
 It’s better to use new api, cause you can set additional methods like `awaitUntil` - wait for some time and `awaitUninterruptibly` - to wait until signal, even if someone interrupted process.
+`lockInterruptibly` will throw `lockInterruptibly`, while simple `lock` can be interrupted, but won't throw exception.
 
 `SynchronousQueue` - special type of queue with one element. put - is waiting until take is done. Useful when you have 2 threads that need to change data and continue.
 ```java
@@ -7749,6 +7754,7 @@ public class App{
 ```
 
 ###### LMAX Disruptor
+LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
 Add this to your pom.xml to work with disruptor
 ```
 <dependency>
@@ -7756,6 +7762,83 @@ Add this to your pom.xml to work with disruptor
   <artifactId>disruptor</artifactId>
   <version>3.4.2</version>
 </dependency>
+```
+Disruptor (kind of `BlockingQueue`) - move data (messages/events) between threads witin same process with support:
+* multicast events - send same message to multiple consumers
+* consumer dependency graph - if we have 3 consumer A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
+* memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
+* optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
+* not breaking SWP, while queue does
+Disruptor use following concepts inside:
+* RingBuffer - place to store message/event
+* Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
+* Sequencer - core of the Disruptor
+* Wait Strategy - how consumer wait for events
+
+SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
+* mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
+* optimistic concurrency - using CAS algorithms
+But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
+In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
+
+There are 4 main waiting strategy (all implements `WaitStrategy` interface)
+* BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
+* SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
+* YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
+* BusySpinWaitStrategy
+
+Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
+Queue is a bad chose cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
+In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
+So queue because it break SWP can cause false sharing (silent performance killer).
+False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
+in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
+One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
+`volatile` keyword used for 2 things (it has nothing to do with false sharing):
+* variable visibility - change in one thread would be immediately visible to other threads
+* code order - (without it compiler may reorder you code) 
+`ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
+So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
+You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
+
+Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
+```java
+import java.nio.ByteBuffer;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.util.DaemonThreadFactory;
+
+public class App {
+    public static void main(String[] args) {
+        int bufferSize = 4;
+        Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
+        disruptor.handleEventsWith(
+            (event, sequence, endOfBatch) -> System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event),
+            (event, sequence, endOfBatch) -> System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event)
+        ).then((event, sequence, endOfBatch) -> {
+            System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event);
+            Thread.sleep(5000);
+        });
+        RingBuffer<MyEvent> ringBuffer = disruptor.start();
+        ByteBuffer bb = ByteBuffer.allocate(8);
+        for (int i = 1000; i > 0; i--) {
+            bb.putInt(0, i);
+            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer.getInt(0)), bb);
+        }
+    }
+}
+
+
+class MyEvent{
+    private int value;
+    public void setValue(int value){
+        this.value = value;
+    }
+    @Override
+    public String toString(){
+        return "MyEvent[value=" + value + "]";
+    }
+}
 ```
 
 #### JDBC and SQL
@@ -7970,7 +8053,7 @@ public class App {
 time: 14 sec
 ```
 
-As you see we have created 100k statements and resultsets without closing, and it’s ok. Creating and closing connections is also expensite, take a look
+As you see we have created 100k statements and resultsets without closing, and it’s ok. Creating and closing connections is also expensive
 ```java
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10658,7 +10741,8 @@ addr1.equals(addr2) => true
 ```
 
 ###### Garbage collector and Weak References
-Garbage collection - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
+GC - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
+gc compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
 ```java
 public class App {
     public static void main(String[] args) {
@@ -11808,7 +11892,7 @@ class A {
 }
 ```
 
-The concept of virtual methods is very important in polymorphism and OOP. Take a look, that alghough object of type A, but method is called on type B, that means it's virtual.
+The concept of virtual methods is very important in polymorphism and OOP. Take a look, that although object of type A, but method is called on type B, that means it's virtual.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -11881,7 +11965,7 @@ So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 1
 * throw any exception (java compiler doesn't validate Unsafe same way as other code, so you can throw any checked exception)
 * use off-heap memory (this memory is not managed by java, so GC is not called to clean it, so you just clean it manually)
 Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuffer` under-the-hood, which in turn use `Unsafe` to handle memory
-* compare-and-swap - all classes from `java.util.concurrent.atomic` like `AtomicInteger` using one of 3 `Unsafe` implementation of this algorithm:
+* CAS (compare-and-swap, should be supported by CPU cause it's executed on CPU level) - all classes from `java.util.concurrent.atomic` like `AtomicInteger` using one of 3 `Unsafe` implementation of this algorithm:
     * compareAndSwapInt
     * compareAndSwapLong
     * compareAndSwapObject
