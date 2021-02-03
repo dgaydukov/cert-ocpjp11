@@ -10227,12 +10227,12 @@ This approach is best when working with strings, cause it abstracts away from wo
 
 ###### DirectByteBuffer vs HeapByteBuffer
 ByteBuffer provides view into some (undefined) underlying storage of bytes
-There are 2 abstract classes: `ByteBuffer extends Buffer`, and 3 concrete implementation:
-* `MappedByteBuffer extends ByteBuffer` (same as `mmap`) - abstract class
+There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
 * `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`)- backed by array of bytes (not subject to the GC).
+constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself
 * `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - backed by direct (off-heap, native) byte buffers
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
-Below is example how to create 2 types of buffer
+Below is example how to create 2 types of buffer:
 ```java
 import java.nio.ByteBuffer;
 
