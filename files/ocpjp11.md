@@ -96,6 +96,7 @@
 12. [Class Diagram](#class-diagram)
 13. [Low latency](#low-latency)
 * 13.1 [Linked lists](#linked-lists)
+* 13.2 [PermGen vs Metaspace](#permgen-vs-metaspace)
 
 
 
@@ -12099,3 +12100,14 @@ There are 3 types of linked list (all of them are linear structure represented a
     * each node store 3 values: value + next node address + prev node address (here name of doubly). Since it store 3 fields, it takes more memory then singly linked list
     * bi-directional (both backwar & forward)
 * skip list
+
+###### PermGen vs Metaspace
+PermGen:
+* special heap space separated from the main memory heap
+* contains data about bytecode, names, and JIT information
+* default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
+* removed from JDK 8
+Metaspace:
+* replaced the older PermGen memory space starting form JDK 8
+* grows automatically by default
+* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size 

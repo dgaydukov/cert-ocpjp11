@@ -2,13 +2,9 @@ package com.java.test;
 
 
 /**
+ * finish custom impl of linked list
  * concurrentskiplistmap vs concurrenthashmap
  * https://blogs.oracle.com/javamagazine/creating-a-java-off-heap-in-memory-database
- * java memory model - metaspace
- * oracle partition
- * julu/jing low latency jdk
- * weakhashmap vs hashmap
- * bytebuffer vs byte[]
  */
 
 
