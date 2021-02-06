@@ -94,6 +94,8 @@
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
 * 11.16 [sun.misc.Unsafe](#sunmiscunsafe)
 12. [Class Diagram](#class-diagram)
+13. [Low latency](#low-latency)
+* 13.1 [Linked lists](#linked-lists)
 
 
 
@@ -10819,7 +10821,11 @@ object of type My has been garbage-collected
 done
 ```
 
-Java has concept of strong/weak/soft/phantom reference
+Java has concept of strong/weak/soft/phantom reference:
+* strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
+* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects
+* weak - becomes null after calling `System.gc()`
+* soft - still holds object after gc called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
 ```java
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -10830,31 +10836,32 @@ public class App {
     public static void main(String[] args) {
         WeakReference<Object> weakReference = new WeakReference<>(new Object());
         SoftReference<Object> softReference = new SoftReference<>(new Object());
-        ReferenceQueue<Object> queue = new ReferenceQueue<>();
+        ReferenceQueue queue = new ReferenceQueue<>();
         PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
         System.out.println("weakReference => " + weakReference.get());
         System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get());
+        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
         System.gc();
         System.out.println("weakReference => " + weakReference.get());
         System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get());
+        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
     }
 }
 ```
 ```
-weakReference => java.lang.Object@404b9385
-softReference => java.lang.Object@6d311334
-phantomReference => null
+weakReference => java.lang.Object@1b28cdfa
+softReference => java.lang.Object@eed1f14
+phantomReference => null, queue => null
 weakReference => null
-softReference => java.lang.Object@6d311334
-phantomReference => null
+softReference => java.lang.Object@eed1f14
+phantomReference => null, queue => java.lang.ref.PhantomReference@6acbcfc0
 ```
-As you see, phantom - always null, weak - becomes null after calling `System.gc()`, soft - still holds object, that's why it will remove it only in urgent need of memory
 
-You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed.
+You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed. So when key is garbage-collected, it removed from hashmap automatically.
+Use it if you want im-memory cache, but want objects to be removed from cache, once they are not used (once they have been garbage collected)
 ```java
-import java.util.*;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class App {
     public static void main(String[] args){
@@ -10863,7 +10870,7 @@ public class App {
         map.put(obj, 1);
         obj = null;
         System.gc();
-        // since it's not guarantee that garbage collector would be called imediately, we would iterate for some time
+        // since it's not guarantee that garbage collector would be called immediately, we would iterate for some time
         for(int i = 0; i < 1_000_000; i++){
             if(map.isEmpty()){
                 System.out.println("done => " + i);
@@ -12078,3 +12085,17 @@ class OffHeapByteArray implements AutoCloseable{
 * ![map interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/map-interface.png)
 
 * ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
+
+#### Low latency
+###### Linked lists
+Linked list disadvantages compared to array:
+* CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk
+There are 3 types of linked list (all of them are linear structure represented as chain of nodes, the difference how nodes are related to each other):
+* Singly linked list:
+    * each node store 2 fields: value + next node address
+    * one-direction (only forward)
+* Doubly linked list:
+    * called just linked list, java implementation of `LinkedList` using doubly linked list under-the-hood
+    * each node store 3 values: value + next node address + prev node address (here name of doubly). Since it store 3 fields, it takes more memory then singly linked list
+    * bi-directional (both backwar & forward)
+* skip list
