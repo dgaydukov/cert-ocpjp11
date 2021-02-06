@@ -10235,6 +10235,9 @@ There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer 
 constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself
 * `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - backed by direct (off-heap, native) byte buffers
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
+Don't confuse:
+* array of bytes `byte[] arr = new byte[100];` - just simple array of bytes
+* byte buffer `ByteBuffer buf = ByteBuffer.allocate(10);` - have more methods to manipulate with bytes. You can also wrap array of bytes: `ByteBuffer buf = ByteBuffer.wrap(new byte[100]);`
 Below is example how to create 2 types of buffer:
 ```java
 import java.nio.ByteBuffer;
