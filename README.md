@@ -21,5 +21,4 @@ There are 2 main reasons to get it.
 ### My Results
 By passing certification you will get 3 things
 * [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
-* [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/eCertificate.pdf)
-* Examination Score Report. Compare to [spring cert](https://github.com/dgaydukov/cert-spring5), java didn't give you detailed overview. Only final score. In my case it was 79/88.
+* [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
