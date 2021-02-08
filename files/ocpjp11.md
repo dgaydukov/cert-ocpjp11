@@ -12101,8 +12101,72 @@ There are 3 types of linked list (all of them are linear structure represented a
 * Doubly linked list:
     * called just linked list, java implementation of `LinkedList` using doubly linked list under-the-hood
     * each node store 3 values: value + next node address + prev node address (here name of doubly). Since it store 3 fields, it takes more memory then singly linked list
-    * bi-directional (both backwar & forward)
-* skip list
+    * bi-directional (both backward & forward)
+    * remove is O(1) and 2 lines of code
+```
+public void remove(Node node){
+    node.prev.next = node.next;
+    node.next.prev = node.prev;
+}
+```
+Yest this only works if you know the Node, if you pass just value, you would still do O(n) to find proper Node, so in this case pure delete by value will still take O(n)
+* skip list:
+    * we have singly linked list + every node point to second/fourth/8-th and so on. So search is basically same as binary search, we can just do O(log n)
+```java
+import lombok.Data;
+
+public class App{
+    public static void main(String[] args) {
+        var list = new SinglyLinkedList();
+        for(int i = 0; i < 3; i++){
+            list.add(i);
+        }
+        System.out.println(list);
+    }
+}
+
+class SinglyLinkedList{
+    @Data
+    private static class Node{
+        private int value;
+        private Node next;
+        public Node(int value){
+            this.value = value;
+        }
+    }
+
+    private int currentIndex;
+    private Node firstNode;
+    private Node currentNode;
+    public int add(int value) {
+        Node node = new Node(value);
+        if (firstNode == null) {
+            firstNode = node;
+        } else {
+            currentNode.next = node;
+        }
+        currentNode = node;
+        return ++currentIndex;
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder("[");
+        String delimiter = "";
+        Node current = firstNode;
+        while (current != null) {
+            sb.append(delimiter).append(current.getValue());
+            delimiter = ",";
+            current = current.getNext();
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+}
+```
+```
+[0,1,2]
+```
 
 ###### PermGen vs Metaspace
 PermGen:
