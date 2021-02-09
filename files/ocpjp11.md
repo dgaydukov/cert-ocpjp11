@@ -7729,11 +7729,13 @@ public class App{
 }
 ```
 * Queue (for producer/consumer):
-    * `ArrayBlockingQueue/LinkedBlockingQueue` (implements `BlockingQueue`) - has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
-    The downside is that this thread blocking can create contention
-    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms. But because it's lock-free it put/poll returns immediately if queue is full/empty.
-    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`
-    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
+    * `ArrayBlockingQueue` (implements `BlockingQueue`) - bounded queue (you have to pass how many elements it would contain), has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
+    The downside is that this thread blocking can create contention. Once queue is full put would wait until some elements polled.
+    * `LinkedBlockingQueue` (implements `BlockingQueue`) - can be both bounded (pass number into construct) - behave same as array blocking queue, and unbounded (don't pass anything into constructor) - in this case you can put as much as memory allow.
+    if memory limited you would get `java.lang.OutOfMemoryError`. Also use blocking & create contention.
+    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms to add new elements. But because it's lock-free it put/poll returns immediately if queue is full/empty.
+    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`. Since it unbounded it can also throw `java.lang.OutOfMemoryError` if memory limited.
+    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` (agrona library, there is no such queue in JDK) - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
 * `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
 ```java
 import java.nio.ByteOrder;
