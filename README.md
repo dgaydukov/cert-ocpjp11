@@ -6,7 +6,6 @@ Here is my experience for taking 2 exams
 * [Java SE 11 Programmer II | 1Z0-816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816) 
 
 To become certified and get eCertificate you have to pass both of them.
-
 This guide covers more than you need to pass exam, cause I've added more info evan after I've passed the exam. 
 But this can be even better, cause with this you will understand java more deeper.
 
@@ -17,6 +16,11 @@ There are 2 main reasons to get it.
 
 ### Content
 * [Java Tips](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/ocpjp11.md)
+
+### Useful Links
+Below is mock exams of good quality and cheap price:
+* [Mock exam programmer I](https://enthuware.com/java-certification-mock-exams/oracle-certified-associate/ocp-java-11-exam-i-1z0-815)
+* [Mock exam programmer II](https://enthuware.com/java-certification-mock-exams/oracle-certified-professional/ocp-java-11-exam-ii-1z0-816)
 
 ### My Results
 By passing certification you will get 3 things
