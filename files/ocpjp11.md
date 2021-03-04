@@ -493,6 +493,31 @@ System.out.println(i + " " + f + " " +(i-(int)f));
 ```
 123456789 1.23456792E8 -3
 ```
+
+Object to primitive casting - you can cast `Object` to any primitive, and if underlying object is `Integer/Boolean/Double` it would cast to primitive `int/boolean/double`
+So when we cast object to primitive 2 operation happens:
+* object cast to specific primitive object
+* unboxing of value happens
+```java
+public class App{
+    public static void main(String[] args) {
+        Object b = true;
+        Object i = 1;
+        Object f = 1.1f;
+        boolean b2 = (boolean) b;
+        int i2 = (int) i;
+        float f2 = (float) f;
+        System.out.println("b2=" + b2 + ", i2=" + i2 + ", f2=" + f2);
+        Object obj = "hello";
+        int v = (int) obj;
+    }
+}
+```
+```
+b2=true, i2=1, f2=1.1
+Exception in thread "main" java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer
+```
+
 When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
 Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 7 types). We can use it when working with List of integers, boolean and so on. 
 So we can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
@@ -517,7 +542,7 @@ public class App {
 ```
 
 ###### String and StringBuilder
-Strings are immutable, so all operations on them return always new object. `a +=b => new StringBuilder().append(a).append(b).toString()` - always return new object.
+Strings are immutable, so all operations on them return always new object. `a += b => new StringBuilder().append(a).append(b).toString()` - always return new object.
 ```java
 public class App {
     public static void main(String[] args) {
