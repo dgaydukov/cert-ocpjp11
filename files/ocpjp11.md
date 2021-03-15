@@ -5412,7 +5412,7 @@ len: 5
 ```
 
 ###### Method reference
-Lambda double colon `::`, also called method reference. Method reference should have the same signature.
+Lambda double colon `::`, also called method reference.
 If you have static method you can call it only from class => MyClass::staticMethod,
 if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should use Function and pass instance of that object
 ```java
@@ -5473,6 +5473,67 @@ public class App {
 ```
 HELLO
 WORLD
+```
+
+Here is nice example where method reference useful to write neat code. `ValidatorFactory.getValidator` - return single validator,
+but in reality it return all validators with `validate` method, that run it on all validators
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App{
+    public static void main(String[] args) {
+        int n = 10;
+        Validator validator = new ValidatorFactory().getValidator();
+        System.out.println(validator.validate(n));
+    }
+}
+
+enum RejectReason {
+    TOO_BIG,
+    TOO_SMALL,
+    OK;
+}
+interface Validator{
+    RejectReason validate(int n);
+}
+class ValidatorFactory{
+    List<Validator> validators = new ArrayList<>();
+    public ValidatorFactory(){
+        validators.add(new TooBigValidator());
+        validators.add(new TooSmallValidator());
+    }
+    public Validator getValidator(){
+        return this::check;
+    }
+    public RejectReason check(int n){
+        for (Validator v: validators){
+            RejectReason reason = v.validate(n);
+            if(reason != RejectReason.OK){
+                return reason;
+            }
+        }
+        return RejectReason.OK;
+    }
+}
+class TooBigValidator implements Validator{
+    @Override
+    public RejectReason validate(int n) {
+        if (n > 100){
+            return RejectReason.TOO_BIG;
+        }
+        return RejectReason.OK;
+    }
+}
+class TooSmallValidator implements Validator{
+    @Override
+    public RejectReason validate(int n) {
+        if (n < 10){
+            return RejectReason.TOO_SMALL;
+        }
+        return RejectReason.OK;
+    }
+}
 ```
 
 ###### Comparator and Comparable
