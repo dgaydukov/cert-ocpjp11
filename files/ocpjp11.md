@@ -92,11 +92,12 @@
 * 11.13 [Desktop](#desktop)
 * 11.14 [Java Servlet WebApp](#java-servlet-webapp)
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
-* 11.16 [sun.misc.Unsafe](#sunmiscunsafe)
 12. [Class Diagram](#class-diagram)
 13. [Low latency](#low-latency)
-* 13.1 [Linked lists](#linked-lists)
-* 13.2 [PermGen vs Metaspace](#permgen-vs-metaspace)
+* 13.1 [sun.misc.Unsafe](#sunmiscunsafe)
+* 13.2 [Linked lists](#linked-lists)
+* 13.3 [PermGen vs Metaspace](#permgen-vs-metaspace)
+* 13.4 [Garbage collection](#garbage-collection)
 
 
 
@@ -12013,6 +12014,17 @@ class B extends A{
 }
 ```
 
+#### Class Diagram
+* ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
+
+* ![collection interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/collection-interface.jpg)
+
+* ![map interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/map-interface.png)
+
+* ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
+
+#### Low latency
+
 ###### sun.misc.Unsafe
 `sun.misc` - special package for 2 low-level classes:
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
@@ -12169,16 +12181,6 @@ class OffHeapByteArray implements AutoCloseable{
 }
 ```
 
-#### Class Diagram
-* ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
-
-* ![collection interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/collection-interface.jpg)
-
-* ![map interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/map-interface.png)
-
-* ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
-
-#### Low latency
 ###### Linked lists
 Linked list disadvantages compared to array:
 * CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk
@@ -12265,4 +12267,7 @@ PermGen:
 Metaspace:
 * replaced the older PermGen memory space starting form JDK 8
 * grows automatically by default
-* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size 
+* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
+
+###### Garbage collection
+* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
