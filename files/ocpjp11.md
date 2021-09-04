@@ -12180,6 +12180,93 @@ class OffHeapByteArray implements AutoCloseable{
     }
 }
 ```
+You can create multi-threading locking using `AtomicInteger.compareAndSet` function, which return boolean and change value only if initial value is same as first argument
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class App{
+    public static void main(String[] args) {
+        MyWorkerCache cache = new MyWorkerCache(4);
+        cache.start();
+    }
+}
+
+class MyWorker implements Runnable{
+    private int threadId;
+    private AtomicInteger sharedValue;
+    public MyWorker(int threadId, AtomicInteger sharedValue){
+        this.threadId = threadId;
+        this.sharedValue = sharedValue;
+    }
+
+    @Override
+    public void run() {
+        System.out.println("Thread " + threadId + " acquiring lock...");
+        acquireLock();
+        System.out.println("Thread " + threadId + " running");
+        try{
+            Thread.sleep(1000);
+        } catch (InterruptedException ex){
+            System.out.println("ERROR: Thread " + threadId + ", ex=" + ex);
+        }
+        System.out.println("Thread " + threadId + " releasing lock...");
+        releaseLock();
+        System.out.println("Thread " + threadId + " released");
+    }
+
+    public void acquireLock(){
+        while (!sharedValue.compareAndSet(0, threadId)){
+
+        }
+    }
+    public void releaseLock(){
+        while (!sharedValue.compareAndSet(threadId, 0)){
+
+        }
+    }
+}
+
+class MyWorkerCache{
+    private int threadNumber;
+    private MyWorker[] arr;
+    private AtomicInteger shareNumber = new AtomicInteger();
+    public MyWorkerCache(int threadNumber){
+        this.threadNumber = threadNumber;
+        build();
+    }
+    private void build(){
+        arr = new MyWorker[threadNumber];
+        for(int i = 0; i < threadNumber; i++){
+            arr[i] = new MyWorker(i+1, shareNumber);
+        }
+    }
+    public void start(){
+        for(int i = 0; i < threadNumber; i++){
+            new Thread(arr[i]).start();
+        }
+    }
+}
+```
+```
+Thread 3 acquiring lock...
+Thread 3 running
+Thread 4 acquiring lock...
+Thread 1 acquiring lock...
+Thread 2 acquiring lock...
+Thread 3 releasing lock...
+Thread 1 running
+Thread 3 released
+Thread 1 releasing lock...
+Thread 1 released
+Thread 2 running
+Thread 2 releasing lock...
+Thread 2 released
+Thread 4 running
+Thread 4 releasing lock...
+Thread 4 released
+```
+As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock and execute, white others wait.
+
 
 ###### Linked lists
 Linked list disadvantages compared to array:
