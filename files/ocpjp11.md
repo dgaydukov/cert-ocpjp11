@@ -10529,6 +10529,11 @@ Random number generation. There are 5 ways to generate number:
 * `java.util.SplittableRandom` - not thread-safe, but very quick
 * `java.util.concurrent.ThreadLocalRandom` - enhanced version of Random designed to generate multi-threaded safe randoms.
 * `java.security.SecureRandom` - generate cryptographically secure randoms (mostly used in secure app)
+Use this class for password/token generation. While `Random` takes data from system clock, `SecureRandom` takes from `/dev/(u)random`
+so it's more secure and less change of somebody guess it. You can also manually generate random binary with shell
+```shell script
+dd if=/dev/urandom of=~/random.bytes count=4 bs=1024
+```
 All methods in `Random` are instance.
 There are 2 constructors one is empty another with seed of `long`. When you use no-arg it generate seed based on nanotime.
 ```java
