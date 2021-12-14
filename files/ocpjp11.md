@@ -6417,22 +6417,28 @@ By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped in
 
 
 Java doesn’t wait for daemon threads, only for normal threads. To make a thread a daemon just set it property to true `setDaemon(true)`.
+Below code will exit immediately, but if you comment out daemon=true, then app would never exit, cause thread will run forever.
+This is similar to `detach`, so when you set daemon=true you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
+Yet `thread::detach` doesn't exist in java, cause once you set daemon=true, if your main process stops, all daemon threads would be killed
+So there is no way in JVM to create thread that would continue to run while your main app id dead (yet you can start new JVM with new PID from your app)
+Keep in mind if you call `.join` on the daemon thread, your app would wait for such thread (in our case forever, cause of `while(true)`)
 ```java
+import java.lang.management.ManagementFactory;
+
 public class App {
     public static void main(String[] args) {
         Thread thread = new Thread(() -> {
-            System.out.println("thread start");
-            sleep(1);
-            System.out.println("thread finish");
+            int i = 0;
+            while(true){
+                System.out.println(Thread.currentThread() + " => " + i);
+                sleep(1);
+                i++;
+            }
         });
-        Thread daemonThread = new Thread(() -> {
-            System.out.println("daemonThread start");
-            sleep(2);
-            System.out.println("daemonThread finish");
-        });
-        daemonThread.setDaemon(true);
+        System.out.println("Start app: PID="+ManagementFactory.getRuntimeMXBean().getName());
+        thread.setDaemon(true);
         thread.start();
-        daemonThread.start();
+        System.out.println("done");
     }
     private static void sleep(int seconds) {
         try {
@@ -6442,11 +6448,6 @@ public class App {
         }
     }
 }
-```
-```
-thread start
-daemonThread start
-thread finish
 ```
 
 You can set thread priority with `setPriority` method. Yet it doesn't guarantee to run, cause in the end it's OS who schedule threads.
@@ -6505,6 +6506,8 @@ Exception in thread "main" java.lang.IllegalArgumentException
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
 * join - call on other thread and make current thread wait until other thread finish execution
+    * you can run new thread with `start`, but if you want current thread to wait until new thread finished you call `join`
+    
 
 
 Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
