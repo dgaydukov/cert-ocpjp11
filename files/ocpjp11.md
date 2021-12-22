@@ -98,6 +98,7 @@
 * 13.2 [Linked lists](#linked-lists)
 * 13.3 [PermGen vs Metaspace](#permgen-vs-metaspace)
 * 13.4 [Garbage collection](#garbage-collection)
+* 13.5 [Java Memory Model](#java-memory-model)
 
 
 
@@ -12366,3 +12367,48 @@ Metaspace:
 
 ###### Garbage collection
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
+
+###### Java Memory Model
+before we start:
+* memory - main memory of PC called RAM
+* registers - cpu internal memory, the most fastest memory available
+* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
+So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
+* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
+JMM - describes how threads share memory. This make sense for multithreading programming.
+If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
+* how memory is shared between multiple threads
+    * each thread runs in separate cpu which has it's own cache - copy of memory
+    * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
+    * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
+* order of execution:
+    * compiler may re-order execution of code as part of optimization
+    thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
+* within thread `as-if-serial` semantics should be observed
+compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
+Take a look at following example:
+```java
+int x = 1;
+int y = 2;
+int z = x + y;
+```
+compiler may change order of line 1 & 2 as it want or run in parallel, but both must be executed before line 3.
+Don't confuse:
+* parallel code running in multiple threads - multi-threding programming
+* parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
+JVM:
+* each thread has it's own stack where local variables stored:
+    * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
+    * complex types - reference to object stored in stack, object itself stored in heap
+* heap - contains all objects created by java app
+On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
+Rules:
+* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others
+This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside.
+`volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other
+if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
+So to summarize you can say:
+* `volatile` - single write + multiple reads
+    * happens before - also it prevent code re-ordering. All local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+* `synchronized`  - multiple writes + multiple reads 
