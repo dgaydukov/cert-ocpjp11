@@ -12367,6 +12367,66 @@ Metaspace:
 
 ###### Garbage collection
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
+JVM:
+* heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
+    * YoungGen - young generation - stores newly allocated objects. Contain 3 parts:
+        * eden - all newly-created objects goes here
+        When eden is full `minor GC` runs, and all survivor objects moved into one survivor space
+        it also checks survivor space and moves all survived objects into one space, so one is always free
+        Objects that survived for several times moved into OldGen
+        * survivor memory space 1
+        * survivor memory space 2
+    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`
+    When OldGen is full, `major GC` is run to clean up - this take longer time
+* non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
+    * stores fields & methods names, code for methods, constants
+    * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
+* cache - stored compiled code
+* stack - unique per thread, stored local variables and code execution
+GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`.
+since simple checking of all objects one-by-one is not effective, several algos exist to run GC.
+Mark & Sweep model - default implementation in java GC:
+* mark - identify & mark all object references starting from GC root, the rest is garbage
+    * GC root - local/static variables, active threads
+    * before destroying object, GC called `finalize` method exactly once
+* sweep - search the heap and find all unoccupied space between objects for future object allocation
+all jvm gc can be divided into 4 types:
+* serial - use single thread
+* parallel (we can specify number of threads and max pause time) - use multiple threads 
+* low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
+    * initial marking of gc roots
+    * if app changed the state of the heap, while gc was running
+* G1 - use multiple threads scan heap by dividing in into many region and scan regions with most garbage first
+* Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
+    * partition the heap like G1, yet heap chunks can have different size
+    * stop the world - no more then 10ms
+    * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
+JVM support following gc types:
+--these 2 operate on YoungGen
+* `-XX:+UseSerialGC` - standard serial mark & sweep algo
+* `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
+it will stop all threads and run gc
+--these 2 operate on OldGen
+* `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
+* `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
+--this one doesn't split heap into new/old-gen
+* `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
+    * string deduplication - g1  can find duplicate strings and point all of them into single object
+Don't confuse:
+* serial GC - use one thread to run gc
+* parallel GC - use multiple threads to run gc
+Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
+pros to know how gc works - you can better handle:
+* memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
+* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
+this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
+* cpu usage - constant `stop the world` cause a lot of cpu consumption
+gc tuning:
+* adjust heap size
+* reduce rate of object creation - use pools instead
+* create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
+* use streams instead of copy into memory byte arrays
+* 
 
 ###### Java Memory Model
 before we start:
