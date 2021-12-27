@@ -96,9 +96,8 @@
 13. [Low latency](#low-latency)
 * 13.1 [sun.misc.Unsafe](#sunmiscunsafe)
 * 13.2 [Linked lists](#linked-lists)
-* 13.3 [PermGen vs Metaspace](#permgen-vs-metaspace)
-* 13.4 [Garbage collection](#garbage-collection)
-* 13.5 [Java Memory Model](#java-memory-model)
+* 13.3 [Garbage collection](#garbage-collection)
+* 13.4 [Java Memory Model](#java-memory-model)
 
 
 
@@ -12354,17 +12353,6 @@ class SinglyLinkedList{
 [0,1,2]
 ```
 
-###### PermGen vs Metaspace
-PermGen:
-* special heap space separated from the main memory heap
-* contains data about bytecode, names, and JIT information
-* default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
-* removed from JDK 8
-Metaspace:
-* replaced the older PermGen memory space starting form JDK 8
-* grows automatically by default
-* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
-
 ###### Garbage collection
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 JVM:
@@ -12409,14 +12397,34 @@ it will stop all threads and run gc
 --these 2 operate on OldGen
 * `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
 * `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
+card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
+But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
+One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
 --this one doesn't split heap into new/old-gen
 * `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
     * string deduplication - g1  can find duplicate strings and point all of them into single object
+* `-XX:+UseZGC` - has several steps:
+    * short stop the world to mark all root references
+    * concurrently traverse object graph to mark all referenced object
+    * reference coloring
+    * relocation - move objects into space from which unreferenced objects were removed
+* `-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC` - no-op gc, so it doesn't perform any gc, just run until heap is full, then terminate java app
+This can be useful if you have low-latency app with huge memory or for performance testing
+* `-XX:+UseShenanodoahGC` - 
+SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
+so if we don't do this, while we run app may change reference and we can accidently remove used object
+example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
+so it's better to make snapshot of object graph at the beginning and use it for marking
+When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
+we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
 Don't confuse:
 * serial GC - use one thread to run gc
 * parallel GC - use multiple threads to run gc
 Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
-pros to know how gc works - you can better handle:
+* concurrent gc - run at the same time as your app running, so don't cause `stop the world`
+So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
+Don't confuse:
+Pros to know how gc works - you can better handle:
 * memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
 * constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
 this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
@@ -12426,7 +12434,66 @@ gc tuning:
 * reduce rate of object creation - use pools instead
 * create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
 * use streams instead of copy into memory byte arrays
-* 
+Don't confuse (permGen was replaced by MetaSpace since java8):
+PermGen:
+* special heap space separated from the main memory heap (yet it was part of heap before java8)
+* contains data about bytecode, names, and JIT information
+* default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
+* removed from JDK 8
+Metaspace:
+* replaced the older PermGen memory space starting form JDK 8
+* grows automatically by default
+* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
+Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
+cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
+Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
+this quite complex and done by copying collector and require gc to update address, 
+cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
+Conclusion: there is no universal gc, you should choose:
+* low pause, large overhead - shenandoah
+* average pause, average overhead - G1/CMS
+* long pause, low overhead - parallel GC
+Overhead - tricks that help to decrease pause, need to be taken care by code like SATB, read/write barriers and so on
+Memory leak - big issue that needs to be resolved before we start gc tuning:
+We can use following code to test memory leak & gc
+```java
+public class App{
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("step 1");
+        int n = 100_000;
+        for(int i = 0; i < n; i++){
+            int[] arr = new int[n];
+        }
+        System.out.println("step 2");
+        Thread.sleep(5000);
+        System.out.println("step 3");
+    }
+}
+```
+* always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
+    * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
+        * most commands were removed in java11, if you try to run above command in java11 you will get 
+        ```
+        Unrecognized VM option 'PrintGCTimeStamps'
+        Error: Could not create the Java Virtual Machine.
+        Error: A fatal exception has occurred. Program will exit.
+        ```
+    * java11 `-Xlog:gc*=debug:file=logs.txt`
+* download & run gcviewer to check gc logs
+    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
+    * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
+    * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
+    * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
+* analyze java heap dump of app
+    * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
+    * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
+    * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
+* use memory analizer like:
+    * eclipse MAT - analyze heapdump from file - standalone product or plugin to eclipse IDE
+    * jVisualVM - analyze heapdump realtime on running app
+Try to avoid:
+* heavy code in finalize(), cause gc should wait until it executed
+* resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
 
 ###### Java Memory Model
 before we start:
@@ -12470,5 +12537,11 @@ This make sense, cause one thread may change value in his cache, but not yet flu
 if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
 So to summarize you can say:
 * `volatile` - single write + multiple reads
-    * happens before - also it prevent code re-ordering. All local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+    * happens before - also it prevent code re-ordering
+    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+    * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
+    * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
+    * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
 * `synchronized`  - multiple writes + multiple reads 
+JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
+so don't overuse native methods cause it again slow down performance
