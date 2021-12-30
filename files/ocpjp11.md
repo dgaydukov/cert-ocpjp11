@@ -913,6 +913,60 @@ public class App{
 [hello, world, cool, main]
 ```
 
+Don't confuse decimal & hex arrays
+We can convert hex string into 2 types of byte array:
+* hex array - where 2 symbols - single byte
+* decimal array - where each symbol - separate byte
+So if we have 6 length hex string then:
+* hex array - length 3
+* decimal array - lenght 6
+```java
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class App{
+    public static void main(String[] args) {
+        String hex = "123abc";
+        byte[] charBytes = hex.getBytes();
+        byte[] hexBytes = hexToBytes(hex);
+        System.out.println("charBytes => " + Arrays.toString(charBytes));
+        System.out.println("hexBytes => " + Arrays.toString(hexBytes));
+        System.out.println();
+        System.out.println("char of 99 => "+(char)99);
+        System.out.println("hex representation of 99 => "+Integer.toHexString(99));
+        System.out.println("decimal representation of 99 => "+Integer.parseInt("99", 16));
+    }
+
+    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    public static String bytesToHex(byte[] bytes) {
+        byte[] hexChars = new byte[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars, StandardCharsets.UTF_8);
+    }
+    public static byte[] hexToBytes(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+}
+```
+```
+charBytes => [49, 50, 51, 97, 98, 99]
+hexBytes => [18, 58, -68]
+
+char of 99 => c
+hex representation of 99 => 63
+decimal representation of 99 => 153
+```
+
 ###### Arrays.compare and Arrays.mismatch
 These 2 functions used to compare 2 arrays and found their common prefix.
 ```java
