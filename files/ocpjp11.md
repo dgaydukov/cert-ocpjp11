@@ -98,6 +98,7 @@
 * 13.2 [Linked lists](#linked-lists)
 * 13.3 [Garbage collection](#garbage-collection)
 * 13.4 [Java Memory Model](#java-memory-model)
+* 13.5 [Encoding](#encoding)
 
 
 
@@ -12600,3 +12601,111 @@ So to summarize you can say:
 * `synchronized`  - multiple writes + multiple reads 
 JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
 so don't overuse native methods cause it again slow down performance
+
+###### Encoding
+Don't confuse(endianess - the way we store bytes in memory):
+* big endian - big end stored first, if you read left-to-right this make sense, it's also called forward
+* little endian - store right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
+in big-endian you have to move all digits right. But with little-endian you just add digits
+Don't confuse:
+* signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
+* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B
+There are several character encoding:
+* ASCII (American Standard Code for Information Interchange)
+    * defines 128 characters (0-127)
+    * first 32 - non-printable control characters like return or new line
+    * nowadays it's a subset of many other encoding
+    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
+    so we ended up with many computers that treat upper 128 bits differently and depend on your pr upper bits could be resolved quite differently
+    and this led to ANSI
+* ANSI (American National Standards Institute)
+    * general agreement what to do with upper 128 bits
+    * first 128 bits would always be ASCII for all computers
+    * different systems called code pages (for Hebrew - was one code page, for greek another)
+    * 2 problems arise
+        * it was impossible to have both Hebrew and Greek on the same computer
+        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough
+        this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2 and you have to use
+        windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
+* Unicode
+    * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
+    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
+    so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
+    * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
+    * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
+    * main question how to store code points in memory?
+    This is where encoding came from, so each code point was encoded as 2 bytes, also for support high/low-endian 
+    2 bytes (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
+    Yet developers complain about all these zeros so utf-8 was born
+* UTF-8 (Unicode Transformation Format 8-bit)
+    * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
+    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
+    * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
+    * physical memory - we have following rule:
+    single byte - store it just as byte
+    2 bytes -> 110xxxxx 10xxxxx => so 110_10 - is a mark of 2 bytes, others used to store chars
+    3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 - mark of 3 bytes, others used to store chars
+    ... all the way up to 6 bytes
+    6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx
+Don't confuse:
+* UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
+* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII
+* UTF-32 - fixed size 4 bytes for each character
+Don't confuse:
+* character set - list of characters where each char is mapped to numeric value called `code point`. So ASCII/Unicode are all character sets
+* encoding - describe how numeric values `code points` are mapped into bytes. So UTF-8/UTF-16/UTF-32 are all encoding
+Java example how to convert string to bits
+```java
+public class App{
+    public static void main(String[] args) {
+        char ch = 'A';
+        byte b = (byte) ch;
+        System.out.println("char    => " + ch);
+        System.out.println("numeric => " + b);
+        System.out.println("binary  => " + Integer.toBinaryString(b));
+        System.out.println("stringToBinary  => " + stringToBinary("hello"));
+    }
+
+    private static String stringToBinary(String str){
+        byte[] arr = str.getBytes();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length; i++){
+            String binary = String.format("%8s", Integer.toBinaryString(arr[i])).replace(' ', '0');
+            sb.append(binary).append(" ");
+        }
+        return sb.toString();
+    }
+}
+```
+```
+char    => A
+numeric => 65
+binary  => 1000001
+stringToBinary  => 01101000 01100101 01101100 01101100 01101111
+```
+String in java using `UTF-16` encoding, yet when you work with `byte[]` you can choose encoding
+```java
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class App{
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=1000;i<1010;i++){
+            sb.append((char) i);
+        }
+        String str = sb.toString();
+        byte[] arr = str.getBytes();
+        System.out.println("str => " + str);
+        System.out.println("bytes => " + Arrays.toString(arr));
+        System.out.println("str => " + new String(arr, StandardCharsets.UTF_8));
+        System.out.println("str => " + new String(arr, StandardCharsets.US_ASCII));
+    }
+}
+```
+```
+str => ϨϩϪϫϬϭϮϯϰϱ
+bytes => [-49, -88, -49, -87, -49, -86, -49, -85, -49, -84, -49, -83, -49, -82, -49, -81, -49, -80, -49, -79]
+str => ϨϩϪϫϬϭϮϯϰϱ
+str => ��������������������
+```
