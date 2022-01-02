@@ -915,11 +915,12 @@ public class App{
 
 Don't confuse decimal & hex arrays
 We can convert hex string into 2 types of byte array:
-* hex array - where 2 symbols - single byte
-* decimal array - where each symbol - separate byte
+* hex array - where 2 symbols - single byte. Since max hex ff - 256 but byte is 127, our range for each symbol: -128 => 127
+* decimal array - where each symbol - separate byte. so each symbol is value of: 0 => 127
+As you see hex range is twice the size of decimal range, that's why it's size is twice smaller
 So if we have 6 length hex string then:
 * hex array - length 3
-* decimal array - lenght 6
+* decimal array - length 6
 ```java
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
