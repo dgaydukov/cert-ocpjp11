@@ -98,6 +98,8 @@
 * 13.2 [Linked lists](#linked-lists)
 * 13.3 [PermGen vs Metaspace](#permgen-vs-metaspace)
 * 13.4 [Garbage collection](#garbage-collection)
+* 13.4 [Java memory model](#java-memory-model)
+
 
 
 
@@ -12363,3 +12365,13 @@ Metaspace:
 
 ###### Garbage collection
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
+
+###### Java memory model
+proc can only access byte, so there is no way to read single bit, only whole byte, 8 bit, can be read at a time
+there are 2 types of memory address resolution;
+1. byte-addressable - each byte has it' own address
+2. word-addressable - each word of size 16/24/32/64 has it's own memory address;
+    so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
+    for 64 - each 64 bits or 8 bytes would have separate address
+there were a few decimal-addressable machines, but they not used nowdays   
+most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
