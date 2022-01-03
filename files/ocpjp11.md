@@ -96,12 +96,9 @@
 13. [Low latency](#low-latency)
 * 13.1 [sun.misc.Unsafe](#sunmiscunsafe)
 * 13.2 [Linked lists](#linked-lists)
-* 13.3 [PermGen vs Metaspace](#permgen-vs-metaspace)
 * 13.4 [Garbage collection](#garbage-collection)
 * 13.4 [Java memory model](#java-memory-model)
-
-
-
+* 13.5 [Encoding](#encoding)
 
 
 
@@ -913,6 +910,61 @@ public class App{
 ```
 ```
 [hello, world, cool, main]
+```
+
+Don't confuse decimal & hex arrays
+We can convert hex string into 2 types of byte array:
+* hex array - where 2 symbols - single byte. Since max hex ff - 256 but byte is 127, our range for each symbol: -128 => 127
+* decimal array - where each symbol - separate byte. so each symbol is value of: 0 => 127
+As you see hex range is twice the size of decimal range, that's why it's size is twice smaller
+So if we have 6 length hex string then:
+* hex array - length 3
+* decimal array - length 6
+```java
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class App{
+    public static void main(String[] args) {
+        String hex = "123abc";
+        byte[] charBytes = hex.getBytes();
+        byte[] hexBytes = hexToBytes(hex);
+        System.out.println("charBytes => " + Arrays.toString(charBytes));
+        System.out.println("hexBytes => " + Arrays.toString(hexBytes));
+        System.out.println();
+        System.out.println("char of 99 => "+(char)99);
+        System.out.println("hex representation of 99 => "+Integer.toHexString(99));
+        System.out.println("decimal representation of 99 => "+Integer.parseInt("99", 16));
+    }
+
+    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    public static String bytesToHex(byte[] bytes) {
+        byte[] hexChars = new byte[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars, StandardCharsets.UTF_8);
+    }
+    public static byte[] hexToBytes(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+}
+```
+```
+charBytes => [49, 50, 51, 97, 98, 99]
+hexBytes => [18, 58, -68]
+
+char of 99 => c
+hex representation of 99 => 63
+decimal representation of 99 => 153
 ```
 
 ###### Arrays.compare and Arrays.mismatch
@@ -6419,22 +6471,28 @@ By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped in
 
 
 Java doesn’t wait for daemon threads, only for normal threads. To make a thread a daemon just set it property to true `setDaemon(true)`.
+Below code will exit immediately, but if you comment out daemon=true, then app would never exit, cause thread will run forever.
+This is similar to `detach`, so when you set daemon=true you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
+Yet `thread::detach` doesn't exist in java, cause once you set daemon=true, if your main process stops, all daemon threads would be killed
+So there is no way in JVM to create thread that would continue to run while your main app id dead (yet you can start new JVM with new PID from your app)
+Keep in mind if you call `.join` on the daemon thread, your app would wait for such thread (in our case forever, cause of `while(true)`)
 ```java
+import java.lang.management.ManagementFactory;
+
 public class App {
     public static void main(String[] args) {
         Thread thread = new Thread(() -> {
-            System.out.println("thread start");
-            sleep(1);
-            System.out.println("thread finish");
+            int i = 0;
+            while(true){
+                System.out.println(Thread.currentThread() + " => " + i);
+                sleep(1);
+                i++;
+            }
         });
-        Thread daemonThread = new Thread(() -> {
-            System.out.println("daemonThread start");
-            sleep(2);
-            System.out.println("daemonThread finish");
-        });
-        daemonThread.setDaemon(true);
+        System.out.println("Start app: PID="+ManagementFactory.getRuntimeMXBean().getName());
+        thread.setDaemon(true);
         thread.start();
-        daemonThread.start();
+        System.out.println("done");
     }
     private static void sleep(int seconds) {
         try {
@@ -6444,11 +6502,6 @@ public class App {
         }
     }
 }
-```
-```
-thread start
-daemonThread start
-thread finish
 ```
 
 You can set thread priority with `setPriority` method. Yet it doesn't guarantee to run, cause in the end it's OS who schedule threads.
@@ -6507,6 +6560,8 @@ Exception in thread "main" java.lang.IllegalArgumentException
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
 * join - call on other thread and make current thread wait until other thread finish execution
+    * you can run new thread with `start`, but if you want current thread to wait until new thread finished you call `join`
+    
 
 
 Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
@@ -12352,9 +12407,90 @@ class SinglyLinkedList{
 [0,1,2]
 ```
 
-###### PermGen vs Metaspace
+###### Garbage collection
+* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
+JVM:
+* heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
+    * YoungGen - young generation - stores newly allocated objects. Contain 3 parts:
+        * eden - all newly-created objects goes here
+        When eden is full `minor GC` runs, and all survivor objects moved into one survivor space
+        it also checks survivor space and moves all survived objects into one space, so one is always free
+        Objects that survived for several times moved into OldGen
+        * survivor memory space 1
+        * survivor memory space 2
+    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`
+    When OldGen is full, `major GC` is run to clean up - this take longer time
+* non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
+    * stores fields & methods names, code for methods, constants
+    * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
+* cache - stored compiled code
+* stack - unique per thread, stored local variables and code execution
+GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`.
+since simple checking of all objects one-by-one is not effective, several algos exist to run GC.
+Mark & Sweep model - default implementation in java GC:
+* mark - identify & mark all object references starting from GC root, the rest is garbage
+    * GC root - local/static variables, active threads
+    * before destroying object, GC called `finalize` method exactly once
+* sweep - search the heap and find all unoccupied space between objects for future object allocation
+all jvm gc can be divided into 4 types:
+* serial - use single thread
+* parallel (we can specify number of threads and max pause time) - use multiple threads 
+* low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
+    * initial marking of gc roots
+    * if app changed the state of the heap, while gc was running
+* G1 - use multiple threads scan heap by dividing in into many region and scan regions with most garbage first
+* Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
+    * partition the heap like G1, yet heap chunks can have different size
+    * stop the world - no more then 10ms
+    * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
+JVM support following gc types:
+--these 2 operate on YoungGen
+* `-XX:+UseSerialGC` - standard serial mark & sweep algo
+* `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
+it will stop all threads and run gc
+--these 2 operate on OldGen
+* `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
+* `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
+card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
+But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
+One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
+--this one doesn't split heap into new/old-gen
+* `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
+    * string deduplication - g1  can find duplicate strings and point all of them into single object
+* `-XX:+UseZGC` - has several steps:
+    * short stop the world to mark all root references
+    * concurrently traverse object graph to mark all referenced object
+    * reference coloring
+    * relocation - move objects into space from which unreferenced objects were removed
+* `-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC` - no-op gc, so it doesn't perform any gc, just run until heap is full, then terminate java app
+This can be useful if you have low-latency app with huge memory or for performance testing
+* `-XX:+UseShenanodoahGC` - 
+SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
+so if we don't do this, while we run app may change reference and we can accidently remove used object
+example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
+so it's better to make snapshot of object graph at the beginning and use it for marking
+When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
+we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
+Don't confuse:
+* serial GC - use one thread to run gc
+* parallel GC - use multiple threads to run gc
+Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
+* concurrent gc - run at the same time as your app running, so don't cause `stop the world`
+So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
+Don't confuse:
+Pros to know how gc works - you can better handle:
+* memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
+* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
+this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
+* cpu usage - constant `stop the world` cause a lot of cpu consumption
+gc tuning:
+* adjust heap size
+* reduce rate of object creation - use pools instead
+* create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
+* use streams instead of copy into memory byte arrays
+Don't confuse (permGen was replaced by MetaSpace since java8):
 PermGen:
-* special heap space separated from the main memory heap
+* special heap space separated from the main memory heap (yet it was part of heap before java8)
 * contains data about bytecode, names, and JIT information
 * default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
 * removed from JDK 8
@@ -12362,16 +12498,247 @@ Metaspace:
 * replaced the older PermGen memory space starting form JDK 8
 * grows automatically by default
 * GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
+Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
+cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
+Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
+this quite complex and done by copying collector and require gc to update address, 
+cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
+Conclusion: there is no universal gc, you should choose:
+* low pause, large overhead - shenandoah
+* average pause, average overhead - G1/CMS
+* long pause, low overhead - parallel GC
+Overhead - tricks that help to decrease pause, need to be taken care by code like SATB, read/write barriers and so on
+Memory leak - big issue that needs to be resolved before we start gc tuning:
+We can use following code to test memory leak & gc
+```java
+public class App{
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("step 1");
+        int n = 100_000;
+        for(int i = 0; i < n; i++){
+            int[] arr = new int[n];
+        }
+        System.out.println("step 2");
+        Thread.sleep(5000);
+        System.out.println("step 3");
+    }
+}
+```
+* always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
+    * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
+        * most commands were removed in java11, if you try to run above command in java11 you will get 
+        ```
+        Unrecognized VM option 'PrintGCTimeStamps'
+        Error: Could not create the Java Virtual Machine.
+        Error: A fatal exception has occurred. Program will exit.
+        ```
+    * java11 `-Xlog:gc*=debug:file=logs.txt`
+* download & run gcviewer to check gc logs
+    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
+    * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
+    * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
+    * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
+* analyze java heap dump of app
+    * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
+    * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
+    * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
+* use memory analizer like:
+    * eclipse MAT - analyze heapdump from file - standalone product or plugin to eclipse IDE
+    * jVisualVM - analyze heapdump realtime on running app
+Try to avoid:
+* heavy code in finalize(), cause gc should wait until it executed
+* resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
 
-###### Garbage collection
-* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
-
-###### Java memory model
-proc can only access byte, so there is no way to read single bit, only whole byte, 8 bit, can be read at a time
+###### Java Memory Model
+memory basics;
+proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
+that's why although boolean can be stored in single bit true/false - it's size still a byte in modern pc
+so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
+memory address - fixed-length unsigned integer
+don't confuse;
+* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controlller)
+to use memory bus to get content of single memory unit (8 bits) to access it's content
+* logical address - software create logical memory space in which running program is read/write data. then memory management unit create
+mapping between logical and physical memory. so your program need not to care to work with main memory. 
+so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
+we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
+if you work with c/c++ and use pointers then 2 cases are possible:
+* if you running your program in os like windows/linux - for sure you are using virtual memory address space
+* if you run your program without os or you are writing ok kernel - then you would access physical memory directly
 there are 2 types of memory address resolution;
-1. byte-addressable - each byte has it' own address
-2. word-addressable - each word of size 16/24/32/64 has it's own memory address;
-    so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
-    for 64 - each 64 bits or 8 bytes would have separate address
-there were a few decimal-addressable machines, but they not used nowdays   
-most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
+1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
+   most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
+   this is due to historical reason, since computer works mostly with text and single byte should store single character
+   since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
+   also for cpu it's simpler to work with byte then word - imagine you need to change symbol
+  * byte - you just read it and modify
+  * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
+2. word-addressable - minimal memory address size is processor word -- look cpu word size
+   cpu word can be of size 16/24/32/64 bit, has it's own memory address;
+   so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
+   for 64 - each 64 bits or 8 bytes would have separate address
+   there were a few decimal-addressable machines, but they not used nowadays
+don't confuse;
+* address size - side of memory unit, mostly 8 bits in byte-addressable system
+* word size - feature of compute architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
+so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
+that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
+yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
+before we start - speed is measured in how much time cpu needs to access memory location:
+* memory - main memory of PC called RAM
+* registers - cpu internal memory, the fastest memory available
+* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
+So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
+* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
+JMM - describes how threads share memory. This make sense for multithreading programming.
+If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
+* how memory is shared between multiple threads
+    * each thread runs in separate cpu which has it's own cache - copy of memory
+    * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
+    * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
+* order of execution:
+    * compiler may re-order execution of code as part of optimization
+    thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
+* within thread `as-if-serial` semantics should be observed
+compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
+Take a look at following example:
+```java
+int x = 1;
+int y = 2;
+int z = x + y;
+```
+compiler may change order of line 1 & 2 as it want or run in parallel, but both must be executed before line 3.
+Don't confuse:
+* parallel code running in multiple threads - multi-threding programming
+* parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
+JVM:
+* each thread has it's own stack where local variables stored:
+    * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
+    * complex types - reference to object stored in stack, object itself stored in heap
+* heap - contains all objects created by java app
+On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
+Rules:
+* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others
+This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside.
+`volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other
+if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
+So to summarize you can say:
+* `volatile` - single write + multiple reads
+    * happens before - also it prevent code re-ordering
+    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+    * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
+    * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
+    * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
+* `synchronized`  - multiple writes + multiple reads 
+JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
+so don't overuse native methods cause it again slow down performance
+
+###### Encoding
+Don't confuse(endianess - the way we store bytes in memory):
+* big endian - big end stored first, if you read left-to-right this make sense, it's also called forward
+* little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
+keep in mind that only bytes change order, bits inside single byte stay as they are
+in big-endian you have to move all digits right. But with little-endian you just add digits
+Don't confuse:
+* signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
+* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed. also `char=char=int`
+There are several character encoding:
+* ASCII (American Standard Code for Information Interchange)
+    * defines 128 characters (0-127)
+    * first 32 - non-printable control characters like return or new line
+    * nowadays it's a subset of many other encoding
+    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
+    so we ended up with many computers that treat upper 128 bits differently and depend on your pr upper bits could be resolved quite differently
+    and this led to ANSI
+* ANSI (American National Standards Institute)
+    * general agreement what to do with upper 128 bits
+    * first 128 bits would always be ASCII for all computers
+    * different systems called code pages (for Hebrew - was one code page, for greek another)
+    * 2 problems arise
+        * it was impossible to have both Hebrew and Greek on the same computer
+        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough
+        this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2 and you have to use
+        windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
+* Unicode
+    * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
+    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
+    so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
+    * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
+    * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
+    * main question how to store code points in memory?
+    This is where encoding came from, so each code point was encoded as 2 bytes, also for support high/low-endian 
+    2 bytes (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
+    Yet developers complain about all these zeros so utf-8 was born
+* UTF-8 (Unicode Transformation Format 8-bit)
+    * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
+    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
+    * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
+    * physical memory - we have following rule:
+    single byte - store it just as byte
+    2 bytes -> 110xxxxx 10xxxxx => so 110_10 - is a mark of 2 bytes, others used to store chars
+    3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 - mark of 3 bytes, others used to store chars
+    ... all the way up to 6 bytes
+    6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx
+Don't confuse:
+* UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
+* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII
+* UTF-32 - fixed size 4 bytes for each character
+Don't confuse:
+* character set - list of characters where each char is mapped to numeric value called `code point`.
+* encoding - describe how numeric values `code points` are mapped into bytes. 
+  to some degree ascii/unicode/UTF-8/UTF-16/UTF-32 are both char set and encoding, like ascii is char set for english letters, and a way to encode it
+Java example how to convert string to bits
+```java
+public class App{
+    public static void main(String[] args) {
+        char ch = 'A';
+        byte b = (byte) ch;
+        System.out.println("char    => " + ch);
+        System.out.println("numeric => " + b);
+        System.out.println("binary  => " + Integer.toBinaryString(b));
+        System.out.println("stringToBinary  => " + stringToBinary("hello"));
+    }
+    private static String stringToBinary(String str){
+        byte[] arr = str.getBytes();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length; i++){
+            String binary = String.format("%8s", Integer.toBinaryString(arr[i])).replace(' ', '0');
+            sb.append(binary).append(" ");
+        }
+        return sb.toString();
+    }
+}
+```
+```
+char    => A
+numeric => 65
+binary  => 1000001
+stringToBinary  => 01101000 01100101 01101100 01101100 01101111
+```
+String in java using `UTF-16` encoding, yet when you work with `byte[]` you can choose encoding
+```java
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class App{
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=1000;i<1010;i++){
+            sb.append((char) i);
+        }
+        String str = sb.toString();
+        byte[] arr = str.getBytes();
+        System.out.println("str => " + str);
+        System.out.println("bytes => " + Arrays.toString(arr));
+        System.out.println("str => " + new String(arr, StandardCharsets.UTF_8));
+        System.out.println("str => " + new String(arr, StandardCharsets.US_ASCII));
+    }
+}
+```
+```
+str => ϨϩϪϫϬϭϮϯϰϱ
+bytes => [-49, -88, -49, -87, -49, -86, -49, -85, -49, -84, -49, -83, -49, -82, -49, -81, -49, -80, -49, -79]
+str => ϨϩϪϫϬϭϮϯϰϱ
+str => ��������������������
+```
