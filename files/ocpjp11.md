@@ -12662,28 +12662,44 @@ There are several character encoding:
         windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
 * Unicode
     * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
+    * no limit on bits, min size - 2 bytes, even for english
     * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
     so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
     * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
     * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
-    * main question how to store code points in memory?
-    This is where encoding came from, so each code point was encoded as 2 bytes, also for support high/low-endian 
-    2 bytes (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
-    Yet developers complain about all these zeros so utf-8 was born
+    * standard still alive, in latest version-13 - there are 143k characters
+    * 2 problems arise
+      * for english which can use ascii - you still need 2 bytes for each character, so it's a lot of waste of memory
+      * since big/little-endian store bytes in different order, different cpu architecture display unicode differently - this problem was non-existent in ascii, cause it used single byte onl
+    * so to resolve these 2 issues - encodings where created to answer main question how to store code points in memory?
+        first encoding support high/low-endian was usc-2 - universal code character set - 
+        2 bytes called bom-byte (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
+      fe ff - big endian, ff fe - little endian
+        Yet developers complain about all these zeros so utf-8 was born
 * UTF-8 (Unicode Transformation Format 8-bit)
     * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
     * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
     * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
     * physical memory - we have following rule:
-    single byte - store it just as byte
-    2 bytes -> 110xxxxx 10xxxxx => so 110_10 - is a mark of 2 bytes, others used to store chars
-    3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 - mark of 3 bytes, others used to store chars
-    ... all the way up to 6 bytes
-    6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx
+      1 byte  -> 0xxxxxxx (size 7 bit) - single byte - store it just as byte
+      2 bytes -> 110xxxxx 10xxxxx => so 110_10 (size 8-11 bit) - is a mark of 2 bytes, others used to store chars
+      3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 (size 12-16 bit) - mark of 3 bytes, others used to store chars
+      4 bytes (size 17-21 bit) - so up to 2**21=2m chars
+      ... and we can go all the way up to 6 bytes
+      6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx (size 30-31 bit)
+    * this also resolve endian problem;
+      big endian - read first few bits and check; 0 - 1 byte, 110-2bytes, 1110-3bytes, 11110-4bytes. so based on few bits we can easily determine if it 1/2/3/4 byte character
+      little endian - if we read 0 - 1byte, 10-can be 2/3/4 byte, so go further until you meat a mask like 110/1110/11110
 Don't confuse:
 * UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
-* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII
-* UTF-32 - fixed size 4 bytes for each character
+* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII.
+  yet it faster then utf-8 which try to determine if it character size, so most programming language like java using utf-16, yet it take more memory to store it compare to utf-8
+  since string is byte array, and java use utf-16, each string symbol in java takes either 2 or 4 bytes
+  in c strings are mutable and it store end of each string, but to get string length is heavey operation. in java string are fixed-lengs
+  that's why java choose immutable strings, so each time you modify a string, new string is created
+* UTF-32 - fixed size 4 bytes for each character. this is the fastest one, cause compare to utf-8/16 you don't need to guess char size. 
+  you just break your string into chunks of 4 bytes each and read it one-by-one. yet it takes 4 times more space then utf-8
+so numbers 8/16/32 - denote min size of single char. this means all 3 can store 4byte char
 Don't confuse:
 * character set - list of characters where each char is mapped to numeric value called `code point`.
 * encoding - describe how numeric values `code points` are mapped into bytes. 
