@@ -12087,6 +12087,18 @@ class B extends A{
 * ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
 
 #### Low latency
+why ms windows shows disk size less then they are 100gb = 93gb
+answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in si - International System of Units
+yet we have jedec where each increasing on 1024, take a look at this table
+```
+        si        jedec
+kilo    10**3     2**10
+mega    10**6     2**20
+giga    10**7     2**30
+tera    10**12    2**40
+...
+```
+so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9/2**30=93.13`
 
 ###### sun.misc.Unsafe
 `sun.misc` - special package for 2 low-level classes:
@@ -12563,6 +12575,7 @@ to use memory bus to get content of single memory unit (8 bits) to access it's c
 mapping between logical and physical memory. so your program need not to care to work with main memory. 
 so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
+also virtual memory gurantee that one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
 if you work with c/c++ and use pointers then 2 cases are possible:
 * if you running your program in os like windows/linux - for sure you are using virtual memory address space
 * if you run your program without os or you are writing ok kernel - then you would access physical memory directly
@@ -12587,10 +12600,22 @@ that also means that 32bit architecture - can read/write 4 bytes at once, and 64
 yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
 before we start - speed is measured in how much time cpu needs to access memory location:
 * memory - main memory of PC called RAM
-* registers - cpu internal memory, the fastest memory available
+* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. 
+  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiply of memory unit size
+  since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit
+  for pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bit
+  for pc that works with numbers word-addressable memory is better, cause integer is 4byte
 * cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
 So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
 * cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
+  with cpu cache we have following problem. how we can store memory location from which we read single byte.
+  if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address
+  this is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes
+  useful cache size - size of only data without memory unit address, most cpu caches shows only this number
+  sof ir cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
+  when cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache
+  cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory
+  using different algos like lru - least recently used
 JMM - describes how threads share memory. This make sense for multithreading programming.
 If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
 * how memory is shared between multiple threads
@@ -12820,6 +12845,36 @@ and this is limitation of binary math, not of processors or programming language
 there are a few ways you can circumvent it;
 * don't use fractional numbers, use integers
 * use BigDecimal/BigInteger
-  
 
 
+
+### TODO
+https://www.baeldung.com/java-memory-layout
+https://www.youtube.com/watch?v=BD9cRbxWQx8
+https://www.youtube.com/watch?v=Q-7y1u9kZV0
+https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7H_E
+* https://www.baeldung.com/java-profilers
+* take a look into trove library
+* take a look at low-level fix client where you need to build fix string manually
+* mapping between virtual memory and physical memory
+* https://github.com/OpenHFT/Chronicle-Map/blob/ea/docs/CM_Tutorial_Bytes.adoc
+* https://github.com/OpenHFT/Chronicle-Values#chronicle-values
+* why sbe is faster then java serialization
+* kafka commit which offset is read/proceed (so if we seek to it, kafka should notify that this reader already read this offset)
+* https://www.youtube.com/watch?v=iGRfyhE02lA (Владимир Иванов — G1 Garbage Collector)
+* https://www.youtube.com/watch?v=iB2N8aqwtxc (Алексей Шипилёв — Прагматика Java Memory Model)
+* https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
+* https://www.youtube.com/watch?v=FL7_lxJbX0o (Иван Землянский — Аерон. High performance-транспорт для low latency-микросервисов)
+* https://real-logic.co.uk/about.html (videos by Martin Thompson)
+* https://www.infoq.com/presentations/mechanical-sympathy
+* http://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq (sequencer architecture)
+* compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
+* The Art of Multiprocessor Programming (check both editions)
+* java low latency logging (Log4j2 async use lmax disruptor inside)
+* http://java-performance.info/hashmap-overview-jdk-fastutil-goldman-sachs-hppc-koloboke-trove-january-2015 (goldman sachs using https://github.com/leventov/Koloboke as low latency collections)
+* check all the test for lamx disruptor to get real examples of usage (https://github.com/LMAX-Exchange/disruptor/tree/master/src/test/java/com/lmax/disruptor)
+* aeron vs aeron-cluster
+* netty for low latency (how it compares to lmax/aeron)
+* chronicle queue/map (how it works inside)
+* run time DI (spring) vs compile time DI (dagger)
+* each order execution should generate 2 trades (for order owner & for his counterparty)

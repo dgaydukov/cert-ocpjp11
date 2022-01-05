@@ -26,30 +26,3 @@ Below is mock exams of good quality and cheap price:
 By passing certification you will get 3 things
 * [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
 * [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
-
-### TODO
-* https://www.baeldung.com/java-profilers
-* take a look into trove library
-* take a look at low-level fix client where you need to build fix string manually
-* mapping between virtual memory and physical memory
-* https://github.com/OpenHFT/Chronicle-Map/blob/ea/docs/CM_Tutorial_Bytes.adoc
-* https://github.com/OpenHFT/Chronicle-Values#chronicle-values
-* why sbe is faster then java serialization
-* kafka commit which offset is read/proceed (so if we seek to it, kafka should notify that this reader already read this offset)
-* https://www.youtube.com/watch?v=iGRfyhE02lA (Владимир Иванов — G1 Garbage Collector)
-* https://www.youtube.com/watch?v=iB2N8aqwtxc (Алексей Шипилёв — Прагматика Java Memory Model)
-* https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
-* https://www.youtube.com/watch?v=FL7_lxJbX0o (Иван Землянский — Аерон. High performance-транспорт для low latency-микросервисов)
-* https://real-logic.co.uk/about.html (videos by Martin Thompson)
-* https://www.infoq.com/presentations/mechanical-sympathy
-* http://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq (sequencer architecture)
-* compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
-* The Art of Multiprocessor Programming (check both editions)
-* java low latency logging (Log4j2 async use lmax disruptor inside)
-* http://java-performance.info/hashmap-overview-jdk-fastutil-goldman-sachs-hppc-koloboke-trove-january-2015 (goldman sachs using https://github.com/leventov/Koloboke as low latency collections)
-* check all the test for lamx disruptor to get real examples of usage (https://github.com/LMAX-Exchange/disruptor/tree/master/src/test/java/com/lmax/disruptor)
-* aeron vs aeron-cluster
-* netty for low latency (how it compares to lmax/aeron)
-* chronicle queue/map (how it works inside)
-* run time DI (spring) vs compile time DI (dagger)
-* each order execution should generate 2 trades (for order owner & for his counterparty)
