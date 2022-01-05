@@ -99,6 +99,7 @@
 * 13.4 [Garbage collection](#garbage-collection)
 * 13.4 [Java memory model](#java-memory-model)
 * 13.5 [Encoding](#encoding)
+* 13.6 [Floating Point Number](#floating-point-numbers)
 
 
 
@@ -12702,8 +12703,8 @@ Don't confuse:
 so numbers 8/16/32 - denote min size of single char. this means all 3 can store 4byte char
 Don't confuse:
 * character set - list of characters where each char is mapped to numeric value called `code point`.
-* encoding - describe how numeric values `code points` are mapped into bytes. 
-  to some degree ascii/unicode/UTF-8/UTF-16/UTF-32 are both char set and encoding, like ascii is char set for english letters, and a way to encode it
+* encoding - how we encode/map characters into memory (how numeric values `code points` are mapped into bytes)
+  so unicode - is character set only, ucs-2 was encoding desinged to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
 Java example how to convert string to bits
 ```java
 public class App{
@@ -12758,3 +12759,67 @@ bytes => [-49, -88, -49, -87, -49, -86, -49, -85, -49, -84, -49, -83, -49, -82, 
 str => ϨϩϪϫϬϭϮϯϰϱ
 str => ��������������������
 ```
+
+###### Floating Point Numbers
+there are several types of numbers;
+* natural numbers - 1,2,3...
+* integers - positive/negative natual numbers and zero -2,-1,0,1,2....
+* rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
+* irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
+* real numbers - include both ratioanl and irrational
+converting decimal fraction to binary;
+* to convert you start with fraction and multiply by 2 until fraction is 0 
+* only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
+* other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
+```
+convert 3/8 to binary
+0.375 * 2 = 0 + 0.75
+ 0.75 * 2 = 1 + 0.5
+  0.5 * 2 = 1 + 0
+so 0.375 =. 0.110
+
+convert 1/5 to binary
+0.2 * 2 = 0 + 0.4
+0.4 * 2 = 0 + 0.8
+0.8 * 2 = 1 + 0.6
+0.6 * 2 = 1 + 0.2 as you see again we got 0.2
+so 0.2 = 0.1100(1100)
+```
+so you can see that we have ratioanl number like;
+* 1/8=0.125 that can be represented as finite in both decimal and binary
+* 1/5=0.2 that can be represented as finite in decimal but not in binary
+* `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
+simple rule is denominator;
+* if it power 10, then it can be represented as finite decimal fraction
+* if it's power 2, then it can be represented as finite binary
+as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
+but once we do this, we encounter rounding problem;
+* stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
+* floating-point representation - most widely used representation of real numbers in pc. it has base=b, and precision=p.
+there are 3 way to store floating point;
+* float - 32bit
+* double - 64bit
+* long double - 80bit or 128bit
+let's see how fractional numbers stored in memory
+```
+convert separately integer and fractional part into binary
+7.25=111.01
+write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - mantis, e - power 10
+111.01=1.1101 * 10**2
+move our power number into binary 2=10
+7.25=1.1101 * 10**10
+write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
+since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129 - based on this rule you can see that for 32bit we can store max 10**128 - very large number
+0[10000001]1101[all zeros]
+we can convert it back
+-1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
+```
+so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others
+yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989... 
+and this is limitation of binary math, not of processors or programming language
+there are a few ways you can circumvent it;
+* don't use fractional numbers, use integers
+* use BigDecimal/BigInteger
+  
+
+
