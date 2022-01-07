@@ -94,12 +94,13 @@
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
 12. [Class Diagram](#class-diagram)
 13. [Low latency](#low-latency)
-* 13.1 [sun.misc.Unsafe](#sunmiscunsafe)
-* 13.2 [Linked lists](#linked-lists)
-* 13.4 [Garbage collection](#garbage-collection)
-* 13.4 [Java memory model](#java-memory-model)
-* 13.5 [Encoding](#encoding)
-* 13.6 [Floating Point Number](#floating-point-numbers)
+* 13.1 [CPU and Cache](#cpu-and-cache)
+* 13.2 [Java memory model](#java-memory-model)
+* 13.3 [Garbage collection](#garbage-collection)
+* 13.4 [Encoding](#encoding)
+* 13.5 [Floating Point Number](#floating-point-numbers)
+* 13.6 [sun.misc.Unsafe](#sunmiscunsafe)
+* 13.7 [Linked lists](#linked-lists)
 
 
 
@@ -12100,6 +12101,479 @@ tera    10**12    2**40
 ```
 so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9/2**30=93.13`
 
+###### CPU and Cache
+there are 3 types of memory:
+* memory - main memory of PC called RAM
+* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. 
+  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiply of memory unit size
+  since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit
+  for pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bit
+  for pc that works with numbers word-addressable memory is better, cause integer is 4byte
+* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
+So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
+* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
+  with cpu cache we have following problem. how we can store memory location from which we read single byte.
+  if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address
+  this is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes
+  useful cache size - size of only data without memory unit address, most cpu caches shows only this number
+  sof ir cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
+  when cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache
+  cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory
+  using different algos like lru - least recently used
+There are 2 types of architecture of cpu:
+* instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
+    instruction sets can be of different architectual complexity:
+    * CISC (complex instruction set computer) - has many special instructions that rarely used in practice
+    complex instructions are common here like:
+        * transfer multiple register to/from memory
+        * complex integer & floating point operations
+        * atomic test-and-set
+        * SIMD (single instruction multiple data) instructions
+    * RISC (reduced instruction set computer) - only frequently used instructions implemented, less common instructions implemented as subroutines
+    * VLIW (very long instruction word) - use ILP (instruction-level parallelism) with less hardware than cisc/risc compiler responsible for instruction issue and scheduling
+        * EPIC (explicitly parallel instruction computing)
+        good satire why itanium failed
+        [How the Itanium Killed the Computer Industry](https://www.pcmag.com/archive/how-the-itanium-killed-the-computer-industry-236394)
+        Donald Knuth said "The Itanium approach...was supposed to be so terrific—until it turned out that the wished-for compilers were basically impossible to write."
+        main reason of failure - hard to write such compiler, at least back in 2001
+        Don't confuse:
+        * ILP - simultaneous execution of sequence of instructions in one clock cycle within single thread
+            there are 2 types:
+            * hardware (dynamic parallelism) - cpu decides on runtime which instructions to run in parallel, like intel pentium
+            * software (static parallelism) - compiler decides during compilation what instructions to run in parallel, like intel itanium
+        * concurrency - ability to run multiple threads within single process, where each thread running in separate cpu core
+        there are 3 ways to improve performance(actually way more, these 3 are most common):
+        * pipelining - execute different substeps of sequential code in parallel
+        * execute multiple instructions simultaneously
+        * out-of-order execution - execute instructions in different order then they were originally written in programming language
+        All 3 require a lot of hardware processing, so VLIW move the burden into compilers. So such cpu provide more computing with less hardware
+        complexity but with greater compiler complexity
+    * MISC (minimal instruction set computer) - used in educational purposes
+        * OISC (one instruction set computer)
+* microarchitecture - internal design of cpu. Processors with different microarchitecture can have common instruction set, like intel and AMD
+although have different internal design, yet share same set of instructions/registers.
+it represented as connection of machine elements which can be anything from registers to complete ALU (arithmetic logic unit)
+Concept of distinct microarchitecture as compare to instruction set was developed by IBM.
+Instruction may specify:
+* opcode - instruction to be performed:
+    * * add/subtract/multiply/bitwise
+* register (defined as register name)
+    * set register to constant value
+    * copy data from memory/register to memory/register
+    * read/write from hardware devices
+* literal(value expressed as itself like number 25 or string hello world) or constant values
+* addressing mode - define how cpu can identify operand (calculate effective memory address of operand, cause instruction - just bits) in each instruction
+operand can be located in main memory or register. if operand in main memory, then instruction provides location of memory unit.
+so different methods to specify memory address knows as addressing mode.
+
+###### Java Memory Model
+memory basics;
+proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
+that's why although boolean can be stored in single bit true/false - it's size still a byte in modern pc
+so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
+memory address - fixed-length unsigned integer
+don't confuse;
+* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controlller)
+to use memory bus to get content of single memory unit (8 bits) to access it's content
+* logical address - software create logical memory space in which running program is read/write data. then memory management unit create
+mapping between logical and physical memory. so your program need not to care to work with main memory. 
+so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
+we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
+also virtual memory gurantee that one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
+if you work with c/c++ and use pointers then 2 cases are possible:
+* if you running your program in os like windows/linux - for sure you are using virtual memory address space
+* if you run your program without os or you are writing ok kernel - then you would access physical memory directly
+there are 2 types of memory address resolution;
+1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
+   most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
+   this is due to historical reason, since computer works mostly with text and single byte should store single character
+   since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
+   also for cpu it's simpler to work with byte then word - imagine you need to change symbol
+  * byte - you just read it and modify
+  * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
+2. word-addressable - minimal memory address size is processor word -- look cpu word size
+   cpu word can be of size 16/24/32/64 bit, has it's own memory address;
+   so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
+   for 64 - each 64 bits or 8 bytes would have separate address
+   there were a few decimal-addressable machines, but they not used nowadays
+don't confuse;
+* address size - side of memory unit, mostly 8 bits in byte-addressable system
+* word size - feature of compute architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
+so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
+that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
+yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
+JMM - describes how threads share memory. This make sense for multithreading programming.
+If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
+* how memory is shared between multiple threads
+    * each thread runs in separate cpu which has it's own cache - copy of memory
+    * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
+    * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
+* order of execution:
+    * compiler may re-order execution of code as part of optimization
+    thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
+* within thread `as-if-serial` semantics should be observed
+compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
+Take a look at following example:
+```java
+int x = 1;
+int y = 2;
+int z = x + y;
+```
+compiler may change order of line 1 & 2 as it want or run in parallel, but both must be executed before line 3.
+Don't confuse:
+* parallel code running in multiple threads - multi-threding programming
+* parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
+JVM:
+* each thread has it's own stack where local variables stored:
+    * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
+    * complex types - reference to object stored in stack, object itself stored in heap
+* heap - contains all objects created by java app
+On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
+Rules:
+* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others
+This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside.
+`volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other
+if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
+So to summarize you can say:
+* `volatile` - single write + multiple reads
+    * happens before - also it prevent code re-ordering
+    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+    * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
+    * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
+    * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
+* `synchronized`  - multiple writes + multiple reads 
+JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
+so don't overuse native methods cause it again slow down performance
+
+###### Garbage collection
+* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
+JVM:
+* heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
+    * YoungGen - young generation - stores newly allocated objects. Contain 3 parts:
+        * eden - all newly-created objects goes here
+        When eden is full `minor GC` runs, and all survivor objects moved into one survivor space
+        it also checks survivor space and moves all survived objects into one space, so one is always free
+        Objects that survived for several times moved into OldGen
+        * survivor memory space 1
+        * survivor memory space 2
+    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`
+    When OldGen is full, `major GC` is run to clean up - this take longer time
+* non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
+    * stores fields & methods names, code for methods, constants
+    * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
+* cache - stored compiled code
+* stack - unique per thread, stored local variables and code execution
+GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`.
+since simple checking of all objects one-by-one is not effective, several algos exist to run GC.
+Mark & Sweep model - default implementation in java GC:
+* mark - identify & mark all object references starting from GC root, the rest is garbage
+    * GC root - local/static variables, active threads
+    * before destroying object, GC called `finalize` method exactly once
+* sweep - search the heap and find all unoccupied space between objects for future object allocation
+all jvm gc can be divided into 4 types:
+* serial - use single thread
+* parallel (we can specify number of threads and max pause time) - use multiple threads 
+* low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
+    * initial marking of gc roots
+    * if app changed the state of the heap, while gc was running
+* G1 - use multiple threads scan heap by dividing in into many region and scan regions with most garbage first
+* Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
+    * partition the heap like G1, yet heap chunks can have different size
+    * stop the world - no more then 10ms
+    * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
+JVM support following gc types:
+--these 2 operate on YoungGen
+* `-XX:+UseSerialGC` - standard serial mark & sweep algo
+* `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
+it will stop all threads and run gc
+--these 2 operate on OldGen
+* `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
+* `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
+card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
+But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
+One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
+--this one doesn't split heap into new/old-gen
+* `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
+    * string deduplication - g1  can find duplicate strings and point all of them into single object
+* `-XX:+UseZGC` - has several steps:
+    * short stop the world to mark all root references
+    * concurrently traverse object graph to mark all referenced object
+    * reference coloring
+    * relocation - move objects into space from which unreferenced objects were removed
+* `-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC` - no-op gc, so it doesn't perform any gc, just run until heap is full, then terminate java app
+This can be useful if you have low-latency app with huge memory or for performance testing
+* `-XX:+UseShenanodoahGC` - 
+SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
+so if we don't do this, while we run app may change reference and we can accidently remove used object
+example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
+so it's better to make snapshot of object graph at the beginning and use it for marking
+When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
+we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
+Don't confuse:
+* serial GC - use one thread to run gc
+* parallel GC - use multiple threads to run gc
+Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
+* concurrent gc - run at the same time as your app running, so don't cause `stop the world`
+So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
+Don't confuse:
+Pros to know how gc works - you can better handle:
+* memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
+* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
+this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
+* cpu usage - constant `stop the world` cause a lot of cpu consumption
+gc tuning:
+* adjust heap size
+* reduce rate of object creation - use pools instead
+* create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
+* use streams instead of copy into memory byte arrays
+Don't confuse (permGen was replaced by MetaSpace since java8):
+PermGen:
+* special heap space separated from the main memory heap (yet it was part of heap before java8)
+* contains data about bytecode, names, and JIT information
+* default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
+* removed from JDK 8
+Metaspace:
+* replaced the older PermGen memory space starting form JDK 8
+* grows automatically by default
+* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
+Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
+cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
+Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
+this quite complex and done by copying collector and require gc to update address, 
+cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
+Conclusion: there is no universal gc, you should choose:
+* low pause, large overhead - shenandoah
+* average pause, average overhead - G1/CMS
+* long pause, low overhead - parallel GC
+Overhead - tricks that help to decrease pause, need to be taken care by code like SATB, read/write barriers and so on
+Memory leak - big issue that needs to be resolved before we start gc tuning:
+We can use following code to test memory leak & gc
+```java
+public class App{
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println("step 1");
+        int n = 100_000;
+        for(int i = 0; i < n; i++){
+            int[] arr = new int[n];
+        }
+        System.out.println("step 2");
+        Thread.sleep(5000);
+        System.out.println("step 3");
+    }
+}
+```
+* always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
+    * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
+        * most commands were removed in java11, if you try to run above command in java11 you will get 
+        ```
+        Unrecognized VM option 'PrintGCTimeStamps'
+        Error: Could not create the Java Virtual Machine.
+        Error: A fatal exception has occurred. Program will exit.
+        ```
+    * java11 `-Xlog:gc*=debug:file=logs.txt`
+* download & run gcviewer to check gc logs
+    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
+    * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
+    * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
+    * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
+* analyze java heap dump of app
+    * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
+    * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
+    * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
+* use memory analizer like:
+    * eclipse MAT - analyze heapdump from file - standalone product or plugin to eclipse IDE
+    * jVisualVM - analyze heapdump realtime on running app
+Try to avoid:
+* heavy code in finalize(), cause gc should wait until it executed
+* resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
+
+###### Encoding
+Don't confuse(endianess - the way we store bytes in memory):
+* big endian - big end stored first, if you read left-to-right this make sense, it's also called forward
+* little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
+keep in mind that only bytes change order, bits inside single byte stay as they are
+in big-endian you have to move all digits right. But with little-endian you just add digits
+Don't confuse:
+* signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
+* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed. also `char=char=int`
+There are several character encoding:
+* ASCII (American Standard Code for Information Interchange)
+    * defines 128 characters (0-127)
+    * first 32 - non-printable control characters like return or new line
+    * nowadays it's a subset of many other encoding
+    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
+    so we ended up with many computers that treat upper 128 bits differently and depend on your pr upper bits could be resolved quite differently
+    and this led to ANSI
+* ANSI (American National Standards Institute)
+    * general agreement what to do with upper 128 bits
+    * first 128 bits would always be ASCII for all computers
+    * different systems called code pages (for Hebrew - was one code page, for greek another)
+    * 2 problems arise
+        * it was impossible to have both Hebrew and Greek on the same computer
+        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough
+        this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2 and you have to use
+        windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
+* Unicode
+    * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
+    * no limit on bits, min size - 2 bytes, even for english
+    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
+    so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
+    * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
+    * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
+    * standard still alive, in latest version-13 - there are 143k characters
+    * 2 problems arise
+      * for english which can use ascii - you still need 2 bytes for each character, so it's a lot of waste of memory
+      * since big/little-endian store bytes in different order, different cpu architecture display unicode differently - this problem was non-existent in ascii, cause it used single byte onl
+    * so to resolve these 2 issues - encodings where created to answer main question how to store code points in memory?
+        first encoding support high/low-endian was usc-2 - universal code character set - 
+        2 bytes called bom-byte (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
+      fe ff - big endian, ff fe - little endian
+        Yet developers complain about all these zeros so utf-8 was born
+* UTF-8 (Unicode Transformation Format 8-bit)
+    * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
+    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
+    * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
+    * physical memory - we have following rule:
+      1 byte  -> 0xxxxxxx (size 7 bit) - single byte - store it just as byte
+      2 bytes -> 110xxxxx 10xxxxx => so 110_10 (size 8-11 bit) - is a mark of 2 bytes, others used to store chars
+      3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 (size 12-16 bit) - mark of 3 bytes, others used to store chars
+      4 bytes (size 17-21 bit) - so up to 2**21=2m chars
+      ... and we can go all the way up to 6 bytes
+      6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx (size 30-31 bit)
+    * this also resolve endian problem;
+      big endian - read first few bits and check; 0 - 1 byte, 110-2bytes, 1110-3bytes, 11110-4bytes. so based on few bits we can easily determine if it 1/2/3/4 byte character
+      little endian - if we read 0 - 1byte, 10-can be 2/3/4 byte, so go further until you meat a mask like 110/1110/11110
+Don't confuse:
+* UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
+* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII.
+  yet it faster then utf-8 which try to determine if it character size, so most programming language like java using utf-16, yet it take more memory to store it compare to utf-8
+  since string is byte array, and java use utf-16, each string symbol in java takes either 2 or 4 bytes
+  in c strings are mutable and it store end of each string, but to get string length is heavey operation. in java string are fixed-lengs
+  that's why java choose immutable strings, so each time you modify a string, new string is created
+* UTF-32 - fixed size 4 bytes for each character. this is the fastest one, cause compare to utf-8/16 you don't need to guess char size. 
+  you just break your string into chunks of 4 bytes each and read it one-by-one. yet it takes 4 times more space then utf-8
+so numbers 8/16/32 - denote min size of single char. this means all 3 can store 4byte char
+Don't confuse:
+* character set - list of characters where each char is mapped to numeric value called `code point`.
+* encoding - how we encode/map characters into memory (how numeric values `code points` are mapped into bytes)
+  so unicode - is character set only, ucs-2 was encoding desinged to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
+Java example how to convert string to bits
+```java
+public class App{
+    public static void main(String[] args) {
+        char ch = 'A';
+        byte b = (byte) ch;
+        System.out.println("char    => " + ch);
+        System.out.println("numeric => " + b);
+        System.out.println("binary  => " + Integer.toBinaryString(b));
+        System.out.println("stringToBinary  => " + stringToBinary("hello"));
+    }
+    private static String stringToBinary(String str){
+        byte[] arr = str.getBytes();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length; i++){
+            String binary = String.format("%8s", Integer.toBinaryString(arr[i])).replace(' ', '0');
+            sb.append(binary).append(" ");
+        }
+        return sb.toString();
+    }
+}
+```
+```
+char    => A
+numeric => 65
+binary  => 1000001
+stringToBinary  => 01101000 01100101 01101100 01101100 01101111
+```
+String in java using `UTF-16` encoding, yet when you work with `byte[]` you can choose encoding
+```java
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+
+public class App{
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=1000;i<1010;i++){
+            sb.append((char) i);
+        }
+        String str = sb.toString();
+        byte[] arr = str.getBytes();
+        System.out.println("str => " + str);
+        System.out.println("bytes => " + Arrays.toString(arr));
+        System.out.println("str => " + new String(arr, StandardCharsets.UTF_8));
+        System.out.println("str => " + new String(arr, StandardCharsets.US_ASCII));
+    }
+}
+```
+```
+str => ϨϩϪϫϬϭϮϯϰϱ
+bytes => [-49, -88, -49, -87, -49, -86, -49, -85, -49, -84, -49, -83, -49, -82, -49, -81, -49, -80, -49, -79]
+str => ϨϩϪϫϬϭϮϯϰϱ
+str => ��������������������
+```
+
+###### Floating Point Numbers
+there are several types of numbers;
+* natural numbers - 1,2,3...
+* integers - positive/negative natual numbers and zero -2,-1,0,1,2....
+* rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
+* irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
+* real numbers - include both ratioanl and irrational
+converting decimal fraction to binary;
+* to convert you start with fraction and multiply by 2 until fraction is 0 
+* only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
+* other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
+```
+convert 3/8 to binary
+0.375 * 2 = 0 + 0.75
+ 0.75 * 2 = 1 + 0.5
+  0.5 * 2 = 1 + 0
+so 0.375 =. 0.110
+
+convert 1/5 to binary
+0.2 * 2 = 0 + 0.4
+0.4 * 2 = 0 + 0.8
+0.8 * 2 = 1 + 0.6
+0.6 * 2 = 1 + 0.2 as you see again we got 0.2
+so 0.2 = 0.1100(1100)
+```
+so you can see that we have ratioanl number like;
+* 1/8=0.125 that can be represented as finite in both decimal and binary
+* 1/5=0.2 that can be represented as finite in decimal but not in binary
+* `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
+simple rule is denominator;
+* if it power 10, then it can be represented as finite decimal fraction
+* if it's power 2, then it can be represented as finite binary
+as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
+but once we do this, we encounter rounding problem;
+* stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
+* floating-point representation - most widely used representation of real numbers in pc. it has base=b, and precision=p.
+there are 3 way to store floating point;
+* float - 32bit
+* double - 64bit
+* long double - 80bit or 128bit
+let's see how fractional numbers stored in memory
+```
+convert separately integer and fractional part into binary
+7.25=111.01
+write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - mantis, e - power 10
+111.01=1.1101 * 10**2
+move our power number into binary 2=10
+7.25=1.1101 * 10**10
+write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
+since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129 - based on this rule you can see that for 32bit we can store max 10**128 - very large number
+0[10000001]1101[all zeros]
+we can convert it back
+-1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
+```
+so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others
+yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989... 
+and this is limitation of binary math, not of processors or programming language
+there are a few ways you can circumvent it;
+* don't use fractional numbers, use integers
+* use BigDecimal/BigInteger]
+
 ###### sun.misc.Unsafe
 `sun.misc` - special package for 2 low-level classes:
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
@@ -12342,7 +12816,6 @@ Thread 4 released
 ```
 As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock and execute, white others wait.
 
-
 ###### Linked lists
 Linked list disadvantages compared to array:
 * CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk
@@ -12420,431 +12893,11 @@ class SinglyLinkedList{
 [0,1,2]
 ```
 
-###### Garbage collection
-* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
-JVM:
-* heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
-    * YoungGen - young generation - stores newly allocated objects. Contain 3 parts:
-        * eden - all newly-created objects goes here
-        When eden is full `minor GC` runs, and all survivor objects moved into one survivor space
-        it also checks survivor space and moves all survived objects into one space, so one is always free
-        Objects that survived for several times moved into OldGen
-        * survivor memory space 1
-        * survivor memory space 2
-    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`
-    When OldGen is full, `major GC` is run to clean up - this take longer time
-* non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
-    * stores fields & methods names, code for methods, constants
-    * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
-* cache - stored compiled code
-* stack - unique per thread, stored local variables and code execution
-GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`.
-since simple checking of all objects one-by-one is not effective, several algos exist to run GC.
-Mark & Sweep model - default implementation in java GC:
-* mark - identify & mark all object references starting from GC root, the rest is garbage
-    * GC root - local/static variables, active threads
-    * before destroying object, GC called `finalize` method exactly once
-* sweep - search the heap and find all unoccupied space between objects for future object allocation
-all jvm gc can be divided into 4 types:
-* serial - use single thread
-* parallel (we can specify number of threads and max pause time) - use multiple threads 
-* low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
-    * initial marking of gc roots
-    * if app changed the state of the heap, while gc was running
-* G1 - use multiple threads scan heap by dividing in into many region and scan regions with most garbage first
-* Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
-    * partition the heap like G1, yet heap chunks can have different size
-    * stop the world - no more then 10ms
-    * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
-JVM support following gc types:
---these 2 operate on YoungGen
-* `-XX:+UseSerialGC` - standard serial mark & sweep algo
-* `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
-it will stop all threads and run gc
---these 2 operate on OldGen
-* `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
-* `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
-card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
-But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
-One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
---this one doesn't split heap into new/old-gen
-* `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
-    * string deduplication - g1  can find duplicate strings and point all of them into single object
-* `-XX:+UseZGC` - has several steps:
-    * short stop the world to mark all root references
-    * concurrently traverse object graph to mark all referenced object
-    * reference coloring
-    * relocation - move objects into space from which unreferenced objects were removed
-* `-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC` - no-op gc, so it doesn't perform any gc, just run until heap is full, then terminate java app
-This can be useful if you have low-latency app with huge memory or for performance testing
-* `-XX:+UseShenanodoahGC` - 
-SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
-so if we don't do this, while we run app may change reference and we can accidently remove used object
-example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
-so it's better to make snapshot of object graph at the beginning and use it for marking
-When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
-we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
-Don't confuse:
-* serial GC - use one thread to run gc
-* parallel GC - use multiple threads to run gc
-Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
-* concurrent gc - run at the same time as your app running, so don't cause `stop the world`
-So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
-Don't confuse:
-Pros to know how gc works - you can better handle:
-* memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
-* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
-this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
-* cpu usage - constant `stop the world` cause a lot of cpu consumption
-gc tuning:
-* adjust heap size
-* reduce rate of object creation - use pools instead
-* create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
-* use streams instead of copy into memory byte arrays
-Don't confuse (permGen was replaced by MetaSpace since java8):
-PermGen:
-* special heap space separated from the main memory heap (yet it was part of heap before java8)
-* contains data about bytecode, names, and JIT information
-* default - 82MB, but you can customize with `-XX:PermSize/-XX:MaxPermSize`
-* removed from JDK 8
-Metaspace:
-* replaced the older PermGen memory space starting form JDK 8
-* grows automatically by default
-* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
-Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
-cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
-Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
-this quite complex and done by copying collector and require gc to update address, 
-cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
-Conclusion: there is no universal gc, you should choose:
-* low pause, large overhead - shenandoah
-* average pause, average overhead - G1/CMS
-* long pause, low overhead - parallel GC
-Overhead - tricks that help to decrease pause, need to be taken care by code like SATB, read/write barriers and so on
-Memory leak - big issue that needs to be resolved before we start gc tuning:
-We can use following code to test memory leak & gc
-```java
-public class App{
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println("step 1");
-        int n = 100_000;
-        for(int i = 0; i < n; i++){
-            int[] arr = new int[n];
-        }
-        System.out.println("step 2");
-        Thread.sleep(5000);
-        System.out.println("step 3");
-    }
-}
-```
-* always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
-    * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
-        * most commands were removed in java11, if you try to run above command in java11 you will get 
-        ```
-        Unrecognized VM option 'PrintGCTimeStamps'
-        Error: Could not create the Java Virtual Machine.
-        Error: A fatal exception has occurred. Program will exit.
-        ```
-    * java11 `-Xlog:gc*=debug:file=logs.txt`
-* download & run gcviewer to check gc logs
-    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
-    * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
-    * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
-    * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
-* analyze java heap dump of app
-    * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
-    * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
-    * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
-* use memory analizer like:
-    * eclipse MAT - analyze heapdump from file - standalone product or plugin to eclipse IDE
-    * jVisualVM - analyze heapdump realtime on running app
-Try to avoid:
-* heavy code in finalize(), cause gc should wait until it executed
-* resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
 
-###### Java Memory Model
-memory basics;
-proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
-that's why although boolean can be stored in single bit true/false - it's size still a byte in modern pc
-so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
-memory address - fixed-length unsigned integer
-don't confuse;
-* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controlller)
-to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create logical memory space in which running program is read/write data. then memory management unit create
-mapping between logical and physical memory. so your program need not to care to work with main memory. 
-so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
-we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
-also virtual memory gurantee that one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
-if you work with c/c++ and use pointers then 2 cases are possible:
-* if you running your program in os like windows/linux - for sure you are using virtual memory address space
-* if you run your program without os or you are writing ok kernel - then you would access physical memory directly
-there are 2 types of memory address resolution;
-1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
-   most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
-   this is due to historical reason, since computer works mostly with text and single byte should store single character
-   since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
-   also for cpu it's simpler to work with byte then word - imagine you need to change symbol
-  * byte - you just read it and modify
-  * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
-2. word-addressable - minimal memory address size is processor word -- look cpu word size
-   cpu word can be of size 16/24/32/64 bit, has it's own memory address;
-   so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
-   for 64 - each 64 bits or 8 bytes would have separate address
-   there were a few decimal-addressable machines, but they not used nowadays
-don't confuse;
-* address size - side of memory unit, mostly 8 bits in byte-addressable system
-* word size - feature of compute architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
-so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
-that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
-yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
-before we start - speed is measured in how much time cpu needs to access memory location:
-* memory - main memory of PC called RAM
-* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. 
-  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiply of memory unit size
-  since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit
-  for pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bit
-  for pc that works with numbers word-addressable memory is better, cause integer is 4byte
-* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
-So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
-* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
-  with cpu cache we have following problem. how we can store memory location from which we read single byte.
-  if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address
-  this is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes
-  useful cache size - size of only data without memory unit address, most cpu caches shows only this number
-  sof ir cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
-  when cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache
-  cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory
-  using different algos like lru - least recently used
-JMM - describes how threads share memory. This make sense for multithreading programming.
-If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
-* how memory is shared between multiple threads
-    * each thread runs in separate cpu which has it's own cache - copy of memory
-    * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
-    * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
-* order of execution:
-    * compiler may re-order execution of code as part of optimization
-    thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
-* within thread `as-if-serial` semantics should be observed
-compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
-Take a look at following example:
-```java
-int x = 1;
-int y = 2;
-int z = x + y;
-```
-compiler may change order of line 1 & 2 as it want or run in parallel, but both must be executed before line 3.
-Don't confuse:
-* parallel code running in multiple threads - multi-threding programming
-* parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
-JVM:
-* each thread has it's own stack where local variables stored:
-    * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
-    * complex types - reference to object stored in stack, object itself stored in heap
-* heap - contains all objects created by java app
-On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
-Rules:
-* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others
-This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside.
-`volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
-* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other
-if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
-So to summarize you can say:
-* `volatile` - single write + multiple reads
-    * happens before - also it prevent code re-ordering
-    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
-    * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
-    * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
-    * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
-* `synchronized`  - multiple writes + multiple reads 
-JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
-so don't overuse native methods cause it again slow down performance
 
-###### Encoding
-Don't confuse(endianess - the way we store bytes in memory):
-* big endian - big end stored first, if you read left-to-right this make sense, it's also called forward
-* little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
-keep in mind that only bytes change order, bits inside single byte stay as they are
-in big-endian you have to move all digits right. But with little-endian you just add digits
-Don't confuse:
-* signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
-* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed. also `char=char=int`
-There are several character encoding:
-* ASCII (American Standard Code for Information Interchange)
-    * defines 128 characters (0-127)
-    * first 32 - non-printable control characters like return or new line
-    * nowadays it's a subset of many other encoding
-    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
-    so we ended up with many computers that treat upper 128 bits differently and depend on your pr upper bits could be resolved quite differently
-    and this led to ANSI
-* ANSI (American National Standards Institute)
-    * general agreement what to do with upper 128 bits
-    * first 128 bits would always be ASCII for all computers
-    * different systems called code pages (for Hebrew - was one code page, for greek another)
-    * 2 problems arise
-        * it was impossible to have both Hebrew and Greek on the same computer
-        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough
-        this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2 and you have to use
-        windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
-* Unicode
-    * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
-    * no limit on bits, min size - 2 bytes, even for english
-    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
-    so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
-    * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
-    * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
-    * standard still alive, in latest version-13 - there are 143k characters
-    * 2 problems arise
-      * for english which can use ascii - you still need 2 bytes for each character, so it's a lot of waste of memory
-      * since big/little-endian store bytes in different order, different cpu architecture display unicode differently - this problem was non-existent in ascii, cause it used single byte onl
-    * so to resolve these 2 issues - encodings where created to answer main question how to store code points in memory?
-        first encoding support high/low-endian was usc-2 - universal code character set - 
-        2 bytes called bom-byte (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
-      fe ff - big endian, ff fe - little endian
-        Yet developers complain about all these zeros so utf-8 was born
-* UTF-8 (Unicode Transformation Format 8-bit)
-    * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
-    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
-    * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
-    * physical memory - we have following rule:
-      1 byte  -> 0xxxxxxx (size 7 bit) - single byte - store it just as byte
-      2 bytes -> 110xxxxx 10xxxxx => so 110_10 (size 8-11 bit) - is a mark of 2 bytes, others used to store chars
-      3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 (size 12-16 bit) - mark of 3 bytes, others used to store chars
-      4 bytes (size 17-21 bit) - so up to 2**21=2m chars
-      ... and we can go all the way up to 6 bytes
-      6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx (size 30-31 bit)
-    * this also resolve endian problem;
-      big endian - read first few bits and check; 0 - 1 byte, 110-2bytes, 1110-3bytes, 11110-4bytes. so based on few bits we can easily determine if it 1/2/3/4 byte character
-      little endian - if we read 0 - 1byte, 10-can be 2/3/4 byte, so go further until you meat a mask like 110/1110/11110
-Don't confuse:
-* UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
-* UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII.
-  yet it faster then utf-8 which try to determine if it character size, so most programming language like java using utf-16, yet it take more memory to store it compare to utf-8
-  since string is byte array, and java use utf-16, each string symbol in java takes either 2 or 4 bytes
-  in c strings are mutable and it store end of each string, but to get string length is heavey operation. in java string are fixed-lengs
-  that's why java choose immutable strings, so each time you modify a string, new string is created
-* UTF-32 - fixed size 4 bytes for each character. this is the fastest one, cause compare to utf-8/16 you don't need to guess char size. 
-  you just break your string into chunks of 4 bytes each and read it one-by-one. yet it takes 4 times more space then utf-8
-so numbers 8/16/32 - denote min size of single char. this means all 3 can store 4byte char
-Don't confuse:
-* character set - list of characters where each char is mapped to numeric value called `code point`.
-* encoding - how we encode/map characters into memory (how numeric values `code points` are mapped into bytes)
-  so unicode - is character set only, ucs-2 was encoding desinged to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
-Java example how to convert string to bits
-```java
-public class App{
-    public static void main(String[] args) {
-        char ch = 'A';
-        byte b = (byte) ch;
-        System.out.println("char    => " + ch);
-        System.out.println("numeric => " + b);
-        System.out.println("binary  => " + Integer.toBinaryString(b));
-        System.out.println("stringToBinary  => " + stringToBinary("hello"));
-    }
-    private static String stringToBinary(String str){
-        byte[] arr = str.getBytes();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < arr.length; i++){
-            String binary = String.format("%8s", Integer.toBinaryString(arr[i])).replace(' ', '0');
-            sb.append(binary).append(" ");
-        }
-        return sb.toString();
-    }
-}
-```
-```
-char    => A
-numeric => 65
-binary  => 1000001
-stringToBinary  => 01101000 01100101 01101100 01101100 01101111
-```
-String in java using `UTF-16` encoding, yet when you work with `byte[]` you can choose encoding
-```java
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
-public class App{
-    public static void main(String[] args) {
-        StringBuilder sb = new StringBuilder();
-        for(int i=1000;i<1010;i++){
-            sb.append((char) i);
-        }
-        String str = sb.toString();
-        byte[] arr = str.getBytes();
-        System.out.println("str => " + str);
-        System.out.println("bytes => " + Arrays.toString(arr));
-        System.out.println("str => " + new String(arr, StandardCharsets.UTF_8));
-        System.out.println("str => " + new String(arr, StandardCharsets.US_ASCII));
-    }
-}
-```
-```
-str => ϨϩϪϫϬϭϮϯϰϱ
-bytes => [-49, -88, -49, -87, -49, -86, -49, -85, -49, -84, -49, -83, -49, -82, -49, -81, -49, -80, -49, -79]
-str => ϨϩϪϫϬϭϮϯϰϱ
-str => ��������������������
-```
 
-###### Floating Point Numbers
-there are several types of numbers;
-* natural numbers - 1,2,3...
-* integers - positive/negative natual numbers and zero -2,-1,0,1,2....
-* rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
-* irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
-* real numbers - include both ratioanl and irrational
-converting decimal fraction to binary;
-* to convert you start with fraction and multiply by 2 until fraction is 0 
-* only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
-* other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
-```
-convert 3/8 to binary
-0.375 * 2 = 0 + 0.75
- 0.75 * 2 = 1 + 0.5
-  0.5 * 2 = 1 + 0
-so 0.375 =. 0.110
 
-convert 1/5 to binary
-0.2 * 2 = 0 + 0.4
-0.4 * 2 = 0 + 0.8
-0.8 * 2 = 1 + 0.6
-0.6 * 2 = 1 + 0.2 as you see again we got 0.2
-so 0.2 = 0.1100(1100)
-```
-so you can see that we have ratioanl number like;
-* 1/8=0.125 that can be represented as finite in both decimal and binary
-* 1/5=0.2 that can be represented as finite in decimal but not in binary
-* `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
-simple rule is denominator;
-* if it power 10, then it can be represented as finite decimal fraction
-* if it's power 2, then it can be represented as finite binary
-as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
-but once we do this, we encounter rounding problem;
-* stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
-* floating-point representation - most widely used representation of real numbers in pc. it has base=b, and precision=p.
-there are 3 way to store floating point;
-* float - 32bit
-* double - 64bit
-* long double - 80bit or 128bit
-let's see how fractional numbers stored in memory
-```
-convert separately integer and fractional part into binary
-7.25=111.01
-write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - mantis, e - power 10
-111.01=1.1101 * 10**2
-move our power number into binary 2=10
-7.25=1.1101 * 10**10
-write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
-since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129 - based on this rule you can see that for 32bit we can store max 10**128 - very large number
-0[10000001]1101[all zeros]
-we can convert it back
--1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
-```
-so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others
-yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989... 
-and this is limitation of binary math, not of processors or programming language
-there are a few ways you can circumvent it;
-* don't use fractional numbers, use integers
-* use BigDecimal/BigInteger
 
 
 
