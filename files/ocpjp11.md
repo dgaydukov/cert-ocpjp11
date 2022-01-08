@@ -95,12 +95,13 @@
 12. [Class Diagram](#class-diagram)
 13. [Low latency](#low-latency)
 * 13.1 [CPU and Cache](#cpu-and-cache)
-* 13.2 [Java memory model](#java-memory-model)
-* 13.3 [Garbage collection](#garbage-collection)
-* 13.4 [Encoding](#encoding)
-* 13.5 [Floating Point Number](#floating-point-numbers)
-* 13.6 [sun.misc.Unsafe](#sunmiscunsafe)
-* 13.7 [Linked lists](#linked-lists)
+* 13.2 [Compiler Design](#compiler-design)
+* 13.3 [Java memory model](#java-memory-model)
+* 13.4 [Garbage collection](#garbage-collection)
+* 13.5 [Encoding](#encoding)
+* 13.6 [Floating Point Number](#floating-point-numbers)
+* 13.7 [sun.misc.Unsafe](#sunmiscunsafe)
+* 13.8 [Linked lists](#linked-lists)
 
 
 
@@ -12165,6 +12166,54 @@ Instruction may specify:
 * addressing mode - define how cpu can identify operand (calculate effective memory address of operand, cause instruction - just bits) in each instruction
 operand can be located in main memory or register. if operand in main memory, then instruction provides location of memory unit.
 so different methods to specify memory address knows as addressing mode.
+
+###### Compiler Design
+bytecode - kind of IR (intermediate representation) for JIT compilers.
+There are 2 main compilers:
+* gcc (GNU Compiler Collection) - compiler written mostly in C consists of 2 parts
+    * frontend - parsing part, read source code from programming language (gcc for C, g++ for C++, gccgo for Go, gcj for Java)
+    and transform it into AST (abstract syntax tree). Compiler optimization and static code analysis applied on this stage.
+    and finally turn the tree into IR called RTL (register transfer language) - intermediate language independent on the cpu architecture
+    * backend - generate machine code for specific cpu architecture (like RISC or VLIW) from RTL.
+    it also include link-time optimization.
+* llvm - originally Low Level Virtual Machine, yet this name was removed, cause now it's umbrella project for compilers to many languages
+    written in c++, set of tech which can be used to develop frontend for any programming language and backend for any cpu architecture.
+    it can accept RTL from gcc, do optimization and generate machine code
+    it can generate static machine code or use JIT (just-in-time) simalar to java
+Java compilers:
+* gcj (not maintained since 2017) can compile java source code to either machine code of JVM bytecode
+* llvm java frontend - would translate java source code into bytecode
+* javac (written in java) is part of JDK, and transform java source code into bytecode    
+Let's take simple java example and see it's bytecode and machine code
+```java
+public class App{
+    public static void main(String[] args) {
+        int a = 1;
+        int b = 2;
+        int c = a + b;
+        System.out.println(c);
+    }
+}
+```
+* Generate bytecode
+```
+cd src/main/java
+# generate bytecode - App.class file
+javac com/java/test/App.java
+# view bytecode
+javap -c com/java/test/App.class
+# run java and print machine code (full list of commands to investigate code https://wiki.openjdk.java.net/display/HotSpot/PrintAssembly)
+java -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly com.java.test.App
+```
+`javap` - java disassemble tool, where p stands for print, so javap => `java print`
+You can view bytecode with intellij plugin `jclasslib bytecode viewer` without using `javac` compiler. just open file and go to `view => Show Bytecode with Jclasslib`
+Don't confuse 2 types of compilers:
+* JIT (just-in-time) - compile only those part of code that are executing, machine files stored in memory
+if some code is never executed during jvm life, then it would never be compiled into machine code
+also in such approach compile can see how performance is going and optimize some part on runtime
+since java using JIT, there is no machine code files, it compiles it during execution
+moreover JIT interpret code first time it needs it, and only if this code is revoked several time, compile it into machine code. `-XX:CompileThreshold= (default is 10000) `
+* AOT (ahead-of-time) - precompile everything into machine code. machine code files stored in the disk
 
 ###### Java Memory Model
 memory basics;
