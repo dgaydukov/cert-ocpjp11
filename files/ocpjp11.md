@@ -12214,6 +12214,22 @@ also in such approach compile can see how performance is going and optimize some
 since java using JIT, there is no machine code files, it compiles it during execution
 moreover JIT interpret code first time it needs it, and only if this code is revoked several time, compile it into machine code. `-XX:CompileThreshold= (default is 10000) `
 * AOT (ahead-of-time) - precompile everything into machine code. machine code files stored in the disk
+hotspot - compiler of jvm;
+* On Stack Replacement (OSR) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
+  while it was running. if function use loop - such optimization may be useful. when it occur, jvm is paused and stack frame is replaced
+  byt compiled frame. by default each function is interpreted until certain point when it became hot and then it compiled to machine code.
+* biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast
+ if different thread try to acquire lock, then bias should be removed
+* deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
+```java
+public int pirnt int i
+[
+        if i == 30-000][
+                print i]
+return /2;
+```
+compiler may think that this `if` condition may never happen and compile without it, but at some point we may come to this, so hotspot would deoptimize
+basically remove compiled code and start interpreting code. you can see it by enable `-XX:+TraceDeoptimization`
 
 ###### Java Memory Model
 memory basics;
