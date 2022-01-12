@@ -12202,8 +12202,11 @@ cd src/main/java
 javac com/java/test/App.java
 # view bytecode
 javap -c com/java/test/App.class
+# download java disassembler
+sudo apt-get install libhsdis0-fcml -y
 # run java and print machine code (full list of commands to investigate code https://wiki.openjdk.java.net/display/HotSpot/PrintAssembly)
-java -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly com.java.test.App
+# by default AT&T assembler syntax is used, we add options to print intel assembler
+java -server -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly -XX:PrintAssemblyOptions=intel com.java.test.App
 ```
 `javap` - java disassemble tool, where p stands for print, so javap => `java print`
 You can view bytecode with intellij plugin `jclasslib bytecode viewer` without using `javac` compiler. just open file and go to `view => Show Bytecode with Jclasslib`
@@ -12222,14 +12225,29 @@ hotspot - compiler of jvm;
  if different thread try to acquire lock, then bias should be removed
 * deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
 ```java
-public int pirnt int i
-[
-        if i == 30-000][
-                print i]
-return /2;
+public int getValue(int i){
+    if (i==50_000){
+        System.out.println(i);
+    }
+    return i/2;
+}
 ```
 compiler may think that this `if` condition may never happen and compile without it, but at some point we may come to this, so hotspot would deoptimize
 basically remove compiled code and start interpreting code. you can see it by enable `-XX:+TraceDeoptimization`
+x86 assemble - family of backward-compatible languages based on intel8088 cpu from 1972, based on short commands for register names.
+Many compilers produce assemble as intermediate language before turning it into machine code
+There are 2 main syntax types:
+* AT&T - dominant in unix, since it was created by AT&T Bells lab. used by GAS, yet this assembler supports also intel syntax.
+* intel - common in DOS/Windows used by NASM/MASM/FASM/TASM
+There are some syntax diff
+```
+# set 5 to eax register
+mov eax, 5      # intel
+movl $5, %eax   # at&t
+```
+There are 2 modes how you can run java (hotspot optimize execution based ont the mode):
+* `java -client` - less time to analyze/compile code and less optimization
+* `java -server` - hotspot try to optimize code for OS peak loads
 
 ###### Java Memory Model
 memory basics;
