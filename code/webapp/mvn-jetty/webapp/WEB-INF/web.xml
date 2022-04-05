@@ -2,7 +2,7 @@
 <web-app>
     <servlet>
         <servlet-name>AppServlet</servlet-name>
-        <servlet-class>my.App</servlet-class>
+        <servlet-class>com.java.test.App</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>AppServlet</servlet-name>

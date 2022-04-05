@@ -12036,7 +12036,12 @@ public class App extends Application {
 ```
 
 ###### Java Servlet WebApp
-* We have very basic app that include [controller](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/App.java) and [web.xml](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/web.xml). We also using simple [script](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/script.sh) to build it.
+You can run servlet application in multiple ways:
+Run app using mvn jetty plugin:
+* copy to `/src/main` file with folders `/webapp/WEB-INF/web.xml`
+* run `mvn jetty install && mvn jetty:run`
+Run app using tomcat server by copying `.war` file:
+* We have very basic app that include [controller](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/tomcat/App.java) and [web.xml](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/tomcat/web.xml). We also using simple [script](https://github.com/dgaydukov/cert-ocpjp11/blob/master/code/webapp/tomcat/script.sh) to build it.
 * You need first install [tomcat](https://tomcat.apache.org/download-80.cgi). Download latest version and put it under `~Documents/tomcat`
 * Run tomcat `cd ~ && ./Documents/tomcat/bin/catalina.sh run`
 * Then you have to build basic servlet application. Go to `/code/webapp` and just run `./script.sh`. This will create `build/webapp.war` file

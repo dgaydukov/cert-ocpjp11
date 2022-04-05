@@ -21,6 +21,9 @@ public class App extends HttpServlet {
         for (int i = 0; i < 10_000; i++){
             sb.append("x");
         }
+        // this will throw 500, cause default header size is 8KB
+        // to increase header size you should configure jetty server with configuration for max header size
+        // org.eclipse.jetty.server.HttpConfiguration.responseHeaderSize
         res.setHeader("veryLongHeader", sb.toString());
         res.getOutputStream().write("hello".getBytes());
     }
