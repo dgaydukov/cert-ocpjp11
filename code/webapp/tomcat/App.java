@@ -11,7 +11,6 @@ public class App extends HttpServlet {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
         res.setContentType("text/html");
-        PrintWriter writer = res.getWriter();
-        writer.println("<h1>hello world</h1>");
+        res.getWriter().write("<h1>hello world</h1>");
     }
 }
