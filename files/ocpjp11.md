@@ -13019,3 +13019,4 @@ https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7
 * chronicle queue/map (how it works inside)
 * run time DI (spring) vs compile time DI (dagger)
 * each order execution should generate 2 trades (for order owner & for his counterparty)
+* take a look at https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol and aws amplify js which already integrated it
