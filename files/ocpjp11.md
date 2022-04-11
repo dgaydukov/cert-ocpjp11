@@ -13020,3 +13020,8 @@ https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7
 * run time DI (spring) vs compile time DI (dagger)
 * each order execution should generate 2 trades (for order owner & for his counterparty)
 * take a look at https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol and aws amplify js which already integrated it
+* https://jpbempel.github.io/
+* https://aeroncookbook.com/
+* https://en.wikipedia.org/wiki/IEEE_754
+* https://www.filfre.net/2017/06/tales-of-the-mirror-world-part-1-calculators-and-cybernetics/
+* https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
