@@ -7272,6 +7272,111 @@ pool-1-thread-3: done
 pool-1-thread-1: done
 ```
 
+You can also implement your own synchronizer logic usein `AtomicInteger` and round-robin design
+```java
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class App{
+    public final static int NUM_THREADS = 4;
+    private final static String THREAD_NAME_PREFIX = "Worker__";
+    private final static AtomicInteger lock = new AtomicInteger();
+    public static void main(String[] args) {
+        Worker[] workers = new Worker[NUM_THREADS];
+        for (int i = 0; i < NUM_THREADS; i++){
+            workers[i] = new Worker(lock, i);
+            new Thread(workers[i], THREAD_NAME_PREFIX + i)
+                .start();
+        }
+
+        int roundRobin = 0;
+        for(int i = 0; i < 12;i ++){
+            workers[roundRobin++].add("str-"+i);
+            if(roundRobin == NUM_THREADS){
+                roundRobin = 0;
+            }
+        }
+    }
+    public static void block(){
+        final String threadName = Thread.currentThread().getName();
+        int lockId = Integer.parseInt(threadName.substring(threadName.indexOf(THREAD_NAME_PREFIX)+THREAD_NAME_PREFIX.length()));
+        while (lockId != lock.get()){
+            //busy wait
+        }
+    }
+
+    public static void sleep(int ms) {
+        try{
+            Thread.sleep(ms);
+        } catch (InterruptedException ex){
+            System.out.println("OOPS => " + ex);
+        }
+    }
+}
+
+class Worker implements Runnable{
+    private AtomicInteger lock;
+    private final int lockId;
+    private final int nextId;
+    private Queue<String> queue = new LinkedList<>();
+
+    public Worker(AtomicInteger lock, int lockId){
+        this.lock = lock;
+        this.lockId = lockId;
+        nextId = lockId + 1 >= App.NUM_THREADS ? 0 : lockId + 1;
+    }
+
+    public boolean add (String str){
+        return queue.add(str);
+    }
+
+    public void run(){
+        while (true) {
+            String str = queue.poll();
+            if (str != null) {
+                System.out.println(str + " => thread:" + Thread.currentThread().getId());
+                App.sleep(1000);
+                // wait to run sequentially
+                App.block();
+                // sequential code here
+                System.out.println("sequential => " + str + " => thread:" + Thread.currentThread().getId());
+                boolean r = lock.compareAndSet(lockId, nextId);
+                if (!r){
+                    System.out.println("__FAILED__");
+                }
+            }
+        }
+    }
+}
+```
+```
+str-0 => thread:13
+str-1 => thread:14
+str-2 => thread:15
+str-3 => thread:16
+sequential => str-0 => thread:13
+str-4 => thread:13
+sequential => str-1 => thread:14
+str-5 => thread:14
+sequential => str-2 => thread:15
+str-6 => thread:15
+sequential => str-3 => thread:16
+str-7 => thread:16
+sequential => str-4 => thread:13
+str-8 => thread:13
+sequential => str-5 => thread:14
+str-9 => thread:14
+sequential => str-6 => thread:15
+str-10 => thread:15
+sequential => str-7 => thread:16
+str-11 => thread:16
+sequential => str-8 => thread:13
+sequential => str-9 => thread:14
+sequential => str-10 => thread:15
+sequential => str-11 => thread:16
+```
+
 ###### Concurrent collections
 `ConcurrentMap` and `ConcurrentSkipListMap` and `Hashtable` are not allowing null keys or values. The reason is that in simple `HashMap` you can have null key/value, and if you run `map.get` and get null you can easily check it with `containsKey`. But in concurrent- since value may be deleted this won't work.
 So any attempt to add null key/value with throw NPE.
