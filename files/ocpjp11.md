@@ -10509,6 +10509,78 @@ public class App{
 directBuffer => java.nio.DirectByteBuffer
 heapBuffer => java.nio.HeapByteBuffer
 ```
+Memory mapped file - concept where you map HDD file to virtual memory, and then can treat this file as memory region, read/write, but OS take care
+to do read/write to actual disk file on the background. For end user - you just work with region of virtual memory.
+We can use MappedByteBuffer/FileChannel to with with memory-mapped file.
+there is some difference between old java io and new one:
+Java I/O:
+* java perform IO by requesting OS to drain from buffer (write operation) or fill a buffer (read operation)
+* OS using disk controller to perform DMA call to extract data from HDD to system kernel memory
+DMA (Direct memory access) - allows for modern computers to access main memory without CPU. CPU first initiate DMA, then do it's own stuff,
+once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and process data
+* once DMA done, OS copy data from temporary buffer in OS kernel space, into java process space
+* Kernel tries to cache data, so if data already there, it just copied to java buffer, otherwise it's fetched from disk
+* mapping kernel space & user space to same physical address, you don't need to do extra work by copy buffer from kernel to user memory space
+* all disk IO done on page level, so kernel align virtual memory pages into disk pages
+Java new I/O:
+* Memory-mapped I/O eastablish direct mepping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
+* 
+read file into memory
+```java
+import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.EnumSet;
+
+public class App{
+    public static void main(String[] args) {
+        try (FileChannel fileChannel = (FileChannel) Files.newByteChannel(
+                Paths.get("src/main/resources/file.txt"),
+                EnumSet.of(StandardOpenOption.READ))
+        ) {
+            MappedByteBuffer readByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
+            if (readByteBuffer != null){
+                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(readByteBuffer);
+                System.out.println("charBuffer => " + charBuffer);
+            }
+        } catch (IOException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+}
+```
+```
+charBuffer => hello
+```
+Below is example to write 1GB into file
+So file is bigger then memory, yet it appear to be written all at once, but under-the-hood OS is swapping it into disk
+```java
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+
+public class App{
+    private static long FILE_SIZE = 1024 * 1024 * 1024;
+    public static void main(String[] args) throws Exception{
+        try(RandomAccessFile file = new RandomAccessFile("src/main/resources/file.txt", "rw")){
+            MappedByteBuffer out = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, FILE_SIZE);
+            for (long i = 0; i < FILE_SIZE; i++){
+                out.put((byte) 'x');
+            }
+            System.out.println("Finished writing");
+        }
+    }
+}
+```
+```
+diman@pc$ ls -lh src/main/resources
+-rw-rw-r-- 1 diman diman 1.0G May  7 17:59 file.txt
+```
 
 #### Miscellaneous
 ###### Modules
@@ -12362,7 +12434,7 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 ###### Java Memory Model
 memory basics;
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
-that's why although boolean can be stored in single bit true/false - it's size still a byte in modern pc
+that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc
 so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
 memory address - fixed-length unsigned integer
 don't confuse;
@@ -12372,7 +12444,15 @@ to use memory bus to get content of single memory unit (8 bits) to access it's c
 mapping between logical and physical memory. so your program need not to care to work with main memory. 
 so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
-also virtual memory gurantee that one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
+VM (virtual memory) guarantee:
+* one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
+* more then one virtual address can refer to same physical address
+* virtual memory space can be larger then physical one, by using VM paging - also called swapping
+MMU (memory management unit) 
+* called also PMMU (paged memory management unit) - cause works based on pages
+* perform transition of virtual memory addresses into physical addresses
+* divides virtual memory into pages each is power 2 (usually in KB)
+* paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
 if you work with c/c++ and use pointers then 2 cases are possible:
 * if you running your program in os like windows/linux - for sure you are using virtual memory address space
 * if you run your program without os or you are writing ok kernel - then you would access physical memory directly
@@ -13130,3 +13210,5 @@ https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7
 * https://en.wikipedia.org/wiki/IEEE_754
 * https://www.filfre.net/2017/06/tales-of-the-mirror-world-part-1-calculators-and-cybernetics/
 * https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
+* surefire vs failsafe mvn plugin
+* kubernetes, service mesh, istio, helm, kubectl
