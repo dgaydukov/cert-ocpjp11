@@ -10483,6 +10483,7 @@ public class App {
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
 ###### DirectByteBuffer vs HeapByteBuffer
+Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
 ByteBuffer provides view into some (undefined) underlying storage of bytes
 There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
 * `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`)- backed by array of bytes (not subject to the GC).
@@ -10523,7 +10524,7 @@ once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and proce
 * mapping kernel space & user space to same physical address, you don't need to do extra work by copy buffer from kernel to user memory space
 * all disk IO done on page level, so kernel align virtual memory pages into disk pages
 Java new I/O:
-* Memory-mapped I/O eastablish direct mepping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
+* Memory-mapped I/O establish direct mmapping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
 * 
 read file into memory
 ```java
