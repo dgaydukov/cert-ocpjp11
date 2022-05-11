@@ -10491,6 +10491,9 @@ constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio
 * `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - backed by direct (off-heap, native) byte buffers
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
 Don't confuse:
+* multithreading lock - lock based on thread
+* file lock - lock based on process (so multiple thread can access same file, no locking here)
+Don't confuse:
 * array of bytes `byte[] arr = new byte[100];` - just simple array of bytes
 * byte buffer `ByteBuffer buf = ByteBuffer.allocate(10);` - have more methods to manipulate with bytes. You can also wrap array of bytes: `ByteBuffer buf = ByteBuffer.wrap(new byte[100]);`
 Below is example how to create 2 types of buffer:
@@ -10525,7 +10528,6 @@ once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and proce
 * all disk IO done on page level, so kernel align virtual memory pages into disk pages
 Java new I/O:
 * Memory-mapped I/O establish direct mmapping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
-* 
 read file into memory
 ```java
 import java.io.IOException;
@@ -12433,6 +12435,10 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 * `java -server` - hotspot try to optimize code for OS peak loads
 
 ###### Java Memory Model
+CPU provides 2 types of memory model:
+* strong memory model - all processors see exactly the same value for all memory location
+* weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values
+Recent trend in cpu design favor weak model, cause it allows greater scallability between multiple cores
 memory basics;
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
 that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc
