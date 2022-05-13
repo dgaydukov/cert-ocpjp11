@@ -323,6 +323,25 @@ final Short s1 = 1;
 short s2 = -s1; // won't compile int 
 ```
 The key here is that final - is the reference to memory, not the value itself, so rules with constants doesn’t apply here.
+When you create long with multiplication, it would be treated as int.
+Intellij also show you warning `Numeric overflow Exception`. Although `long` can hold more then 10B, `int` is only 2B.
+By default all operations are converted to int, then cast to long, so in below example 10B would be converted to int (which will cause overflow)
+then overflown value would be converted to long.
+To Avoid this, add `L` in the end
+```java
+public class App{
+    public static void main(String[] args) throws Exception{
+        long l1 = 10 * 1024 * 1024 * 1024;
+        System.out.println("l1 => " + l1);
+        long l2 = 10 * 1024 * 1024 * 1024L;
+        System.out.println("l2 => " + l2);
+    }
+}
+```
+```
+l1 => -2147483648
+l2 => 10737418240
+```
 
 ###### Short circuit boolean
 Short-circuit logical operators. Operators &&/& and ||/| result the same, when applied to boolean. The difference is that double - is called short-circuit. For example since (true||false) will always return true, if first is true, it won’t even execute second operand. 
@@ -10529,60 +10548,61 @@ once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and proce
 Java new I/O:
 * Memory-mapped I/O establish direct mmapping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
 read file into memory
-```java
-import java.io.IOException;
-import java.nio.CharBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.EnumSet;
-
-public class App{
-    public static void main(String[] args) {
-        try (FileChannel fileChannel = (FileChannel) Files.newByteChannel(
-                Paths.get("src/main/resources/file.txt"),
-                EnumSet.of(StandardOpenOption.READ))
-        ) {
-            MappedByteBuffer readByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
-            if (readByteBuffer != null){
-                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(readByteBuffer);
-                System.out.println("charBuffer => " + charBuffer);
-            }
-        } catch (IOException ex) {
-            System.out.println("ERR => " + ex);
-        }
-    }
-}
-```
-```
-charBuffer => hello
-```
-Below is example to write 1GB into file
-So file is bigger then memory, yet it appear to be written all at once, but under-the-hood OS is swapping it into disk
+* you can read/write into this buffer, don't forget to use flip, cause get/put move buffer one position further, so if you don't call flip
+after you read from file, nothing would be written, and `BufferOverflowException` would be thrown on first attempt to write
+Below code read byte array from file, then fill file with `x` characters. so assume originally `hello` was written in file we got:
 ```java
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class App{
-    private static long FILE_SIZE = 1024 * 1024 * 1024;
     public static void main(String[] args) throws Exception{
+        final int FILE_SIZE = 5;
         try(RandomAccessFile file = new RandomAccessFile("src/main/resources/file.txt", "rw")){
             MappedByteBuffer out = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, FILE_SIZE);
-            for (long i = 0; i < FILE_SIZE; i++){
+            byte[] arr = new byte[FILE_SIZE];
+            for (int i = 0; i < FILE_SIZE; i++){
+                arr[i] = out.get();
+            }
+            out.flip();
+            for (int i = 0; i < FILE_SIZE; i++){
                 out.put((byte) 'x');
             }
-            System.out.println("Finished writing");
+            System.out.println("content => " + new String(arr));
         }
     }
 }
 ```
 ```
-diman@pc$ ls -lh src/main/resources
--rw-rw-r-- 1 diman diman 1.0G May  7 17:59 file.txt
+content => hello
+```
+Although you can create large map, you are limited by int number. Let's try to open 10GB file.
+`map` function take long, but inside implementation use int, and check if value not overflow max int value
+This is due to historical reasons, cause previously files were small, and 2GB was max file size.
+```java
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+
+public class App{
+    public static void main(String[] args) throws Exception{
+        final long FILE_SIZE = 10 * 1024 * 1024 * 1024L;
+        try(RandomAccessFile file = new RandomAccessFile("src/main/resources/file.txt", "rw")){
+            MappedByteBuffer out = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, FILE_SIZE);
+            for (int j = 0;j<1;j++){
+                for (long i = 0; i < FILE_SIZE; i++){
+                    out.put((byte) 'x');
+                }
+            }
+        }
+    }
+}
+```
+```
+Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Integer.MAX_VALUE
+	at java.base/sun.nio.ch.FileChannelImpl.map(FileChannelImpl.java:941)
+	at com.java.test.App.main(App.java:11)
 ```
 
 #### Miscellaneous
