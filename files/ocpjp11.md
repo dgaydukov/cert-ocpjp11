@@ -13206,6 +13206,10 @@ https://www.baeldung.com/java-memory-layout
 https://www.youtube.com/watch?v=BD9cRbxWQx8
 https://www.youtube.com/watch?v=Q-7y1u9kZV0
 https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7H_E
+https://www.reddit.com/r/terraluna/comments/us8n82/the_only_youtuber_who_corectly_predicted_lunas/
+https://www.blockchaincenter.net/en/bitcoin-rainbow-chart/
+https://docs.azul.com/prime/Memory-Overview
+http://jpkoning.blogspot.com/
 * https://www.baeldung.com/java-profilers
 * take a look into trove library
 * take a look at low-level fix client where you need to build fix string manually
