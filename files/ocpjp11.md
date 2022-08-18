@@ -12294,6 +12294,17 @@ class B extends A{
 * ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
 
 #### Low latency
+change java version:
+* first install several java versions, then you can switch between them
+* you can swtich both `java` and `javac` independently, for example you can compile under java8, and run under java11
+```java
+# update java version
+sudo update-alternatives --config java
+# update java compiler version
+sudo update-alternatives --config javac
+# switch java version in intelliJ
+File => Project Structure => Project SDK (chose either 8 or 11)
+```
 why ms windows shows disk size less then they are 100gb = 93gb
 answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in si - International System of Units
 yet we have jedec where each increasing on 1024, take a look at this table
@@ -12328,15 +12339,15 @@ So when cpu needs data, it will read from memory into cache, and at some point f
   using different algos like lru - least recently used
 There are 2 types of architecture of cpu:
 * instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
-    instruction sets can be of different architectual complexity:
+    instruction sets can be of different architectural complexity:
     * CISC (complex instruction set computer) - has many special instructions that rarely used in practice
-    complex instructions are common here like:
+    complex instructions are like:
         * transfer multiple register to/from memory
         * complex integer & floating point operations
         * atomic test-and-set
         * SIMD (single instruction multiple data) instructions
     * RISC (reduced instruction set computer) - only frequently used instructions implemented, less common instructions implemented as subroutines
-    * VLIW (very long instruction word) - use ILP (instruction-level parallelism) with less hardware than cisc/risc compiler responsible for instruction issue and scheduling
+    * VLIW (very long instruction word) - use ILP (instruction-level parallelism) with less hardware than cisc/risc, compiler responsible for instruction issue and scheduling
         * EPIC (explicitly parallel instruction computing)
         good satire why itanium failed
         [How the Itanium Killed the Computer Industry](https://www.pcmag.com/archive/how-the-itanium-killed-the-computer-industry-236394)
@@ -12384,7 +12395,7 @@ There are 2 main compilers:
 * llvm - originally Low Level Virtual Machine, yet this name was removed, cause now it's umbrella project for compilers to many languages
     written in c++, set of tech which can be used to develop frontend for any programming language and backend for any cpu architecture.
     it can accept RTL from gcc, do optimization and generate machine code
-    it can generate static machine code or use JIT (just-in-time) simalar to java
+    it can generate static machine code or use JIT (just-in-time) similar to java
 Java compilers:
 * gcj (not maintained since 2017) can compile java source code to either machine code of JVM bytecode
 * llvm java frontend - would translate java source code into bytecode
@@ -12413,7 +12424,7 @@ sudo apt-get install libhsdis0-fcml -y
 # by default AT&T assembler syntax is used, we add options to print intel assembler
 java -server -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly -XX:PrintAssemblyOptions=intel com.java.test.App
 ```
-`javap` - java disassemble tool, where p stands for print, so javap => `java print`
+`javap` - java disassemble tool, where p stands for print, so `javap => java print`
 You can view bytecode with intellij plugin `jclasslib bytecode viewer` without using `javac` compiler. just open file and go to `view => Show Bytecode with Jclasslib`
 Don't confuse 2 types of compilers:
 * JIT (just-in-time) - compile only those part of code that are executing, machine files stored in memory
@@ -12422,10 +12433,10 @@ also in such approach compile can see how performance is going and optimize some
 since java using JIT, there is no machine code files, it compiles it during execution
 moreover JIT interpret code first time it needs it, and only if this code is revoked several time, compile it into machine code. `-XX:CompileThreshold= (default is 10000) `
 * AOT (ahead-of-time) - precompile everything into machine code. machine code files stored in the disk
-hotspot - compiler of jvm;
-* On Stack Replacement (OSR) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
+hotspot - compiler of jvm:
+* OSR (On Stack Replacement) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
   while it was running. if function use loop - such optimization may be useful. when it occur, jvm is paused and stack frame is replaced
-  byt compiled frame. by default each function is interpreted until certain point when it became hot and then it compiled to machine code.
+  by compiled frame. By default each function is interpreted until certain point when it became hot and then it compiled to machine code.
 * biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast
  if different thread try to acquire lock, then bias should be removed
 * deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
@@ -12458,47 +12469,47 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values
-Recent trend in cpu design favor weak model, cause it allows greater scallability between multiple cores
-memory basics;
+Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores
+Memory basics:
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
 that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc
 so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
 memory address - fixed-length unsigned integer
-don't confuse;
-* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controlller)
+Don't confuse:
+* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller)
 to use memory bus to get content of single memory unit (8 bits) to access it's content
 * logical address - software create logical memory space in which running program is read/write data. then memory management unit create
 mapping between logical and physical memory. so your program need not to care to work with main memory. 
-so your program works with virtual memory just like with main memory, and in background os provide mapping between logical and physical memory
+Your program works with virtual memory just like with main memory, and in background os provides mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
 VM (virtual memory) guarantee:
 * one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
 * more then one virtual address can refer to same physical address
 * virtual memory space can be larger then physical one, by using VM paging - also called swapping
-MMU (memory management unit) 
+MMU (memory management unit):
 * called also PMMU (paged memory management unit) - cause works based on pages
 * perform transition of virtual memory addresses into physical addresses
 * divides virtual memory into pages each is power 2 (usually in KB)
 * paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
 if you work with c/c++ and use pointers then 2 cases are possible:
 * if you running your program in os like windows/linux - for sure you are using virtual memory address space
-* if you run your program without os or you are writing ok kernel - then you would access physical memory directly
-there are 2 types of memory address resolution;
+* if you run your program without os or you are writing os kernel - then you would access physical memory directly
+There are 2 types of memory address resolution:
 1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
    most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
    this is due to historical reason, since computer works mostly with text and single byte should store single character
    since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
-   also for cpu it's simpler to work with byte then word - imagine you need to change symbol
+   also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
   * byte - you just read it and modify
   * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
-2. word-addressable - minimal memory address size is processor word -- look cpu word size
-   cpu word can be of size 16/24/32/64 bit, has it's own memory address;
+2. word-addressable - minimal memory address size is processor word
+   cpu word can be of size 16/24/32/64 bit, has it's own memory address
    so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
    for 64 - each 64 bits or 8 bytes would have separate address
    there were a few decimal-addressable machines, but they not used nowadays
-don't confuse;
+Don't confuse:
 * address size - side of memory unit, mostly 8 bits in byte-addressable system
-* word size - feature of compute architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
+* word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
 so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
 that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
 yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
@@ -12538,7 +12549,7 @@ if 2 threads increment value by 1, then value=3, but since each will flush it's 
 So to summarize you can say:
 * `volatile` - single write + multiple reads
     * happens before - also it prevent code re-ordering
-    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordred to be after volatile) and would be flushed to main memory too
+    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordered to be after volatile) and would be flushed to main memory too
     * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
     * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
     * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
@@ -13209,7 +13220,6 @@ https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7
 https://www.reddit.com/r/terraluna/comments/us8n82/the_only_youtuber_who_corectly_predicted_lunas/
 https://www.blockchaincenter.net/en/bitcoin-rainbow-chart/
 https://docs.azul.com/prime/Memory-Overview
-http://jpkoning.blogspot.com/
 * https://www.baeldung.com/java-profilers
 * take a look into trove library
 * take a look at low-level fix client where you need to build fix string manually
@@ -13243,3 +13253,4 @@ http://jpkoning.blogspot.com/
 * https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
 * surefire vs failsafe mvn plugin
 * kubernetes, service mesh, istio, helm, kubectl
+* http://jpkoning.blogspot.com
