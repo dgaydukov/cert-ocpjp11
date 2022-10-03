@@ -5107,9 +5107,9 @@ public class App {
 ```
 
 RingBuffer - is special type of queue with limited size, when you add element and it’s full it add it and remove first.
-```java
+```
 public class App {
-    public static void main(String[] args) throws Exception {
+    pjavaublic static void main(String[] args) throws Exception {
         RingBuffer<String> ringBuffer = new MyRingBuffer<>(4);
         ringBuffer.add("A");
         ringBuffer.add("B");
@@ -5150,7 +5150,137 @@ class MyRingBuffer<T> implements RingBuffer<T> {
 [B, C, D, E]
 [C, D, E, F]
 ```
+Below is fixed-size queue custom implementaion
+```java
+public class App{
+    public static void main(String[] args) {
+        SimpleQueue<Integer> queue = new FixedSizeArraySimpleQueue<>(3);
+        System.out.println(queue.offer(1));
+        System.out.println(queue.offer(2));
+        System.out.println(queue.offer(3));
+        System.out.println(queue.offer(4));
+        queue.poll();
+        queue.poll();
+        System.out.println(queue.offer(5));
+        System.out.println(queue.offer(6));
+        System.out.println(queue.offer(7));
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
 
+    }
+}
+
+interface SimpleQueue<T>{
+    boolean offer(T t);
+    T poll();
+}
+class FixedSizeArraySimpleQueue<T> implements SimpleQueue<T> {
+    private T[] buffer;
+    private int head = 0;
+    private int tail = 0;
+
+    public FixedSizeArraySimpleQueue(int capacity) {
+        buffer = (T[]) new Object[capacity];
+    }
+
+    @Override
+    public boolean offer(T t) {
+        if (t == null || tail - buffer.length + 1 > head) {
+            return false;
+        }
+        buffer[tail % buffer.length] = t;
+        tail++;
+        return true;
+    }
+
+    @Override
+    public T poll() {
+        T obj = buffer[head];
+        if (obj != null) {
+            head++;
+            if (head == buffer.length) {
+                head = 0;
+            }
+        }
+        return obj;
+    }
+}
+```
+```
+true
+true
+true
+false
+true
+true
+false
+3
+5
+```
+This is unlimited queue, with array increasing in size, once we reach full capacity
+```java
+public class App{
+    public static void main(String[] args) {
+        SimpleQueue<Integer> queue = new ArraySimpleQueue<>(3);
+        queue.offer(1);
+        queue.offer(2);
+        queue.offer(3);
+        queue.poll();
+        queue.poll();
+        queue.offer(4);
+        queue.offer(5);
+        System.out.println(queue.poll());
+
+    }
+}
+
+interface SimpleQueue<T>{
+    boolean offer(T t);
+    T poll();
+}
+class ArraySimpleQueue<T> implements SimpleQueue<T>{
+    private T[] buffer;
+    private final int capacity;
+    private int head = 0;
+    private int tail = 0;
+
+    public ArraySimpleQueue(int capacity){
+        this.capacity = capacity;
+        buffer = (T[]) new Object[capacity];
+    }
+
+    /**
+     * if array is full, create new array, change tail/head values
+     */
+    @Override
+    public boolean offer(T t) {
+        if (t == null){
+            return false;
+        }
+        buffer[tail] = t;
+        tail++;
+        if (tail == buffer.length){
+            T[] newBuffer = (T[]) new Object[buffer.length + capacity];
+            for(int i = 0, j = head; j < buffer.length; i++, j++){
+                newBuffer[i] = buffer[j];
+            }
+            buffer = newBuffer;
+            tail -= head;
+            head = 0;
+        }
+        return true;
+    }
+
+    @Override
+    public T poll() {
+        T obj = buffer[head];
+        if (obj != null){
+            head++;
+        }
+        return obj;
+    }
+}
+```
 
 #### Functional Programming and Stream API
 ###### Functional interfaces
@@ -10502,6 +10632,7 @@ public class App {
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
 ###### DirectByteBuffer vs HeapByteBuffer
+Array is an object, and stored all data in the heap, even array of int, would be stored in the heap.
 Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
 ByteBuffer provides view into some (undefined) underlying storage of bytes
 There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
@@ -13233,7 +13364,6 @@ https://docs.azul.com/prime/Memory-Overview
 * https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
 * https://www.youtube.com/watch?v=FL7_lxJbX0o (Иван Землянский — Аерон. High performance-транспорт для low latency-микросервисов)
 * https://real-logic.co.uk/about.html (videos by Martin Thompson)
-* https://www.infoq.com/presentations/mechanical-sympathy
 * http://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq (sequencer architecture)
 * compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
 * The Art of Multiprocessor Programming (check both editions)
@@ -13253,4 +13383,4 @@ https://docs.azul.com/prime/Memory-Overview
 * https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
 * surefire vs failsafe mvn plugin
 * kubernetes, service mesh, istio, helm, kubectl
-* http://jpkoning.blogspot.com
+* consensus(using raft protocol) is better then primary-secondary https://www.infoq.com/presentations/financial-exchange-architecture
