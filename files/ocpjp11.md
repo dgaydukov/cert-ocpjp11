@@ -5259,8 +5259,12 @@ false
 ```
 This is unlimited queue, with array increasing in size, once we reach full capacity
 Queue should act as ring buffer, and only when there is no space (tail==head), we should grow it
-Almost same implementaion is used by `ArrayDeque`, they have more checks, but idea is the same,
+Almost same implementation is used by `ArrayDeque`, they have more checks, but idea is the same,
 since I was writing it first, then take a look at java queue implementation, I assume this is the most standard way to implement this.
+You can try to build many-to-many concurrent queue:
+* many writers - no problem, same as multithreaded single writer, just make head/tail volatile
+* many readers - a bit difficult, cause now each reader should have their own offset, we also should set elements to null after all readers have read
+Take a look at lmax disruptor, it basically many-to-many queue
 ```java
 public class App{
     public static void main(String[] args) {
