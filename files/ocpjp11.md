@@ -5258,20 +5258,24 @@ false
 5
 ```
 This is unlimited queue, with array increasing in size, once we reach full capacity
-Not best solution, cause if we offer/poll million times, array would be growing over time
+Queue should act as ring buffer, and only when there is no space (tail==head), we should grow it
+Almost same implementaion is used by `ArrayDeque`, they have more checks, but idea is the same,
+since I was writing it first, then take a look at java queue implementation, I assume this is the most standard way to implement this.
 ```java
 public class App{
     public static void main(String[] args) {
         SimpleQueue<Integer> queue = new ArraySimpleQueue<>(3);
-        queue.offer(1);
-        queue.offer(2);
-        queue.offer(3);
-        queue.poll();
-        queue.poll();
-        queue.offer(4);
-        queue.offer(5);
         System.out.println(queue.poll());
-
+        System.out.println(queue.offer(1));
+        System.out.println(queue.offer(2));
+        System.out.println(queue.offer(3));
+        System.out.println(queue.offer(4));
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
+        System.out.println(queue.poll());
     }
 }
 
@@ -5290,6 +5294,14 @@ class ArraySimpleQueue<T> implements SimpleQueue<T>{
         buffer = (T[]) new Object[capacity];
     }
 
+    int resizeNumber;
+    public int getArraySize(){
+        return buffer.length;
+    }
+    public int getResizeNumber(){
+        return resizeNumber;
+    }
+
     /**
      * if array is full, create new array, change tail/head values
      */
@@ -5298,25 +5310,39 @@ class ArraySimpleQueue<T> implements SimpleQueue<T>{
         if (t == null){
             return false;
         }
+        if (tail == head && buffer[head] != null){
+            T[] newBuffer = (T[]) new Object[buffer.length + capacity];
+            int i = 0, j = head;
+            while (buffer[j] != null){
+                newBuffer[i++] = buffer[j];
+                buffer[j] = null;
+                j++;
+                if (j == buffer.length){
+                    j = 0;
+                }
+            }
+            buffer = newBuffer;
+            head = 0;
+            tail = i;
+        }
         buffer[tail] = t;
         tail++;
         if (tail == buffer.length){
-            T[] newBuffer = (T[]) new Object[buffer.length + capacity];
-            for(int i = 0, j = head; j < buffer.length; i++, j++){
-                newBuffer[i] = buffer[j];
-            }
-            buffer = newBuffer;
-            tail -= head;
-            head = 0;
+            tail = 0;
         }
         return true;
     }
 
     @Override
     public T poll() {
+        if (head == tail && buffer[head] == null){
+            return null;
+        }
         T obj = buffer[head];
-        if (obj != null){
-            head++;
+        buffer[head] = null;
+        head++;
+        if(head == buffer.length){
+            head = 0;
         }
         return obj;
     }
