@@ -8,6 +8,7 @@
 * 1.5 [String and StringBuilder](#string-and-stringbuilder)
 * 1.6 [Arrays](#-arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
+* 1.8 [Bitwise and Bit Shift Operators](#bitwise-and-bit-shift-operators)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
@@ -1079,6 +1080,45 @@ arr1 => [1, 2, 9], arr2 => []
 Arrays.compare => 3
 compareTo => 3
 Arrays.mismatch => 0
+```
+
+###### Bitwise and Bit Shift Operators
+There are 2 types of operations:
+* bitwise
+    * `~` unary bitwise operator - invert bit pattern - change 0 to 1, and vice versa
+    * `&` - AND - like logical &&
+    * `^` - exclusive OR - like logical ||
+    * `|` inclusive OR - 1 if both bits are different
+* bitshift
+    * `>>` signed right shift - move all bits to right `5>>1 => 101>>1 => 10 = 2`
+    * `<<` signed left shift - move all bits to left `5<<1 => 101<<1 => 1010 = 10`
+As you see strange behavior of inversion, this is due to fact, that int is 32 bits, and if we invert 5 `101`, then 29 first bitst that are 0
+sets to 1, that's why we got such strange number. For proper inversion we should take last 3 bits `..*010` and convert it into int
+if we do it we got proper result `~5 = 2`
+```java
+public class App{
+    public static void main(String[] args) {
+        int x = 5, y = 4;
+        System.out.println("x => " + x + " / " + Integer.toBinaryString(x));
+        System.out.println("y => " + y + " / " + Integer.toBinaryString(y));
+        System.out.println("~x => " + ~x + " / " + Integer.toBinaryString(~x));
+        System.out.println("x>>1 => " + (x>>1) + " / " + Integer.toBinaryString(x>>1));
+        System.out.println("x<<1 => " + (x<<1) + " / " + Integer.toBinaryString(x<<1));
+        System.out.println("x&y => " + (x&y) + " / " + Integer.toBinaryString(x&y));
+        System.out.println("x^y => " + (x^y) + " / " + Integer.toBinaryString(x^y));
+        System.out.println("x|y => " + (x|y) + " / " + Integer.toBinaryString(x|y));
+    }
+}
+```
+```
+x => 5 / 101
+y => 4 / 100
+~x => -6 / 11111111111111111111111111111010
+x>>1 => 2 / 10
+x<<1 => 10 / 1010
+x&y => 4 / 100
+x^y => 1 / 1
+x|y => 5 / 101
 ```
 
 #### Classes and Objects
@@ -5218,6 +5258,7 @@ false
 5
 ```
 This is unlimited queue, with array increasing in size, once we reach full capacity
+Not best solution, cause if we offer/poll million times, array would be growing over time
 ```java
 public class App{
     public static void main(String[] args) {
