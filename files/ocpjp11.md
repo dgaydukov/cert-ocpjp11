@@ -13213,6 +13213,16 @@ class SinglyLinkedList{
 
 
 ### TODO
+how jwt works
+репликация или шардирование
+постгрес шардирование 100млн записей
+как ускорить read/write на базе
+почему движок не использует индекс
+checkout spring framework
+https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
+read java & spring todo
+https://leetcode.com/problemset/all/
+read java & spring todo
 https://www.baeldung.com/java-memory-layout
 https://www.youtube.com/watch?v=BD9cRbxWQx8
 https://www.youtube.com/watch?v=Q-7y1u9kZV0
