@@ -189,16 +189,23 @@ d/0 => Infinity
 i/0.0 => Infinity
 Exception in thread "main" java.lang.ArithmeticException: / by zero
 ```
-When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got infinity. 
+When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got Infinity. 
 
-We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 32 bits, both use 1bit to store sign(+ or -), but int store all digit so max value is 2**31, but float use half to store digits and half to store exponent, so max number is 3.4*10**38.
+We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 32 bits, both use 1 bit to store sign(+ or -), but int store all digit so max value is 2**31, 
+but float use 8 bit store exponent (so max exponent value = 127, and 2**127 is the max value to store) and 23 bits to store floating value. Since floating value would be 1-2, so max is 1.9999, then max float value is 2**128 or  3.4*10**38.
 ```java
 int i = 1;
 float f = i;
 int i2 = f; // won't compile, need cast
 int i3 = (int)f;
 ```
-The same true of long. Max long is 2**63 = 10**19
+conversion 2**20 => (2**10)**2 => 1024**2 => (10**3)**2 => 10**6
+max values:
+* int => 2**31 => 10**9
+* long => 2**63 => 10**20
+* float => 2**127 (8 bit for exponent)
+* double => 2**1024 (11 bit for exponent)
+So we can assign int/long to float/double without actual cast, but vice versa - compile error
 
 Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile time constants. The reason is that Java/C++/C implement switch as jump (branch) table. Switch can be empty-bodied (not labels & default)
 Variable declared inside `case` are visible throughout switch only if they are in order. As you see a is declared before it used in second case, so it's valid, but b is used before it would be declared in second case, so it's invalid.
@@ -321,7 +328,7 @@ These rules also don’t apply to compound operators (*=, +=, ++, --, -=, /=)
 final with wrappers
 ```java
 final Short s1 = 1;
-short s2 = -s1; // won't compile int 
+short s2 = -s1; // won't compile, s1 is cast to int by default 
 ```
 The key here is that final - is the reference to memory, not the value itself, so rules with constants doesn’t apply here.
 When you create long with multiplication, it would be treated as int.
@@ -507,7 +514,8 @@ Integer in = Integer.valueOf(y); // 4 static factory method
 ```
 Autoboxing won't happen when we call `System.out.println(1)`, cause `println` overloaded to take both int and Object.
 
- int => float conversion
+int => float conversion
+When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
 ```java
 int i = 123456789;
 float f = i;
@@ -541,7 +549,6 @@ b2=true, i2=1, f2=1.1
 Exception in thread "main" java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer
 ```
 
-When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
 Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 7 types). We can use it when working with List of integers, boolean and so on. 
 So we can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
 ```java
@@ -594,7 +601,7 @@ Object obj = 1;
 obj += "2";
 
 Object obj2 = "1";
-obj2 += 1; // won't compiled
+obj2 += 2; // won't compiled
 ```
 That’s why first statement compiled correctly, cause it works like 
 Object + String => Object.toString + String
@@ -1379,7 +1386,7 @@ class A{}
 class B extends A{}
 ```
 
-If 2 classes extends from same base class, or implements same interface, we can cast them with so-called doublecast
+If 2 classes extend from same base class, or implement same interface, we can cast them with so-called doublecast
 ```java
 class A{}
 interface X{}
@@ -1840,6 +1847,25 @@ init A
 init App
 4
 ```
+Liskov substitution principle for java inheritance:
+1. method argument types - overriden method argument should be identical or wider. But in java we support only identical
+neither X, not Z would work in below example. As you see java not fully supported this rule
+```java
+class X{}
+class Y extends X{}
+class Z extends Y{}
+
+class A{
+    public void print(Y x){}
+}
+class B extends A{
+    @Override
+    public void print(Y y){}
+}
+```
+2. return type should be identical or subtype - called covariance in java
+3. execption - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception
+Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
 
 ###### Interfaces
 All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
@@ -5672,7 +5698,9 @@ toIntBiFunction(hello, world) => 10
 ```
 
  `addThen` and `compose` are equivalent. In other words: x.andThen(y) is the same as y.compose(x).
+For `BiFuncion` we also have `addThen` only, which combine bifuncion & function, and return bifunction
 ```java
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class App {
@@ -5681,12 +5709,18 @@ public class App {
         Function<Integer, String> showLen = s -> "len: " + s;
         System.out.println(getLen.andThen(showLen).apply("hello"));
         System.out.println(showLen.compose(getLen).apply("hello"));
+
+        BiFunction<Integer, Integer, Integer> mul = (a, b) -> a * b;
+        Function<Integer, Integer> times2 = (a) -> a * 2;
+        BiFunction<Integer, Integer, Integer> mulAndTimes2 = mul.andThen(times2);
+        System.out.println(mulAndTimes2.apply(3, 4));
     }
 }
 ```
 ```
 len: 5
 len: 5
+24
 ```
 
 ###### Method reference
@@ -8234,13 +8268,15 @@ public class App{
 LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
 Add this to your pom.xml to work with disruptor
 ```
-<dependency>
-  <groupId>com.lmax</groupId>
-  <artifactId>disruptor</artifactId>
-  <version>3.4.2</version>
-</dependency>
+    <dependency>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
+      <version>3.4.4</version>
+    </dependency>
 ```
-Disruptor (kind of `BlockingQueue`) - move data (messages/events) between threads witin same process with support:
+Disruptor (kind of `BlockingQueue`) - move data (messages/events) between threads within same process with support:
+Disruptor is a bad naming, cause what is actually is - non-blocking single writer queue, there can be many readers, cause each reader
+maintain its own sequence, but only single writer
 * multicast events - send same message to multiple consumers
 * consumer dependency graph - if we have 3 consumer A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
 * memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
@@ -8280,28 +8316,28 @@ You can test it by setting one consumer with `Thread.sleep` and other without. A
 
 Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
 ```java
-import java.nio.ByteBuffer;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.util.DaemonThreadFactory;
 
 public class App {
     public static void main(String[] args) {
+        System.out.println("__START__");
         int bufferSize = 4;
         Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
         disruptor.handleEventsWith(
-            (event, sequence, endOfBatch) -> System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event),
-            (event, sequence, endOfBatch) -> System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event)
+                (event, sequence, endOfBatch) -> System.out.println("1. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event),
+                (event, sequence, endOfBatch) -> System.out.println("2. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event)
         ).then((event, sequence, endOfBatch) -> {
-            System.out.println("thread=" + Thread.currentThread().getName() +", sequence=" + sequence + ", event=" + event);
+            System.out.println("3. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event);
             Thread.sleep(5000);
         });
         RingBuffer<MyEvent> ringBuffer = disruptor.start();
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        for (int i = 1000; i > 0; i--) {
-            bb.putInt(0, i);
-            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer.getInt(0)), bb);
+        for (int i = 0; i < 100; i++) {
+            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer), i);
+            System.out.println("publishEvent=" + i + " thread=" + Thread.currentThread().getName());
         }
+        System.out.println("__DONE__");
     }
 }
 
@@ -8317,6 +8353,8 @@ class MyEvent{
     }
 }
 ```
+It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
+While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
 
 #### JDBC and SQL
 ###### Connection
@@ -12498,8 +12536,8 @@ class B extends A{
 #### Low latency
 change java version:
 * first install several java versions, then you can switch between them
-* you can swtich both `java` and `javac` independently, for example you can compile under java8, and run under java11
-```java
+* you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
+```
 # update java version
 sudo update-alternatives --config java
 # update java compiler version
@@ -12524,7 +12562,7 @@ so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9
 there are 3 types of memory:
 * memory - main memory of PC called RAM
 * registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. 
-  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiply of memory unit size
+  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size
   since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit
   for pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bit
   for pc that works with numbers word-addressable memory is better, cause integer is 4byte
@@ -12535,10 +12573,10 @@ So when cpu needs data, it will read from memory into cache, and at some point f
   if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address
   this is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes
   useful cache size - size of only data without memory unit address, most cpu caches shows only this number
-  sof ir cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
+  sof if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
   when cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache
   cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory
-  using different algos like lru - least recently used
+  using different algos like LRU (least recently used)
 There are 2 types of architecture of cpu:
 * instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
     instruction sets can be of different architectural complexity:
@@ -12561,7 +12599,7 @@ There are 2 types of architecture of cpu:
             * hardware (dynamic parallelism) - cpu decides on runtime which instructions to run in parallel, like intel pentium
             * software (static parallelism) - compiler decides during compilation what instructions to run in parallel, like intel itanium
         * concurrency - ability to run multiple threads within single process, where each thread running in separate cpu core
-        there are 3 ways to improve performance(actually way more, these 3 are most common):
+        There are 3 ways to improve performance(actually way more, these 3 are most common):
         * pipelining - execute different substeps of sequential code in parallel
         * execute multiple instructions simultaneously
         * out-of-order execution - execute instructions in different order then they were originally written in programming language
@@ -12680,12 +12718,12 @@ memory address - fixed-length unsigned integer
 Don't confuse:
 * physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller)
 to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create logical memory space in which running program is read/write data. then memory management unit create
+* logical address - software create logical memory space in which running program is read/write data. then MMU create
 mapping between logical and physical memory. so your program need not to care to work with main memory. 
-Your program works with virtual memory just like with main memory, and in background os provides mapping between logical and physical memory
+Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
 VM (virtual memory) guarantee:
-* one program can't read from memory data from another program, otherwise program could hack each-other and cause trouble
+* one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
 * more then one virtual address can refer to same physical address
 * virtual memory space can be larger then physical one, by using VM paging - also called swapping
 MMU (memory management unit):
@@ -12710,7 +12748,7 @@ There are 2 types of memory address resolution:
    for 64 - each 64 bits or 8 bytes would have separate address
    there were a few decimal-addressable machines, but they not used nowadays
 Don't confuse:
-* address size - side of memory unit, mostly 8 bits in byte-addressable system
+* address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
 so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
 that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
@@ -12734,7 +12772,7 @@ int z = x + y;
 ```
 compiler may change order of line 1 & 2 as it want or run in parallel, but both must be executed before line 3.
 Don't confuse:
-* parallel code running in multiple threads - multi-threding programming
+* parallel code running in multiple threads - multithreading programming
 * parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
 JVM:
 * each thread has it's own stack where local variables stored:
@@ -12909,14 +12947,15 @@ keep in mind that only bytes change order, bits inside single byte stay as they 
 in big-endian you have to move all digits right. But with little-endian you just add digits
 Don't confuse:
 * signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
-* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed. also `char=char=int`
+* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed
 There are several character encoding:
 * ASCII (American Standard Code for Information Interchange)
     * defines 128 characters (0-127)
     * first 32 - non-printable control characters like return or new line
     * nowadays it's a subset of many other encoding
     * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
-    so we ended up with many computers that treat upper 128 bits differently and depend on your pr upper bits could be resolved quite differently
+    so we ended up with many computers that treat upper 128 bits differently and depend on your OS,
+     upper bits could be resolved quite differently
     and this led to ANSI
 * ANSI (American National Standards Institute)
     * general agreement what to do with upper 128 bits
@@ -13029,10 +13068,10 @@ str => ��������������������
 ###### Floating Point Numbers
 there are several types of numbers;
 * natural numbers - 1,2,3...
-* integers - positive/negative natual numbers and zero -2,-1,0,1,2....
+* integers - positive/negative natural numbers and zero -2,-1,0,1,2....
 * rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
 * irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
-* real numbers - include both ratioanl and irrational
+* real numbers - include both rational and irrational
 converting decimal fraction to binary;
 * to convert you start with fraction and multiply by 2 until fraction is 0 
 * only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
@@ -13051,11 +13090,11 @@ convert 1/5 to binary
 0.6 * 2 = 1 + 0.2 as you see again we got 0.2
 so 0.2 = 0.1100(1100)
 ```
-so you can see that we have ratioanl number like;
+so you can see that we have rational number like;
 * 1/8=0.125 that can be represented as finite in both decimal and binary
 * 1/5=0.2 that can be represented as finite in decimal but not in binary
 * `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
-simple rule is denominator;
+simple rule is denominator:
 * if it power 10, then it can be represented as finite decimal fraction
 * if it's power 2, then it can be represented as finite binary
 as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
@@ -13415,14 +13454,8 @@ class SinglyLinkedList{
 
 
 ### TODO
-how jwt works
-репликация или шардирование
-постгрес шардирование 100млн записей
-как ускорить read/write на базе
-почему движок не использует индекс
-checkout spring framework
-https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
 read java & spring todo
+https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
 https://leetcode.com/problemset/all/
 read java & spring todo
 https://www.baeldung.com/java-memory-layout
@@ -13445,18 +13478,16 @@ https://docs.azul.com/prime/Memory-Overview
 * https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
 * https://www.youtube.com/watch?v=FL7_lxJbX0o (Иван Землянский — Аерон. High performance-транспорт для low latency-микросервисов)
 * https://real-logic.co.uk/about.html (videos by Martin Thompson)
-* http://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq (sequencer architecture)
 * compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
 * The Art of Multiprocessor Programming (check both editions)
 * java low latency logging (Log4j2 async use lmax disruptor inside)
 * http://java-performance.info/hashmap-overview-jdk-fastutil-goldman-sachs-hppc-koloboke-trove-january-2015 (goldman sachs using https://github.com/leventov/Koloboke as low latency collections)
-* check all the test for lamx disruptor to get real examples of usage (https://github.com/LMAX-Exchange/disruptor/tree/master/src/test/java/com/lmax/disruptor)
+* check all the test for lmax disruptor to get real examples of usage (https://github.com/LMAX-Exchange/disruptor/tree/master/src/test/java/com/lmax/disruptor)
 * aeron vs aeron-cluster
 * netty for low latency (how it compares to lmax/aeron)
 * chronicle queue/map (how it works inside)
 * run time DI (spring) vs compile time DI (dagger)
 * each order execution should generate 2 trades (for order owner & for his counterparty)
-* take a look at https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol and aws amplify js which already integrated it
 * https://jpbempel.github.io/
 * https://aeroncookbook.com/
 * https://en.wikipedia.org/wiki/IEEE_754
