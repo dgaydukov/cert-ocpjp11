@@ -4161,30 +4161,34 @@ b null
 {a=2, b=2}
 ```
 
-`merge` vs `compute`. Sometimes merge can be more useful than compute. Merge take BiFunction with old and new value. But in case old value is null, it just use second param and not executing `BiFunction` at all.
-If remapping function returns `null` entry is deleted (same is true from `computeIfPresent`).
+Don't confuse (all of them return value, or newValue with applied BiFunction):
+* `put(key, value)` - just put new element into map, if it exists, just overwrite
+* `merge(key, value, BiFunction(oldValue, newValue))` - put new element into the map, if element exists, apply function to old & new values, and overwrite it
+    * good example is calculate occurrences of letters in the string => merge(letter, 1, (oldValue, newValue)->oldValue+newValue)
+    so first time we encounter letter `a` we just set 1, but on each subsequent we apply our function, in this case sum old value with newValue=1
+* `compute(key, BiFunction(key, oldValue))` - apply function to oldValue (which can be null) and update key with newly computed value
+* computeIfAbsent/computeIfPresent - same as compute, but apply function only if value is nonPresent/present
 ```java
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class App {
     public static void main(String[] args) {
-        Map<String, Integer> map = new HashMap<>();
-        map.compute("a", (k, v) -> v == null ? 1 : v + 1);
-        map.merge("b", 1, (o, n) -> o + n);
-        System.out.println(map);
-        // if remapping function returns null, value is deleted
-        map.merge("b", 1, (o, n) -> null);
-        System.out.println(map);
-        // if remapping function returns null, value is deleted
-        map.compute("a", (k, v) -> null);
-        System.out.println(map);
+        String str = "abcaba";
+        Map<Character, Integer> map1 = new HashMap<>();
+        Map<Character, Integer> map2 = new HashMap<>();
+        for(char ch: str.toCharArray()){
+            map1.merge(ch, 1, (oldValue, newValue)->oldValue+newValue);
+            map2.compute(ch, (key, oldValue)->oldValue == null ? 1 : oldValue + 1);
+        }
+        System.out.println("map1 => " + map1);
+        System.out.println("map2 => " + map2);
     }
 }
 ```
 ```
-{a=1, b=1}
-{a=1}
-{}
+map1 => {a=3, b=2, c=1}
+map2 => {a=3, b=2, c=1}
 ```
 
 ###### List and Set
@@ -5872,7 +5876,7 @@ sorted => [,  , 1, A, a]
 
 `Comparable` - just interface with one method `int compareTo(T var1)`.
 `Comparator` - functional interface with method `int compare(T var1, T var2)`
-`Collections.sort` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
+`Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
 Since `Comparator` is functional interface we can pass lambda that takes 2 params.
 ```java
 import java.util.*;
@@ -6084,9 +6088,9 @@ null
 ```
 
 We can check if elements in stream matching a specific criteria by using one of these 3 methods. Pay attention that all of them are short-circuiting and take predicate as param.
-anyMatch - true if find any object that match. Once found stop searching.
-allMatch - true if all items are match. Once found false - stop searching.
-noneMatch - true if none of the items are match. Once found true - stop searching. 
+anyMatch - true if find any object that match. Once found match - stop searching, return true.
+allMatch - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true.
+noneMatch - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. 
 ```java
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -6197,6 +6201,8 @@ public class App {
 
         // type changing reduce, we should use reduce with 3 params, pay attention that third param is never called
         // so we can replace it with (a,b)->0
+        // yet in parallel execution we need combiner, that's why it's used here, in single-threaded env you don't need it,
+        // but in parallel, many chunks need to be combined, so it used there. And if you use (a,b)->0 in parallel stream you get wrong results
         Integer sum = names.stream().reduce(0, (acc, el) -> acc + el.length(), (a, b) -> a + b);
         System.out.println("sum => " + sum);
 
@@ -6260,7 +6266,7 @@ parallel time (sequential) => 5
 0123456789
 parallel time (ordered) => 1
 ```
-Take note, that although we terminate in ordered manner it takes the same time of 1 sec to finish. 
+Take note, that although we terminate in ordered manner it takes the same time of 1 sec to finish.
 Also when we transform stream from parallel to sequential all stream would be sequential. The reason is that stream parallel/sequential is just boolean field inside stream, so it doesn't matter where you put parallel/sequential,
 at the beginning or before terminal, whole stream would work either parallel or sequential.
 
