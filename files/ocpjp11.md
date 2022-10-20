@@ -6694,7 +6694,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 public class App {
-    public static void main(String[] args) {
+    public static void main(String[] args)  {
         Thread thread = new Thread(() -> {
             System.out.println("start thread");
             throw new RuntimeException("oops");
@@ -6703,7 +6703,13 @@ public class App {
             System.out.println(th + " " + ex);
         });
         thread.start();
-
+        // wait until this thread finished
+        try{
+            thread.join();
+        } catch (InterruptedException ex){
+            System.out.println("Failed to wait thread completion");
+        }
+        System.out.println();
 
         FutureTask<String> futureTask = new FutureTask<>(() -> {
             System.out.println("futureTask start");
@@ -6724,10 +6730,12 @@ public class App {
 }
 ```
 ```
-futureTask start
+
 start thread
-futureTask: java.util.concurrent.ExecutionException: java.lang.RuntimeException: oops
 Thread[Thread-0,5,main] java.lang.RuntimeException: oops
+
+futureTask start
+futureTask: java.util.concurrent.ExecutionException: java.lang.RuntimeException: oops
 ```
 By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause FutureTask(class)=>RunnableFuture(interface)=>Runnable, Future.
 `Future` - interface returned by ExecutorService submit,invoke methods, `FutureTask` - concrete task. You can pass it into new Thread or ExecutorService submit/invoke methods.
@@ -6769,11 +6777,12 @@ public class App {
 
 You can set thread priority with `setPriority` method. Yet it doesn't guarantee to run, cause in the end it's OS who schedule threads.
 ```java
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class App {
     public static void main(String[] args) {
-        ExecutorService service = Executors.newFixedThreadPool(1);
+        ExecutorService service = Executors.newFixedThreadPool(2);
         Thread t1 = new Thread(()->{
             System.out.println("t1 starts");
             sleep(2000);
@@ -6788,9 +6797,6 @@ public class App {
         t1.setPriority(Thread.MIN_PRIORITY);
         t2.setPriority(Thread.MAX_PRIORITY);
 
-        service.submit(()->{
-            sleep(1000);
-        });
         service.submit(t1);
         service.submit(t2);
     }
@@ -6805,8 +6811,8 @@ public class App {
 ```
 ```
 t1 starts
-t1 finished
 t2 starts
+t1 finished
 t2 finished
 ```
 Although t2 has higher priority, `ExecutorService` still runs t1 first.
@@ -6827,7 +6833,9 @@ Exception in thread "main" java.lang.IllegalArgumentException
     
 
 
-Don’t confuse `Thread` `run` and `start` methods. `run` - run in the current thread, `start` - run in another thread.
+Don’t confuse:
+* `run` - run in the current thread
+* `start` - run in another thread
 ```java
 class App {
     public static void main(String[] args) {
@@ -6896,7 +6904,7 @@ sleep Thread[pool-1-thread-1,5,main]
 sleep ERR: java.lang.InterruptedException: sleep interrupted Thread[pool-1-thread-1,5,main]
 ```
 
-Pay attention that `interrupt` works only if we have code that waits and catch for `InterruptedException`, if we don't have such code and thread just some heavy computation, it won't interrupt, but will go on until done
+Pay attention that `interrupt` works only if we have code that waits and catch for `InterruptedException`, if we don't have such code and have some heavy computation, it won't interrupt, but will go on until done
 ```java
 public class App {
     public static void main(String[] args) {
@@ -6933,6 +6941,7 @@ public class App {
             System.out.println("done thread");
         });
         thread.start();
+        // wait some time before interruption
         for(long i = 0; i < 1_000_000_000L; i++){}
         thread.interrupt();
         // check the flag on Thread instance
@@ -7134,7 +7143,7 @@ runnableFuture => null
 Callable finish pool-1-thread-2
 callableFuture => done it
 ```
-Pay attention, that 
+Don't confuse:
 * `.get()` throws 2 checked exceptions: `InterruptedException` and `ExecutionException`
 * we call `.get()` to get results (in case of callable) or if we want to catch exceptions
 * if any `run()` methods, throws any exception, we would catch `ExecutionException`
@@ -7142,7 +7151,7 @@ Pay attention, that
 
 We can use `scheduleAtFixedRate` and `scheduleWithFixedDelay` if we want to execute some task endlessly with interval. Take note that both method accept only `Runnable`. And it’s logical, otherwise it would generate endless array of Futures. There is a subtle difference between them.
 `scheduleAtFixedRate` - put into queue new task after delay. So if we have 1 sec delay, but task runs 2 seconds, that mean next task will start immediately.
-`scheduleWithFixedDelay` - wait delay after previous executed and execute next. So if we have 1 sec dealy, but task runs 2 seconds, next task will run after 1 sec.
+`scheduleWithFixedDelay` - wait delay after previous executed and execute next. So if we have 1 sec delay, but task runs 2 seconds, next task will run after 1 sec.
 If we want to schedule something to run once in future we can use `schedule`. There are 2 overloaded methods, one for callable and one for runnable.
 ```java
 import java.util.concurrent.Executors;
@@ -7410,14 +7419,15 @@ value: 3, thread: ForkJoinPool-1-worker-5
 value: 3, thread: ForkJoinPool-1-worker-3
 CountRecursiveTask: 20
 ```
-
 As you can see `fork/jon` framework always divide task on 2, and start to run first task, but second put into queue. And do it until task is small enough to complete. At the same time other threads can read this queue and take tasks from it (work stealing) and others can steal from others, so we have a tree, where all threads always running until all queues (for every thread) is empty and we can get result.
 
 ###### Synchronizers
-`Semaphore`, `CountDownLatch`, `CyclicBarrier` - all do pretty the same. For example we have a task to run all threads at the same time.
-`Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
-`Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
-`CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
+Don't confuse:
+* `Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
+* `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
+* `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
+* `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you countdown, and then all threads are released
+you don't need to wait until threads reach some point, you can countdown on any algo, but once you countdown to 0, all your threads proceed further
 ```java
 import java.util.concurrent.*;
 
@@ -7695,6 +7705,41 @@ r2 has acquired o2: pool-1-thread-2
 ```
 As you see r1 => got o1 and trying to get o2. At the same time r2 => got 02 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
 
+Real-world example of deadlock is transfer balance in account. If 2 users decided to transfer money to each other, and it would be processed by 2 different threads
+you may risk deadlock. That's why in trading systems, we prefer to use single-threaded app to process all balances
+```java
+public class App {
+    public static void main(String[] args) {
+        Account acc1 = new Account();
+        Account acc2 = new Account();
+        new Thread(()->{
+            transfer(acc1, acc2, 50);
+        }).start();
+        new Thread(()->{
+            transfer(acc2, acc1, 50);
+        }).start();
+    }
+    public static void transfer(Account from, Account to, long amount){
+        synchronized (from){
+            synchronized (to){
+                from.withdraw(amount);
+                to.deposit(amount);
+            }
+        }
+    }
+}
+
+class Account {
+    private long balance;
+    public void withdraw(long amount){
+        balance -= amount;
+    }
+    public void deposit(long amount){
+        balance += amount;
+    }
+}
+```
+
 There are 3 ways to get jvm process thread dump. But first we need to get processId.
 We can get it in 2 ways
 1. run `jps` - will display all java processes id and names
@@ -7965,7 +8010,7 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 ```
 
 ###### Synchronized on ID
-Sometimes you have to do some not idempotent operation, for this you set some flag in db, and if second request came you throw exception.
+Sometimes you have to do some non-idempotent operation, for this you set some flag in db, and if second request came you throw exception.
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
 This keyword syncronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
 But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
@@ -8084,11 +8129,10 @@ public class App {
     public static void main(String[] args) {
         // consecutive execution
         CompletableFuture<String> future = CompletableFuture
-            .supplyAsync(() -> fetchResourceA())
-            .thenApplyAsync(r -> r + fetchResourceB());
-        System.out.println("done");
+                .supplyAsync(() -> fetchResourceA())
+                .thenApplyAsync(r -> r + fetchResourceB());
         try{
-            System.out.println(future.get());
+            System.out.println("future.get => " + future.get());
         } catch (InterruptedException | ExecutionException ex){
             throw new RuntimeException(ex);
         }
@@ -8099,11 +8143,15 @@ public class App {
         future.whenComplete((res, err)->{
             System.out.println("res=" + res + ", err=" + err);
         });
-        //imitate program running, otherwise program would exit
+        /**
+         * imitate program running, otherwise program would exit
+         * the reason is that CompletableFuture use ForkJoinPool which create daemon threads, and as you know JVM doesn't wait for daemon threads to finish
+         */
         sleep(10);
     }
 
     public static String fetchResourceA(){
+        System.out.println("thread=" + Thread.currentThread() + ", isDaemon=" + Thread.currentThread().isDaemon());
         sleep(2);
         return "A";
     }
@@ -8119,6 +8167,11 @@ public class App {
         }
     }
 }
+```
+```
+thread=Thread[ForkJoinPool.commonPool-worker-19,5,main], isDaemon=true
+future.get => AB
+res=AB, err=null
 ```
 
 You can run futures in parallel with `allOf`, so it would be completed when last futures from list would be done. 
@@ -8173,6 +8226,8 @@ There are 3 main class to work with `Lock` interface:
 * ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method.
 * ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
 This can be same as using `synchronized` + `volatile` and not synchronized read.
+We need readLock - to ensure multiple readers can read at the same time (compare to syncronized keyword where each reader would wait another reader until it release lock)
+and also readLock ensure that once writeLock is happening no read should be possible
 * StampedLock - same as ReentrantReadWriteLock, but using a few additional methods:
     * `tryConvertToWriteLock` - convert read lock to write lock
     * `tryOptimisticRead` - use optimistic read
@@ -8280,9 +8335,8 @@ Add this to your pom.xml to work with disruptor
       <version>3.4.4</version>
     </dependency>
 ```
-Disruptor (kind of `BlockingQueue`) - move data (messages/events) between threads within same process with support:
-Disruptor is a bad naming, cause what is actually is - non-blocking single writer queue, there can be many readers, cause each reader
-maintain its own sequence, but only single writer
+Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
+Disruptor is a bad naming, cause what is actually is - non-blocking single writer queue, there can be many readers, cause each reader maintain its own sequence, but only single writer
 * multicast events - send same message to multiple consumers
 * consumer dependency graph - if we have 3 consumer A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
 * memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
@@ -8722,7 +8776,7 @@ public class App {
 ```
 time: 7 sec
 ```
-Here we are using pool of connections, and once we have use it, return it to db. We almost tripple speed by this.
+Here we are using pool of connections, and once we have use it, return it to db. We almost triple speed by this.
 
 ###### Statement and PreparedStatement
 It's better to always use `PreparedStatement` cause you can:
@@ -8824,7 +8878,11 @@ public class App {
 ```
 
 ###### Transactions
-It’s easy to work with transaction in JDBC. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`(this will commit everything as side-effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
+It’s easy to work with transaction in JDBC. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. 
+But we can set it to false, and in the end, call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`
+(this will commit everything as side-effect, if autoCommit=true no exception is thrown). 
+This will ensure that only after all code executed successfully data would be flushed into db. 
+As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
 ```java
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -8840,6 +8898,8 @@ public class App {
         ) {
             System.out.println("start tx");
             conn.setAutoCommit(false);
+            // set isolation level
+            conn.setTransactionIsolation(java.sql.Connection.TRANSACTION_READ_COMMITTED);
             int result1 = stmt.executeUpdate("update animals set name = 'name-11' where id = 1");
             System.out.println("result1: " + result1);
             int result2 = stmt.executeUpdate("update animals set name = 'name-22' where id = 2");
@@ -8861,10 +8921,8 @@ public class App {
             // after release you can't reuse it again
             conn.releaseSavepoint(savepoint);
         } catch (SQLException e) {
-            System.out.println("rollback tx");
-            System.out.println("message => " + e.getMessage());
-            System.out.println("SQLState => " + e.getSQLState());
-            System.out.println("errorCode => " + e.getErrorCode());
+            System.out.println("Get exception: message=" + e.getMessage() + ", SQLState=" + e.getSQLState() + ", errorCode=" + e.getErrorCode());
+            conn.rollback();
         }
     }
 }
@@ -8873,10 +8931,7 @@ public class App {
 start tx
 result1: 1
 result2: 1
-rollback tx
-message => Unknown column 'ids' in 'where clause'
-SQLState => 42S22
-errorCode => 1054
+Get exception: message => Unknown column 'ids' in 'where clause', SQLState => 42S22, errorCode => 1054
 ```
 
 
@@ -13460,10 +13515,7 @@ class SinglyLinkedList{
 
 
 ### TODO
-read java & spring todo
 https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
-https://leetcode.com/problemset/all/
-read java & spring todo
 https://www.baeldung.com/java-memory-layout
 https://www.youtube.com/watch?v=BD9cRbxWQx8
 https://www.youtube.com/watch?v=Q-7y1u9kZV0
