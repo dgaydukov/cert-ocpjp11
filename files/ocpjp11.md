@@ -6685,7 +6685,6 @@ class MyThread extends Thread{
 MyThread => Thread-1
 MyRunnable => Thread-0
 ```
-
 There are a few ways to handle error inside thread:
 * we can set exception handler for thread using `setUncaughtExceptionHandler` method
 * when we call `get` it usually throws 2 errors `InterruptedException` and `ExecutionException` - so this is our common exception for any exception inside thread 
@@ -6730,7 +6729,6 @@ public class App {
 }
 ```
 ```
-
 start thread
 Thread[Thread-0,5,main] java.lang.RuntimeException: oops
 
@@ -6739,12 +6737,10 @@ futureTask: java.util.concurrent.ExecutionException: java.lang.RuntimeException:
 ```
 By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause FutureTask(class)=>RunnableFuture(interface)=>Runnable, Future.
 `Future` - interface returned by ExecutorService submit,invoke methods, `FutureTask` - concrete task. You can pass it into new Thread or ExecutorService submit/invoke methods.
-
-
 Java doesn’t wait for daemon threads, only for normal threads. To make a thread a daemon just set it property to true `setDaemon(true)`.
-Below code will exit immediately, but if you comment out daemon=true, then app would never exit, cause thread will run forever.
-This is similar to `detach`, so when you set daemon=true you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
-Yet `thread::detach` doesn't exist in java, cause once you set daemon=true, if your main process stops, all daemon threads would be killed
+Below code will exit immediately, but if you comment out `daemon=true`, then app would never exit, cause thread will run forever.
+This is similar to `detach`, so when you set `daemon=true` you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
+Yet `thread::detach` doesn't exist in java, so once you set `daemon=true`, if your main process stops, all daemon threads would be killed
 So there is no way in JVM to create thread that would continue to run while your main app id dead (yet you can start new JVM with new PID from your app)
 Keep in mind if you call `.join` on the daemon thread, your app would wait for such thread (in our case forever, cause of `while(true)`)
 ```java
@@ -6774,7 +6770,6 @@ public class App {
     }
 }
 ```
-
 You can set thread priority with `setPriority` method. Yet it doesn't guarantee to run, cause in the end it's OS who schedule threads.
 ```java
 import java.util.concurrent.ExecutorService;
@@ -6823,16 +6818,13 @@ Exception in thread "main" java.lang.IllegalArgumentException
 	at java.base/java.lang.Thread.setPriority(Thread.java:1141)
 	at com.java.test.App.main(App.java:21)
 ```
-
+Don't confuse:
 * `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it
 * `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
 * join - call on other thread and make current thread wait until other thread finish execution
     * you can run new thread with `start`, but if you want current thread to wait until new thread finished you call `join`
-    
-
-
 Don’t confuse:
 * `run` - run in the current thread
 * `start` - run in another thread
@@ -6868,10 +6860,8 @@ thread finish
 thread start2
 thread finish2
 ```
-As you see, threads were executed sequentially
-
-
-There is no way to interrupt a thread, until thread itself has some logic to handle interruption. What you can do is to call `thread.interrupt` to interrupt thread, interrupted thread should have logic for checking `.interrupted()` and make some action on it. 
+As you see, threads were executed sequentially.
+There is no way to interrupt a thread, until thread itself has some logic to handle interruption. What you can do is to call `thread.interrupt` to to send interrupt event to thread, interrupted thread should have logic for checking `.interrupted()` and make some action on it. 
 Blocking methods like `Object.wait` or `Thread.sleep` has default implementation of interruption (that's why they throw `InterruptedException`).
 ```java
 import java.util.concurrent.ExecutorService;
@@ -6903,7 +6893,6 @@ start Thread[pool-1-thread-1,5,main]
 sleep Thread[pool-1-thread-1,5,main]
 sleep ERR: java.lang.InterruptedException: sleep interrupted Thread[pool-1-thread-1,5,main]
 ```
-
 Pay attention that `interrupt` works only if we have code that waits and catch for `InterruptedException`, if we don't have such code and have some heavy computation, it won't interrupt, but will go on until done
 ```java
 public class App {
@@ -6959,7 +6948,7 @@ done thread
 ```
 
 ###### ExecutorService
-`ExecutorService` has 3 versions of submit
+Has 3 versions of submit:
 * `submit(Runnable)` - take nothing, return `Future<?>`
 * `submit(Runnable, T)` - return `Future<T>` when done
 * `submit(Callable<T>)` - return `Future<T>` from callable
@@ -7015,7 +7004,6 @@ future1 => null
 future2 => MyRunnable done
 future3 => MyCallable done
 ```
-
 `invokeAll` and `invokeAny` takes only callables and return results. The difference is that `invokeAll` wait until all threads are executed and return ordered list (order in which initial list of callables was passed) as array of Futures. 
 `invokeAny` - run all threads, but wait only the first one and return it (not future) and terminates all unfinished threads.
 ```java
@@ -7310,7 +7298,6 @@ highLevelQueue value: 1
 ```
 It’s better to use new api, cause you can set additional methods like `awaitUntil` - wait for some time and `awaitUninterruptibly` - to wait until signal, even if someone interrupted process.
 `lockInterruptibly` will throw `lockInterruptibly`, while simple `lock` can be interrupted, but won't throw exception.
-
 `SynchronousQueue` - special type of queue with one element. put - is waiting until take is done. Useful when you have 2 threads that need to change data and continue.
 ```java
 import java.util.concurrent.*;
@@ -7704,7 +7691,6 @@ r1 has acquired o1: pool-1-thread-1
 r2 has acquired o2: pool-1-thread-2
 ```
 As you see r1 => got o1 and trying to get o2. At the same time r2 => got 02 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
-
 Real-world example of deadlock is transfer balance in account. If 2 users decided to transfer money to each other, and it would be processed by 2 different threads
 you may risk deadlock. That's why in trading systems, we prefer to use single-threaded app to process all balances
 ```java
@@ -7739,7 +7725,6 @@ class Account {
     }
 }
 ```
-
 There are 3 ways to get jvm process thread dump. But first we need to get processId.
 We can get it in 2 ways
 1. run `jps` - will display all java processes id and names
@@ -7754,8 +7739,7 @@ We can get it in 2 ways
 1. `jstack 22711`
 2. `kill -3 22711`
 3. `jconsole 22711` => go to Threads tab => click detect deadlock
-
-run `jstack 22711`
+run `jstack 22711`:
 ```
 Java stack information for the threads listed above:
 ===================================================
@@ -7783,7 +7767,6 @@ Java stack information for the threads listed above:
 Found 1 deadlock.
 ```
 As you see jvm can help us by showing the problems.
-
 Livelock - is a special case of deadlock, can occur, when you try to solve deadlock by checking if another lock is unlocked inside `while` loop.
 ```java
 import java.util.concurrent.ExecutorService;
@@ -7873,7 +7856,6 @@ r1 waiting for lock2: pool-1-thread-1
 r2 waiting for lock1: pool-1-thread-2
 ...
 ```
-
 To check if current thread holding any object on lock you can use `Thread.holdsLock()`.
 ```java
 public class App {
@@ -7898,7 +7880,6 @@ o1 lock => false, o2 lock => false
 o1 lock => true, o2 lock => false
 o1 lock => true, o2 lock => true
 ```
-
 If we need an application were we can have many reads but only one write (during which all reads are locked) we can use `ReadWriteLock`
 ```java
 import java.util.*;
@@ -8173,7 +8154,6 @@ thread=Thread[ForkJoinPool.commonPool-worker-19,5,main], isDaemon=true
 future.get => AB
 res=AB, err=null
 ```
-
 You can run futures in parallel with `allOf`, so it would be completed when last futures from list would be done. 
 Yet it returns void, so if you need results from these futures, you should call get/join to each of the future separately.
 ```java
@@ -8226,7 +8206,7 @@ There are 3 main class to work with `Lock` interface:
 * ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method.
 * ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
 This can be same as using `synchronized` + `volatile` and not synchronized read.
-We need readLock - to ensure multiple readers can read at the same time (compare to syncronized keyword where each reader would wait another reader until it release lock)
+We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock)
 and also readLock ensure that once writeLock is happening no read should be possible
 * StampedLock - same as ReentrantReadWriteLock, but using a few additional methods:
     * `tryConvertToWriteLock` - convert read lock to write lock
@@ -8347,19 +8327,16 @@ Disruptor use following concepts inside:
 * Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
 * Sequencer - core of the Disruptor
 * Wait Strategy - how consumer wait for events
-
 SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
 * mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
 * optimistic concurrency - using CAS algorithms
 But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
 In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
-
 There are 4 main waiting strategy (all implements `WaitStrategy` interface)
 * BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
 * SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
 * YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
 * BusySpinWaitStrategy
-
 Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
 Queue is a bad chose cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
 In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
@@ -8373,7 +8350,6 @@ One solution to false sharing is cache line padding where you add 7 long values 
 `ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
 So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
 You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
-
 Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
 ```java
 import com.lmax.disruptor.RingBuffer;
@@ -8827,7 +8803,6 @@ There are 3 interfaces to execute queries:
 `Statement` (extends AutoClosable) - can be obtained `Statement s = conn.createStatement("");`
 `PreparedStatement` (extends Statement) - can be obtained `PreparedStatement s = conn.prepareStatement("");`
 `CallableStatement` (extends PreparedStatement) - can be obtained `CallableStatement s = conn.prepareCall("");` 
-
 Sql example of stored procedure to fetch lastname by id. Although it's pretty useless, cause you can achieve the same with simple query, you can write more complex precedures to get some complex data.
 ```
 # create procedure
@@ -8934,10 +8909,9 @@ result2: 1
 Get exception: message => Unknown column 'ids' in 'where clause', SQLState => 42S22, errorCode => 1054
 ```
 
-
 #### Serialization
 ###### Java serialization
-When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer not fire. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
+When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
 Deserialization doesn't invoke constructor & instance initializator because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
 It searches all parents until it found one that doesn't implement `Serializable` and have default constructor,
 (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), 
@@ -8945,14 +8919,30 @@ and jvm creates class from that default constructor. But compare with `new` init
 Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`.
 Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
 Otherwise compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
+Java serialization is binary serialization, so your file would have binary content (compare to xml/json).
+You can decode this binary file for one of below example with following command
+```
+$ hexdump -C text
+
+00000000  ac ed 00 05 73 72 00 14  63 6f 6d 2e 6a 61 76 61  |....sr..com.java|
+00000010  2e 74 65 73 74 2e 50 65  72 73 6f 6e 00 00 00 00  |.test.Person....|
+00000020  00 00 27 0f 02 00 02 49  00 03 61 67 65 4c 00 04  |..'....I..ageL..|
+00000030  6e 61 6d 65 74 00 12 4c  6a 61 76 61 2f 6c 61 6e  |namet..Ljava/lan|
+00000040  67 2f 53 74 72 69 6e 67  3b 78 70 00 00 00 1e 74  |g/String;xp....t|
+00000050  00 04 4a 61 63 6b                                 |..Jack|
+00000056
+```
 There are a few ways you can get your serial number
 ```java
+import java.io.ObjectStreamClass;
+import java.io.Serializable;
+
 public class App {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
     }
 }
-class Person implements Serializable{}
+class Person implements Serializable {}
 ```
 ```
 1733576120003020849
@@ -8963,7 +8953,6 @@ serialver -classpath target/classes com.java.test.Person
 #com.java.test.Person:    private static final long serialVersionUID = 1733576120003020849L;
 ```
 Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail
-
 You can also get serial number from binary data itself
 ```java
 /**
@@ -8980,18 +8969,14 @@ public class App {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             Person p2 = (Person) in.readObject();
             System.out.println(p2);
         } catch (IOException | ClassNotFoundException ex) {
             throw new RuntimeException(ex);
         }
-
         System.out.println(ObjectStreamClass.lookup(Person.class).getSerialVersionUID());
-
         System.out.println(readSerialNumberUID(Person.class, file));
-
     }
 
     private static long readSerialNumberUID(Class clazz, File file) {
@@ -9032,8 +9017,7 @@ class Person implements Serializable{
     }
 }
 ```
-
-`Serialization/Deserialization.` We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
+We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
 ```java
 import java.util.*;
 import java.io.*;
@@ -9116,8 +9100,6 @@ p2 => Person[name=Mike,age=30]
 end of file
 deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
 ```
-
-
 If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise we would get error.
 Since Body object inside Person doesn't implement `Serializible` we got error trying to serialize. 
 If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
@@ -9175,12 +9157,10 @@ class Body{
 ```
 Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableException: com.java.test.Body
 ```
-
-There are 3 ways we can customize serialization
+There are 3 ways we can customize serialization:
 * 1. define `serialPersistentFields` array with fields to be serialized
 * 2. define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
 * 3. implement `Externalizable` interface
-
 Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
 ```java
 import java.io.*;
@@ -9229,7 +9209,6 @@ class Person implements Serializable {
 Person [name=Mike, age=30, weight=80]
 Person [name=Mike, age=30, weight=0]
 ```
-
 Define custom `writeObject` and `readObject`
 By default java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
 Order of reading should correspond with order of writing. weight was written first so it should be read first.
@@ -9303,8 +9282,6 @@ class Person implements Serializable {
 ```
 p2 => Person[name=Mike, age=30, weight=80, currentObject=100]
 ```
-
-
 We can also use `writeFields` and `readFields`.
 ```java
 import java.io.*;
@@ -9357,8 +9334,6 @@ class Person implements Serializable {
 ```
 Person [name=Mike, age=30]
 ```
-
-
 We can also use custom serialization with `Externalizable` interface. In this case you have to override 2 methods + add no-arg constructor
 ```java
 import java.io.*;
@@ -9425,7 +9400,6 @@ public Person() {
     age = 1;
 }
 ```
-
 Java will overwrite all state that you set here, by using readExternal.
 Notice that different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
 The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData is not called, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
@@ -9474,11 +9448,27 @@ class Person extends Human implements Serializable {
     }
 }
 ```
-
 Rules of changing serialized classes:
 * if you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class, jvm will regenerate serial number
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
 * if some fields are removed from new class version, they just ignored during deserialization.
+Don't confuse:
+* java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
+* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format.
+There are other options available (XML/JSON - text based, Protobuffer/Thrift/Avro - binary), yet SBE is faster low-latency apps.
+SBE design:
+* xml schema - set layout & data type of message (which fields would be used)
+* compiler take the schema and generate optimized java file with java code
+you use SBEtool to generate encoder/decoder java classes, that would convert binary back and forth
+* message - genrated on runtime based on java file
+* no garbage - sbe use direct buffer, so no GC happening during message creation
+* use array as underlying storage, so cpu cache prefetching can expedite the process
+SBE better then java serialization:
+* no extra work to serialize parent classes, pay attention to transient, class initializers and so on
+Here we just have simple set of fields as message, and all fields need to be serialized
+* When deserizlise, we create many objects, then GC may start to clean
+Here we use non-heap memory, so no GC pause
+* Here we use best java practices like prefetching so it expedite overall serialize/deserialize process
 
 ###### XML serialization
 JAXB - java architecture xml binding - ability to dump object into xml and construct object from xml first add following into your pom.xml
@@ -12257,7 +12247,6 @@ WARNING: All illegal access operations will be denied in a future release
 ```                                                                  
 You can fix it by adding `--add-opens java.base/java.lang=ALL-UNNAMED` to compiler VM options                                                                                              
 ```java
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -13529,7 +13518,6 @@ https://docs.azul.com/prime/Memory-Overview
 * mapping between virtual memory and physical memory
 * https://github.com/OpenHFT/Chronicle-Map/blob/ea/docs/CM_Tutorial_Bytes.adoc
 * https://github.com/OpenHFT/Chronicle-Values#chronicle-values
-* why sbe is faster then java serialization
 * kafka commit which offset is read/proceed (so if we seek to it, kafka should notify that this reader already read this offset)
 * https://www.youtube.com/watch?v=iGRfyhE02lA (Владимир Иванов — G1 Garbage Collector)
 * https://www.youtube.com/watch?v=iB2N8aqwtxc (Алексей Шипилёв — Прагматика Java Memory Model)
