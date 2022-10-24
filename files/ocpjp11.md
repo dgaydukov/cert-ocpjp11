@@ -9602,10 +9602,38 @@ As you see, again we constructing object from json, we call no-arg constructor. 
 #### IO and NIO
 ###### InputStream/OutputStream and Reader/Writer
 There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
-but Reader/Writer works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
+but `Reader/Writer` works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
 `StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
 If we try to open non-existing file with `FileInputStrem/FileReader` we will got `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
-File has 2 separators
+This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
+```java
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class App{
+    public static void main(String[] args) {
+        File file = new File("nonExistingFile");
+        // delete in case file already exists
+        file.delete();
+        try(InputStream in = new FileInputStream(file)){
+        } catch (IOException ex){
+            System.out.println("InputStream => " + ex);
+        }
+        try(OutputStream out = new FileOutputStream(file)){
+        } catch (IOException ex){
+            System.out.println("OutputStream => " + ex);
+        }
+    }
+}
+```
+```
+InputStream => java.io.FileNotFoundException: nonExistingFile (No such file or directory)
+```
+File has 2 separators:
 `File.separator` - `/` for linux - separates files (/path/to/your/file)
 `File.pathSeparator` - `:` for linux - separates paths (/path/to/jar1.jar:/path/to/jar2.jar:/path/to/jar3.jar)
 We can prohibit file writing by setting `setReadOnly()` or `setWritable(false)` on `File` instance.
@@ -9628,14 +9656,13 @@ public class App {
 ```
 Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java/test/text (Permission denied)
 ```
-
 `java.io.File`:
 * `mkdir` - create one directory (if one of parent directory missing, return false)
 * `mkdirs` - create all non-existent parent directories
 
 ###### Console
 `Console` method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
-Pay attention that `Console` object is null when execute from IDE. You need to run it manually from console. In order for `Console` to work java should be run from interactive console without redirecting input/output.
+Pay attention that `Console` object is null when execute from IDE. You need to run it manually from console. In order for `Console` to work, java should be run from interactive console without redirecting input/output.
 With `Console` you can both read and write to/from console.
 ```java
 import java.io.Console;
@@ -9650,15 +9677,12 @@ class App{
         PrintWriter writer = console.writer();
         Reader reader = console.reader();
         System.out.println("reader class => " + reader.getClass());
-
         console.format("hello").format("world").format("!");
-
         // reading using 2 standard methods
         writer.println("enter your username: ");
         String name = console.readLine();
         writer.println("enter your password: ");
         char[] password = console.readPassword();
-
         //read using standard read of Reader
         try{
             int n = reader.read();
@@ -9669,7 +9693,6 @@ class App{
         } catch (IOException ex){
             throw new RuntimeException(ex);
         }
-
         writer.println(name + "/" + Arrays.toString(password));
     }
 }
@@ -9780,7 +9803,6 @@ hello worl
 d, I'm her
 e
 ```
-
 You can also get it from `FileInputStream/FileOutputStream` and `RandomAccess`
 ```java
 FileChannel in = new FileInputStream(absoluteInPath).getChannel();
@@ -9826,10 +9848,10 @@ src/main/java/test.txt
 ```
 
 ###### Path resolve and relativise
-There are a few methods relating to `Path`
-`resolve` - try bo combine 2 paths into one. If second path absolute, it uses it
-`relativise` - try to get relative path of other against current
-`Paths.get` internally use `Path.of` - static function.
+There are a few methods relating to `Path`:
+* `resolve` - try bo combine 2 paths into one. If second path absolute, it uses it
+* `relativise` - try to get relative path of other against current
+* `Paths.get` internally use `Path.of` - static function.
 ```java
 import java.nio.file.*;
 
@@ -10068,9 +10090,7 @@ public class App {
 /home/diman/projects/my/mvnjava/files/main/java
 /home/diman/projects/my/mvnjava/files/main/java/source
 ```
-
-
-We can list directory's files & subdirectories with 2 ways (with old `java.io.File` api and new `java.nio.file.Files` api)
+We can list directory's files & subdirectories with 2 ways (with old `java.io.File` api and new `java.nio.file.Files`)
 ```java
 import java.io.File;
 import java.io.IOException;
@@ -10117,42 +10137,42 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 
 public class App {
-   public static void main(String[] args) {
-       Path path = Paths.get("src/main/java/com/java/test/text");
-       try{
-           // throws IOException
-           BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-           // throws IOException
-           System.out.println("lastModifiedTime => " + attributes.lastModifiedTime() + " : " + Files.getLastModifiedTime(path));
-           System.out.println("isRegularFile => " + attributes.isRegularFile() + " : " + Files.isRegularFile(path));
-           System.out.println("isDirectory => " + attributes.isDirectory() + " : " + Files.isDirectory(path));
-           System.out.println("isSymbolicLink => " + attributes.isSymbolicLink() + " : " + Files.isSymbolicLink(path));
-           // throws IOException
-           System.out.println("size => " + attributes.size() + " : " + Files.size(path));
-           System.out.println("isOther => " + attributes.isOther());
-           System.out.println("lastAccessTime => " + attributes.lastAccessTime());
-           System.out.println("creationTime => " + attributes.creationTime());
-           System.out.println("fileKey => " + attributes.fileKey());
-       } catch (IOException ex){
-           throw new RuntimeException(ex);
-       }
-   }
+    public static void main(String[] args) {
+        Path path = Paths.get("src/main/java/com/java/test/text");
+        try{
+            // throws IOException
+            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+            System.out.println("BasicFileAttributes implementation => " + attributes.getClass().getName());
+            // throws IOException
+            System.out.println("lastModifiedTime => " + attributes.lastModifiedTime() + " : " + Files.getLastModifiedTime(path));
+            System.out.println("isRegularFile => " + attributes.isRegularFile() + " : " + Files.isRegularFile(path));
+            System.out.println("isDirectory => " + attributes.isDirectory() + " : " + Files.isDirectory(path));
+            System.out.println("isSymbolicLink => " + attributes.isSymbolicLink() + " : " + Files.isSymbolicLink(path));
+            // throws IOException
+            System.out.println("size => " + attributes.size() + " : " + Files.size(path));
+            System.out.println("isOther => " + attributes.isOther());
+            System.out.println("lastAccessTime => " + attributes.lastAccessTime());
+            System.out.println("creationTime => " + attributes.creationTime());
+            System.out.println("fileKey => " + attributes.fileKey());
+        } catch (IOException ex){
+            throw new RuntimeException(ex);
+        }
+    }
 }
 ```
 ```
-lastModifiedTime => 2020-02-19T07:33:45.473663Z : 2020-02-19T07:33:45.473663Z
+BasicFileAttributes implementation => sun.nio.fs.UnixFileAttributes$UnixAsBasicFileAttributes
+lastModifiedTime => 2022-10-24T08:54:10.634857Z : 2022-10-24T08:54:10.634857Z
 isRegularFile => true : true
 isDirectory => false : false
 isSymbolicLink => false : false
-size => 11 : 11
+size => 0 : 0
 isOther => false
-lastAccessTime => 2020-02-19T07:33:45.793662Z
-creationTime => 2020-02-19T07:33:45.473663Z
-fileKey => (dev=fd01,ino=1314666)
+lastAccessTime => 2022-10-24T08:54:10.634857Z
+creationTime => 2022-10-24T08:54:10.634857Z
+fileKey => (dev=fd01,ino=41683554)
 ```
-
-
-`setTimes` can allow to change time of file `setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime)`
+You can change time of file with `setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime)`
 ```java
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10185,8 +10205,6 @@ public class App {
 old time => 2019-11-22T11:08:55.116953Z
 new time => 2019-11-22T11:10:59.370485Z
 ```
-       
-
 We can also get `BufferedReader` directly from `Files.newBufferedReader`, and work with string lines instead of bytes. We can also read all lines into memory all at once with `Files.readAllLines`.
 ```java
 import java.util.List;
@@ -10223,7 +10241,6 @@ public class App {
 hello world
 hello world
 ```
-
 `Files.readAllLines` loads the whole file into memory, which is not good, we can use `lines` method, that return a stream which lazily loads lines from file. `BufferedReader` has also method `lines` that returns stream.
 ```java
 import java.io.BufferedReader;
@@ -10250,10 +10267,10 @@ public class App {
 hello world
 hello world
 ```
-
-`java.io.FileNotFoundException`  - file not found, or no permission to access it.
-`java.nio.file.NoSuchFileException` - file not found.
-`java.nio.file.AccessDeniedException` - no permission to access file
+Don't confuse:
+* `java.io.FileNotFoundException`  - file not found, or no permission to access it.
+* `java.nio.file.NoSuchFileException` - file not found.
+* `java.nio.file.AccessDeniedException` - no permission to access file
 ```java
 import java.io.*;
 import java.nio.file.*;
@@ -10265,7 +10282,6 @@ public class App{
     }
 }
 ```
-
 We can write to file using nio. `Files.writeString`.
 ```java
 import java.io.IOException;
@@ -10286,8 +10302,7 @@ public class App {
     }
 }
 ```
-
-`StringReader` - special class that can take a String object and turn it into `Reader` stream.
+You can take a String object and turn it into `Reader` stream using `StringReader`.
 ```java
 import java.io.*;
 
@@ -10320,8 +10335,15 @@ public class App {
 hello world
 hello world
 ```
-
 Since `Reader` works with chars that is subset of bytes we can easily convert `InputStream` to `Reader` (and `OutputStrem` to `Writer`), but not vice versa
+This is due to the fact, that `InsputStrem` is byte[], and `Reader` is char[].
+You can easily convert byte to char, but if you convert char to byte you have precision lost.
+```
+byte b;
+char c = b >= 0 ? b : b + 255;
+char c = b & 255
+```
+byte - 1 byte, char - 2 bytes. 
 ```java
 import java.io.*;
 
@@ -10337,7 +10359,6 @@ public class App {
     }
 }
 ```
-
 `RandomAccessFile` - you can read and write at arbitrary position. Second params to constructor should be mode(read/write).
 Since it implements `DataOutput` interface, as `DataOutputStream` does, they both have all methods to write like
 write, writeUTF, writeBoolean and so on... But there is no method writeString.
@@ -10394,7 +10415,6 @@ readBytes => is very im
 pointer => 15
 final text => This is very imabchello world                 
 ```
-
 If file doesn't exists and:
 * you are trying to open file for reading with InputStream/Reader/RandomAccessFile(r) - it will throw `FileNotFoundException`
 * you are trying to open it for writing with OutputStream/Writer/RandomAccessFile(rw) - it will try to create it, and if can't throw `FileNotFoundException` (the reason can be if parent directory doesn't exists or app has no rights to write to directory).
@@ -10624,7 +10644,6 @@ true
 bytes
 chars
 ```
-
 Since `BufferedOutputStream` and `DataOutputStream` takes `OutputStream` as constructor parameter, we can pass instances of each other and `FileOutputStream` into their constructors.
 Cause we pass the same object, position is stored, and we write from that position.
 ```java
@@ -10633,7 +10652,7 @@ import java.nio.file.Files;
 
 class App{
     public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/text"); // Contents of file: fosbosdospspw
         try{
             FileOutputStream fos = new FileOutputStream(file);
             fos.write("fos".getBytes());
@@ -10672,8 +10691,6 @@ size => 9
 size => 11
 size => 13
 ```
-Contents of file: fosbosdospspw.
-
 We can copy from one file to another using `FileInputStream` => `FileOutputStream`
 ```java
 import java.io.File;
@@ -10703,8 +10720,7 @@ public class App {
 50 2
 51 3
 ```
-Pay attention, that if dest contains any data, it would be overwritten. There is no way to write from another position in outputstream.
-
+Pay attention, that if it contains any data, it would be overwritten. There is no way to write from another position in outputstream, but you can use RandomAccessFile.
 But it’s better to use `Buffered` streams, cause `File` reads char by char, that is not effective
 ```java
 import java.io.*;
@@ -10739,7 +10755,6 @@ public class App {
 [100, 33, 111, 114, 108] 2
 ```
 Pay attention that on the 3rd iteration, only 2 elements of buffer has been written (cause it was end of file), yet buffer contains 5 elements, 3 of which from previous write. That means, that buffer filled char by char, without prior clearing.
-
 We can also use `BufferedReader/BufferedWriter` classes to read and write by line
 ```java
 public class App {
@@ -10796,10 +10811,13 @@ Array is an object, and stored all data in the heap, even array of int, would be
 Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
 ByteBuffer provides view into some (undefined) underlying storage of bytes
 There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
-* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`)- backed by array of bytes (not subject to the GC).
+* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes (not subject to the GC).
 constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself
-* `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - backed by direct (off-heap, native) byte buffers
+under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is storedin heap.
+* `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - in-heap memory, backed by `byte[]` which in the end resides in heap memory, since the name contains heap word.
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
+Conclusion, if you are fine with on-heap memory, you can just use simple array of bytes, no need to use any buffer, but if you want off-heap memory, use DirectByteBuffer
+this leads me to conclusion, that it should be faster and more useful then HeapByteBuffer. Yet both implement same base class, so they can be used interchangeably.
 Don't confuse:
 * multithreading lock - lock based on thread
 * file lock - lock based on process (so multiple thread can access same file, no locking here)
