@@ -10821,6 +10821,8 @@ this leads me to conclusion, that it should be faster and more useful then HeapB
 Don't confuse:
 * multithreading lock - lock based on thread
 * file lock - lock based on process (so multiple thread can access same file, no locking here)
+    * exclusive lock - write lock, prevent all other operations including read
+    * shared lock - read lock, more then one process can read, yet while reading no writes are possible
 Don't confuse:
 * array of bytes `byte[] arr = new byte[100];` - just simple array of bytes
 * byte buffer `ByteBuffer buf = ByteBuffer.allocate(10);` - have more methods to manipulate with bytes. You can also wrap array of bytes: `ByteBuffer buf = ByteBuffer.wrap(new byte[100]);`
@@ -10843,7 +10845,7 @@ heapBuffer => java.nio.HeapByteBuffer
 ```
 Memory mapped file - concept where you map HDD file to virtual memory, and then can treat this file as memory region, read/write, but OS take care
 to do read/write to actual disk file on the background. For end user - you just work with region of virtual memory.
-We can use MappedByteBuffer/FileChannel to with with memory-mapped file.
+We can use `MappedByteBuffer/FileChannel` to work with memory-mapped file.
 there is some difference between old java io and new one:
 Java I/O:
 * java perform IO by requesting OS to drain from buffer (write operation) or fill a buffer (read operation)
@@ -10861,6 +10863,8 @@ read file into memory
 after you read from file, nothing would be written, and `BufferOverflowException` would be thrown on first attempt to write
 Below code read byte array from file, then fill file with `x` characters. so assume originally `hello` was written in file we got:
 ```java
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -10868,9 +10872,9 @@ import java.nio.channels.FileChannel;
 public class App{
     public static void main(String[] args) throws Exception{
         final int FILE_SIZE = 5;
+        byte[] arr = new byte[FILE_SIZE];
         try(RandomAccessFile file = new RandomAccessFile("src/main/resources/file.txt", "rw")){
             MappedByteBuffer out = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, FILE_SIZE);
-            byte[] arr = new byte[FILE_SIZE];
             for (int i = 0; i < FILE_SIZE; i++){
                 arr[i] = out.get();
             }
@@ -10880,11 +10884,18 @@ public class App{
             }
             System.out.println("content => " + new String(arr));
         }
+        try(InputStream is = new FileInputStream("src/main/resources/file.txt")){
+            int b = 0;
+            while((b=is.read())!=-1){
+                System.out.print((char)b);
+            }
+        }
     }
 }
 ```
 ```
 content => hello
+xxxxx
 ```
 Although you can create large map, you are limited by int number. Let's try to open 10GB file.
 `map` function take long, but inside implementation use int, and check if value not overflow max int value
@@ -10916,36 +10927,28 @@ Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Inte
 
 #### Miscellaneous
 ###### Modules
-There are 3 types of modules
-1. named module (NM) - one with `module-info.java` file loaded from `--module-path`
-2. automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so mysql-java-connector-1.2.3.jar => mysql.java.connector. You can also set it explicitly by adding to MANIFEST.MF => Automatic-Module-Name: <module name>)
-3. unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`
-
+Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
+There are 3 types of modules:
+* named module (NM) - one with `module-info.java` file loaded from `--module-path`
+* automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so mysql-java-connector-1.2.3.jar => mysql.java.connector. You can also set it explicitly by adding to MANIFEST.MF => Automatic-Module-Name: <module name>)
+* unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`
 NM can have access to AM, but should require it in it's `module-info.java` file by it's name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
 AM can access all types from both NM and AM 
 UM can access all types from both NM and AM
-
 Bottom-up vs top-down approach. Suppose we have 3 jars A.jar => B.jar => C.jar (=> - means depend).
 Bottom-up:
 * first convert C.jar (A.jar and B.jar can still be run from classpath since from classpath you can access all packages)
 * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
 * finally convert A.jar -> now all are named modules run from --module-path
 Top-down:
-* first convert A.jar (add reference to B from it's module-info). In this case both A.jar and B.jar is loaded from --module-path, and C.jar loaded from classpath
-* second convert B.jar (add reference to C from it's module-info). In this case All 3 loaded from --module-path, C - automatic module
+* first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from --module-path, B - automatic module, and C.jar loaded from classpath
+* second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
 * finally convert C.jar
-
-If you converted 1,2,3 to modules, you can still run them as all of them from either classpath (in this case they all loaded as simple jars) or from modulepath (in this case named module loaded as named module, others as automatic modules).
-
+If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from modulepath (in this case named module loaded as named module, others as automatic modules).
 Inside module-info we can:
-requires one module at a time (requires moduleA, moduleB - illegal)
-exports one package at a time (exports my.com.java.* - illegal)
-provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
-
-Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
-`Jlink` - you can create custom jre environment, and run your app, where there is no java
-You can run your jar with 2 options `-jar` or `-cp`. If you jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
-
+* requires one module at a time (requires moduleA, moduleB - illegal)
+* exports one package at a time (exports my.com.java.* - illegal)
+* provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
 We can also use custom module inside maven project.
 ```xml
 <dependency>
@@ -10957,16 +10960,16 @@ We can also use custom module inside maven project.
 </dependency>
 ```
 Pay attention that groupId, artifactId and version can be any value.
-
 `ServiceLoader` - used for loading services. There are 2 ways we can use it:
 * old jar way - creating file `META-INF/services/NameOfService` and putting name of your implementation there
 * new module way - with module definition `provides/uses`
 There are also 2 ways to implement loading:
 * extend you class from abstract class(or concrete class) or implement interface. In this case implementation should have no-arg constructor. If no no-arg constructor, 
-ServiceLoader won't be able to load the implementation you will get compile error (`foo/module-info.java:5: error: the service implementation does not have a default constructor: SecondFooInterfacePrinter`)
+ServiceLoader won't be able to load the implementation, you will get compile error (`foo/module-info.java:5: error: the service implementation does not have a default constructor: SecondFooInterfacePrinter`)
 * add `public static NameOfService provider(){}` to your class. In this case these method calls. No need for no-args constructor.
 If class both implement type and return this type in `provider()` method - this method has priority.
-
+`Jlink` - you can create custom jre environment, and run your app, where there is no java
+You can run your jar with 2 options `-jar` or `-cp`. If you jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
 `javap` - java disassembler, works with bytecode `.class` files.
 Usage:
 `javap -v compiled/com/java/test/App.class`
@@ -11076,7 +11079,6 @@ Constant pool:
 }
 SourceFile: "App.java"
 ```
-
 `jdeps` - analyze class dependencies
 Example output:
 ```
@@ -11088,7 +11090,6 @@ moduleD -> jarB
 moduleD -> java.base
 moduleD -> moduleC
 ```
-
 `-jdkinternals` or `--jdk-internals` - Finds class-level dependencies on JDK internal APIs.
 
 ###### Random numbers
@@ -11103,7 +11104,7 @@ so it's more secure and less change of somebody guess it. You can also manually 
 ```shell script
 dd if=/dev/urandom of=~/random.bytes count=4 bs=1024
 ```
-All methods in `Random` are instance.
+All methods in `Random` are on instance (no static calls).
 There are 2 constructors one is empty another with seed of `long`. When you use no-arg it generate seed based on nanotime.
 ```java
 import java.util.Random;
@@ -11133,13 +11134,9 @@ public class App {
         System.out.println("doubles => " + rnd.doubles().limit(2).boxed().collect(Collectors.toList()));
         // ints(x)/longs(x)/doubles(x) => generate limited (with x number) Int/Long/Double-Stream
         System.out.println("ints(2) => " + rnd.ints(2).boxed().collect(Collectors.toList()));
-
         System.out.println();
-
         System.out.println("Math.random() => " + Math.random());
-
         System.out.println();
-
         // ThreadLocalRandom extends Random, you should call it ThreadLocalRandom.current()
         System.out.println("ThreadLocalRandom.current().nextInt(10_000) => " + ThreadLocalRandom.current().nextInt(10_000));
         // generate number within specific range
@@ -11174,7 +11171,7 @@ range with rnd.nextInt => 214
 
 ###### Locale and ResourceBundle
 `Locale` - immutable class, once created can't change it's locale. There are 3 ways to create `Locale`. Language, language & country, language & country & variant. So `Locale` at least requires language.
-`getString(str s)` - retreive value by key from current or all parent bundles. Loading happens this way:
+`getString(str s)` - retrieve value by key from current or all parent bundles. Loading happens this way:
 first => parent bundle loaded, and then more concrete loaded and values from concrete bundle overwrite values from base bundle.
 Don't confuse builder method setRegion(not setCountry) and locale method getCountry(not getRegion)
 ```java
@@ -11194,7 +11191,6 @@ public class App{
 getLanguage => en
 getCountry => US
 ```
-
 If we want to reassign `ResourceBundle` to other locale, we can't change current locale, we need reassign variable itself.
 ResourceBundle loading files in following ways. Suppose we have 4 files and our default locale is `en_HK`
 ```
@@ -11204,14 +11200,13 @@ myapp_en_US.properties
 myapp_fr.properties
 ```
 Then we have following order of execution:
-* if we don't pass anything `myapp_en` would be loaded, cause default locale is en.
+* if we don't pass anything `myapp_en` would be loaded, cause default locale is en
 * if we pass existing locale (like `fr` or `en_US`) corresponding file would be loaded
 * if we pass `en_us` locale 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
 * If we pass non-existing locale (like `german`) default locale would be loaded
 * If we set default locale as `german`, then `myappp` would be loaded.
 `Locale.setDefault` has 2 overloaded methods. One takes `Locale` object, another (Locale.Category, Locale).
 `Locale.getDefault` has 2 overloaded methods. () - get all, (Locale.Category)
-
 If we try to `getBundle` resource that doesn't exist, we got `java.util.MissingResourceException: Can't find bundle for base name myapp1, locale fr`
 If bundle exists, but there is no value for key, we got `java.util.MissingResourceException: Can't find resource for bundle java.util.PropertyResourceBundle, key lang`
 ```java
@@ -11246,7 +11241,6 @@ fr locale => french
 de locale => english
 de locale => default
 ```
-
 `getKeys` returns all keys from current bundle and all parent bundles. If keys are same current bundle keys values are used, if in parent bundle there are new keys, they also be included.
 ```java
 import java.util.*;
@@ -11273,7 +11267,6 @@ lang => french
 country => france
 test3 => test3
 ```
-
 We can create custom bundle where we can call methods like `getString/getObject/getStringArray`
 ```java
 import java.util.*;
@@ -11327,10 +11320,8 @@ If you want to disable assertion use `-da` or `-disableassertions`. You can enab
 You can have multiple line ea or da. For example if you want to enable them in general but disable for mypackage `java -ea -da:mypackage`.
 If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`
 If you want to enable/disable assertions for all subpackages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
-
 Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods.
 The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
-
 If you want assertions to be enabled you can force user of your program to use it
 ```java
 public class App {
@@ -11447,7 +11438,6 @@ object of type My has been garbage-collected
 done
 run when jvm exits
 ```
-
 `finalize` - became deprecated since Java9. You should use `Cleaner` instead.
 ```java
 public class App {
@@ -11487,7 +11477,6 @@ object of type My has been garbage-collected
 10
 done
 ```
-
 Java has concept of strong/weak/soft/phantom reference:
 * strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
 * phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects
@@ -11523,7 +11512,6 @@ weakReference => null
 softReference => java.lang.Object@eed1f14
 phantomReference => null, queue => java.lang.ref.PhantomReference@6acbcfc0
 ```
-
 You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed. So when key is garbage-collected, it removed from hashmap automatically.
 Use it if you want im-memory cache, but want objects to be removed from cache, once they are not used (once they have been garbage collected)
 ```java
@@ -11565,7 +11553,6 @@ class B extends A{
     public static void staticPrint(){}
 }
 ```
-
 `@SuppressWarnings` - can be used to suppress compiler warnings. `@SafeVarags` - stronger, suppress warnings in both declaration and invocation.
 ```java
 import java.util.*;
@@ -11616,7 +11603,6 @@ void doElements(List l) {
     String s = (String)l.get(0);
 }
 ```
-
 ```java
 public class App {
     public static void main(String[] args) {
@@ -11637,7 +11623,6 @@ Information:java: Recompile with -Xlint:unchecked for details.
 ```
 Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String
 ```
-
 If we add `@SafeVarags` to `print` methods, compilation warnings would be gone. Although it won't make code safe, you will still get `ClassCastException`.
 Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package. Annotation value must be compile time constant non-null value.
 `@Retention(SOURCE/CLASS/RUNTIME)` - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
@@ -11653,7 +11638,7 @@ class User{}
     String value();
 }
 ```
-So if wanted to add 2 roles we have to create new wrapper annotation
+So if you want to add 2 roles, you have to create new wrapper annotation
 ```java
 @Roles(value = {
     @Role("user"),
@@ -11696,9 +11681,8 @@ class User{}
     }
 }
 ```
-
 Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
-but inside it creates this wrapper, and so if you array named not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
+but inside it creates this wrapper, and so if your array's name is not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
 ```java
 @Role("user") // won't compile
 @Role("admin") // won't compile
@@ -11713,7 +11697,6 @@ class User{}
     String name();  // should have default value
 }
 ```
-
 When you use `Repeatable` annotation, and trying to get it by reflection, you will get array annotation, inside which would be your annotations with values
 ```java
 import java.lang.annotation.Repeatable;
@@ -11764,7 +11747,6 @@ class User{}
 @com.java.test.Groups(value={@com.java.test.Group(value="user"), @com.java.test.Group(value="admin")})
 @com.java.test.Service(value="userService")
 ```
-
 `@Documented` - guarantee that annotation would be shown in javadoc
 ```java
 @Documented
@@ -11781,9 +11763,7 @@ com.java.test @Role("admin")
 class User
 extends Object
 ```
-
-
-`@Inherited` - subclasses of annotated class have the same annotation. Pay attention that it doesn't work for interfaces (yet IAdmin interface extends IUser, it doesn't inherit it annotations).
+`@Inherited` - subclasses of annotated class have the same annotation. Pay attention that it doesn't work for interfaces (IAdmin interface extends IUser, it doesn't inherit it annotations).
 ```java
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -11820,7 +11800,6 @@ Admin => @com.java.test.Role(value="user")
 IUser => @com.java.test.Role(value="user")
 IAdmin => null
 ```
-
 You can create your own meta annotations. For this set target as `ElementType.ANNOTATION_TYPE`
 ```java
 @Target(ElementType.ANNOTATION_TYPE)
@@ -11835,7 +11814,6 @@ You can create your own meta annotations. For this set target as `ElementType.AN
 @Service
 class A{}
 ```
-
 If annotation has one field with `value` name - you can put this value into annotation without explicitly naming it. If name of field not `value` or there are other fields you should explicitly name them.
 ```java
 @interface Service{
@@ -11854,7 +11832,6 @@ If annotation has one field with `value` name - you can put this value into anno
 @MultiValueService(value = "cool", name = "abc")
 class A{}
 ```
-
 String arrays as annotation values. If annotation value is String[] we can pass one value just as string, but can't pass array of nulls:
 ```java
 public class App{
@@ -11875,7 +11852,6 @@ class MyService1{}
 @Service(name = "A", params = { null }) // compile error, can't pass null
 class MyService2{}
 ```
-
 Types of annotation values: according to  [JLS 9.6.1](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.6.1). 
 The annotation member types must be one of: `primitive/String/Enum/Annotation/Class/Array`.
 ```java
@@ -11896,7 +11872,6 @@ enum Days{
     List params(); // won't compile
 }
 ```
-
 Default values should be named without equal sign
 ```java
 @interface Service{
@@ -11904,8 +11879,7 @@ Default values should be named without equal sign
     String name()  default = "Jack"; // won't compile, equal sign after default keyword
 }
 ```
-
-`ElementType.METHOD` - can be applied both above method, and inside method before return value
+`ElementType.METHOD` - can be applied both: above method and inside method before return value
 ```java
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
@@ -12125,14 +12099,13 @@ public class App{
     }
 }
 ```
-If we just run it from `intelliJ` as it is we get
+If we just run it from `intelliJ` as it is, we get:
 ```
 isNamePresent => false, name => arg0
 isNamePresent => false, name => arg1
 ```
-But if we got to `Settings`=>`Java Compiler`=>`Additional command line parameters` and add there `-parameters`, 
-remove target folder (just to avoid caching) we would get
-```java
+But if we got to `Settings`=>`Java Compiler`=>`Additional command line parameters` and add there `-parameters`, we get:
+```
 isNamePresent => true, name => myName
 isNamePresent => true, name => myAge
 ```
@@ -12204,7 +12177,6 @@ public class CustomAnnotationProcessor extends AbstractProcessor {
     }
 }
 ```
-
 Now we can start building. First we need to build `CustomAnnotationProcessor.java`, and then build `App.java` with the help of this processor
 ```shell script
 # compile Annotation and AnnotationProcessor into `compiled` directory
@@ -12225,23 +12197,24 @@ public class App {
 }
 ```
 if you just run
-
+```
 javac App.java 
 java App
 Error: Could not find or load main class App
 Caused by: java.lang.NoClassDefFoundError: my/App (wrong name: App)
-
+```
 This is because we compile without package structure. So we should clearly define packages, or using -d option.
-
+```
 javac -d . App.java 
 java my.App 
 hello world!
+```
 
 ###### JDK Proxy, Cglib, Javassist
 There are 3 ways you can create java classes on the fly
 * Jdk Proxy - work only with interfaces
 * [cglib](https://github.com/cglib/cglib) - work with both classes and interfaces, [adviced not to use as of 2019](https://github.com/cglib/cglib/issues/129)
-* [Javassist](https://www.javassist.org/) - work with both classes and interfaces
+* [Javassist](https://www.javassist.org) - work with both classes and interfaces
 To use cglib and javassist add this to your `pom.xml`
 ```
 <dependency>
@@ -12350,9 +12323,7 @@ public interface PrinterMBean{
     void setValue(int value);
 }
 ```
-
 The main logic:
-
 ```java
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -12386,7 +12357,6 @@ class Printer implements PrinterMBean {
     }
 }
 ```
-
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
 ###### Custom ClassLoader
@@ -12440,7 +12410,6 @@ hello world
 
 ###### Desktop
 There are 2 types of packages to work with desktop: `javafx` and `swing`.
-
 Here is simple gui app that enable you to convert you text to upper case.
 ```java
 import javax.swing.JButton;
@@ -12507,7 +12476,6 @@ public class App {
     }
 }
 ```
-
 Starting from `jdk11`, `jafafx` was decoupled from it. So if you want to work with it you have to add following to your pom.xml file
 ```
 <dependency>
@@ -12569,7 +12537,6 @@ class A {
     private void m3(){}
 }
 ```
-
 The concept of virtual methods is very important in polymorphism and OOP. Take a look, that although object of type A, but method is called on type B, that means it's virtual.
 ```java
 public class App{
@@ -12603,7 +12570,7 @@ class B extends A{
 
 #### Low latency
 change java version:
-* first install several java versions, then you can switch between them
+* first install several java versions, so you can switch between them
 * you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
 ```
 # update java version
@@ -12614,7 +12581,7 @@ sudo update-alternatives --config javac
 File => Project Structure => Project SDK (chose either 8 or 11)
 ```
 why ms windows shows disk size less then they are 100gb = 93gb
-answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in si - International System of Units
+answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units)
 yet we have jedec where each increasing on 1024, take a look at this table
 ```
         si        jedec
@@ -12786,8 +12753,8 @@ memory address - fixed-length unsigned integer
 Don't confuse:
 * physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller)
 to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create logical memory space in which running program is read/write data. then MMU create
-mapping between logical and physical memory. so your program need not to care to work with main memory. 
+* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create
+mapping between logical and physical memory, so your program need not to care to work with main memory. 
 Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
 VM (virtual memory) guarantee:
@@ -12804,14 +12771,14 @@ if you work with c/c++ and use pointers then 2 cases are possible:
 * if you run your program without os or you are writing os kernel - then you would access physical memory directly
 There are 2 types of memory address resolution:
 1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
-   most modern pc are byte-addressable. yet there are many example pf cpu architecture that is word-addressable
+   most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable
    this is due to historical reason, since computer works mostly with text and single byte should store single character
    since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
    also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
   * byte - you just read it and modify
   * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
 2. word-addressable - minimal memory address size is processor word
-   cpu word can be of size 16/24/32/64 bit, has it's own memory address
+   cpu word can be of size 16/24/32/64 bit, has its own memory address
    so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
    for 64 - each 64 bits or 8 bytes would have separate address
    there were a few decimal-addressable machines, but they not used nowadays
@@ -12890,13 +12857,13 @@ Mark & Sweep model - default implementation in java GC:
     * GC root - local/static variables, active threads
     * before destroying object, GC called `finalize` method exactly once
 * sweep - search the heap and find all unoccupied space between objects for future object allocation
-all jvm gc can be divided into 4 types:
+All jvm gc can be divided into 4 types:
 * serial - use single thread
 * parallel (we can specify number of threads and max pause time) - use multiple threads 
 * low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
     * initial marking of gc roots
     * if app changed the state of the heap, while gc was running
-* G1 - use multiple threads scan heap by dividing in into many region and scan regions with most garbage first
+* G1 - use multiple threads scan heap by dividing in into many regions and scan regions with most garbage first
 * Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
     * partition the heap like G1, yet heap chunks can have different size
     * stop the world - no more then 10ms
@@ -12924,7 +12891,7 @@ One downside of CMS is that it doesn't run compaction. So use if you don't need 
 This can be useful if you have low-latency app with huge memory or for performance testing
 * `-XX:+UseShenanodoahGC` - 
 SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
-so if we don't do this, while we run app may change reference and we can accidently remove used object
+so if we don't do this, while we run app may change reference and we can accidentally remove used object
 example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
 so it's better to make snapshot of object graph at the beginning and use it for marking
 When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
@@ -12955,7 +12922,7 @@ PermGen:
 Metaspace:
 * replaced the older PermGen memory space starting form JDK 8
 * grows automatically by default
-* GC triggers cleaning of dead classes once class metadata usage reaches max metaspace size
+* GC triggers cleaning of dead classes, once class metadata usage reaches max metaspace size
 Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
 cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
 Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
@@ -13013,18 +12980,21 @@ Don't confuse(endianess - the way we store bytes in memory):
 * little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
 keep in mind that only bytes change order, bits inside single byte stay as they are
 in big-endian you have to move all digits right. But with little-endian you just add digits
+In the old days little-endian has advantage, cause you can read 32 bit variable as 8 or 16bit variable.
+Endianess:
+* for cpu is not an issue anymore, cause developers use high-level programming language.
+* for network transfer - can be a problem, but only if you use binary representation, since most protocol these days use XML/JSON, no issue with text protocols
+yet for SBE, and any binary representation, endianess still an issue, so pay attention to it. 
 Don't confuse:
 * signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
-* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. `char` is unsigned, yet byte/int/long - signed
+* unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. In java `char` is unsigned, yet byte/int/long - signed
 There are several character encoding:
 * ASCII (American Standard Code for Information Interchange)
     * defines 128 characters (0-127)
     * first 32 - non-printable control characters like return or new line
     * nowadays it's a subset of many other encoding
     * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
-    so we ended up with many computers that treat upper 128 bits differently and depend on your OS,
-     upper bits could be resolved quite differently
-    and this led to ANSI
+    so we ended up with many computers that treat upper 128 bits differently and depend on your OS, upper bits could be resolved quite differently and this led to ANSI
 * ANSI (American National Standards Institute)
     * general agreement what to do with upper 128 bits
     * first 128 bits would always be ASCII for all computers
@@ -13048,7 +13018,7 @@ There are several character encoding:
     * so to resolve these 2 issues - encodings where created to answer main question how to store code points in memory?
         first encoding support high/low-endian was usc-2 - universal code character set - 
         2 bytes called bom-byte (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
-      fe ff - big endian, ff fe - little endian
+      `fe ff` - big endian, `ff fe` - little endian
         Yet developers complain about all these zeros so utf-8 was born
 * UTF-8 (Unicode Transformation Format 8-bit)
     * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
@@ -13056,8 +13026,8 @@ There are several character encoding:
     * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
     * physical memory - we have following rule:
       1 byte  -> 0xxxxxxx (size 7 bit) - single byte - store it just as byte
-      2 bytes -> 110xxxxx 10xxxxx => so 110_10 (size 8-11 bit) - is a mark of 2 bytes, others used to store chars
-      3 bytes -> 1110xxxx 10xxxxx 10xxxxx => so 1110_10_10 (size 12-16 bit) - mark of 3 bytes, others used to store chars
+      2 bytes -> 110xxxxx 10xxxxx => (size 8-11 bit), so 110_10 - is a mark of 2 bytes, others used to store chars
+      3 bytes -> 1110xxxx 10xxxxx 10xxxxx => (size 12-16 bit), so 1110_10_10  - mark of 3 bytes, others used to store chars
       4 bytes (size 17-21 bit) - so up to 2**21=2m chars
       ... and we can go all the way up to 6 bytes
       6 bytes -> 1111110x 10xxxxx 10xxxxx 10xxxxx 10xxxxx 10xxxxx (size 30-31 bit)
@@ -13067,9 +13037,9 @@ There are several character encoding:
 Don't confuse:
 * UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
 * UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII.
-  yet it faster then utf-8 which try to determine if it character size, so most programming language like java using utf-16, yet it take more memory to store it compare to utf-8
-  since string is byte array, and java use utf-16, each string symbol in java takes either 2 or 4 bytes
-  in c strings are mutable and it store end of each string, but to get string length is heavey operation. in java string are fixed-lengs
+  yet it faster then utf-8 which try to determine if it character size, so most programming languages like java using UTF-16, yet it take more memory to store it compare to utf-8
+  since string is byte array, and java use UTF-16, each string symbol in java takes either 2 or 4 bytes
+  in C strings are mutable and it store end of each string, but to get string length is heavy operation. in java string are fixed-lengths
   that's why java choose immutable strings, so each time you modify a string, new string is created
 * UTF-32 - fixed size 4 bytes for each character. this is the fastest one, cause compare to utf-8/16 you don't need to guess char size. 
   you just break your string into chunks of 4 bytes each and read it one-by-one. yet it takes 4 times more space then utf-8
@@ -13077,7 +13047,7 @@ so numbers 8/16/32 - denote min size of single char. this means all 3 can store 
 Don't confuse:
 * character set - list of characters where each char is mapped to numeric value called `code point`.
 * encoding - how we encode/map characters into memory (how numeric values `code points` are mapped into bytes)
-  so unicode - is character set only, ucs-2 was encoding desinged to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
+  so unicode - is character set only, ucs-2 was encoding designed to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
 Java example how to convert string to bits
 ```java
 public class App{
@@ -13134,13 +13104,13 @@ str => ��������������������
 ```
 
 ###### Floating Point Numbers
-there are several types of numbers;
+There are several types of numbers:
 * natural numbers - 1,2,3...
 * integers - positive/negative natural numbers and zero -2,-1,0,1,2....
 * rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
 * irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
 * real numbers - include both rational and irrational
-converting decimal fraction to binary;
+converting decimal fraction to binary:
 * to convert you start with fraction and multiply by 2 until fraction is 0 
 * only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
 * other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
@@ -13158,21 +13128,21 @@ convert 1/5 to binary
 0.6 * 2 = 1 + 0.2 as you see again we got 0.2
 so 0.2 = 0.1100(1100)
 ```
-so you can see that we have rational number like;
+so you can see that we have rational number like:
 * 1/8=0.125 that can be represented as finite in both decimal and binary
 * 1/5=0.2 that can be represented as finite in decimal but not in binary
 * `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
 simple rule is denominator:
-* if it power 10, then it can be represented as finite decimal fraction
+* if 10 can be divided without leftover, like 2/5/10, - no problems
 * if it's power 2, then it can be represented as finite binary
 as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
 but once we do this, we encounter rounding problem;
 * stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
-* floating-point representation - most widely used representation of real numbers in pc. it has base=b, and precision=p.
-there are 3 way to store floating point;
+* floating-point representation - most widely used representation of real numbers in PC. it has base=b, and precision=p.
+there are 3 way to store floating point:
 * float - 32bit
 * double - 64bit
-* long double - 80bit or 128bit
+* long double (not available in java, yet we have it in C) - 80bit or 128bit
 let's see how fractional numbers stored in memory
 ```
 convert separately integer and fractional part into binary
@@ -13182,8 +13152,8 @@ write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - 
 move our power number into binary 2=10
 7.25=1.1101 * 10**10
 write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
-since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129 - based on this rule you can see that for 32bit we can store max 10**128 - very large number
-0[10000001]1101[all zeros]
+since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129, 
+based on this rule you can see that for 32bit we can store max 10**128 - very large number 0[10000001]1101[all zeros]
 we can convert it back
 -1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
 ```
@@ -13192,7 +13162,7 @@ yet when we try to convert this binary back into decimal, we don't get 0.2, but 
 and this is limitation of binary math, not of processors or programming language
 there are a few ways you can circumvent it;
 * don't use fractional numbers, use integers
-* use BigDecimal/BigInteger]
+* use BigDecimal/BigInteger
 
 ###### sun.misc.Unsafe
 `sun.misc` - special package for 2 low-level classes:
@@ -13455,8 +13425,9 @@ public void remove(Node node){
 }
 ```
 Yest this only works if you know the Node, if you pass just value, you would still do O(n) to find proper Node, so in this case pure delete by value will still take O(n)
-* skip list:
-    * we have singly linked list + every node point to second/fourth/8-th and so on. So search is basically same as binary search, we can just do O(log n)
+Skip list:
+* store sorted list of elements in linked list
+* we have singly linked list + every node point to second/fourth/8-th and so on. So search is basically same as binary search, we can just do O(log n)
 ```java
 import lombok.Data;
 
