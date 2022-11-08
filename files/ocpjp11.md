@@ -5034,12 +5034,16 @@ Exception in thread "main" java.lang.IllegalArgumentException: key out of range
 ```
 
 ###### Queue and Stack
+Don't confuse (see [javadoc for queue](https://docs.oracle.com/javase/6/docs/api/java/util/Queue.html))
+* head - start of the queue, from where you read & remove elements
+* tail - end of the queue, where you add new elements.
+So if we have a queue[1,2,3], 1 - is head, 3 - tail. If we add 4, it would be added to tail, after 3
 If you want to implement queue(FIFO) - use `Queue` interface or `Deque`, if you want to implement stack(LIFO) - use `Deque` interface. `Deque` is child of `Queue` it extends it to work from both ends.
 All methods divides on 2 types. Some throws exception, others just return null/false
-Queue
-boolean add(IllegalStateException)/offer(false) - add to the tail
-T remove(NoSuchElementException)/poll(null)     - remove from the head
-T element(NoSuchElementException)/peek(null)    - view element from the head
+methods of queue:
+* boolean add(IllegalStateException)/offer(false) - add to the tail
+* T remove(NoSuchElementException)/poll(null)     - remove from the head
+* T element(NoSuchElementException)/peek(null)    - view element from the head
 
 For `BlockingQueue` there are blocking operations:
 * T take (InterruptedException) - wait until elements appear in queue and poll it. Keep in mind that simple `poll` would immediately return null if queue is empty
@@ -5220,7 +5224,7 @@ class MyRingBuffer<T> implements RingBuffer<T> {
 [B, C, D, E]
 [C, D, E, F]
 ```
-Below is fixed-size queue custom implementaion
+Below is fixed-size queue custom implementation
 ```java
 public class App{
     public static void main(String[] args) {
@@ -8316,9 +8320,9 @@ Add this to your pom.xml to work with disruptor
     </dependency>
 ```
 Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
-Disruptor is a bad naming, cause what is actually is - non-blocking single writer queue, there can be many readers, cause each reader maintain its own sequence, but only single writer
+Disruptor is a bad naming, cause what is actually is - non-blocking multi-reader/writer queue. Since each reader maintains sequence, you can have many readers that read from queue.
 * multicast events - send same message to multiple consumers
-* consumer dependency graph - if we have 3 consumer A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
+* consumer dependency graph - if we have 3 consumers: A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
 * memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
 * optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
 * not breaking SWP, while queue does
@@ -8332,13 +8336,13 @@ SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
 * optimistic concurrency - using CAS algorithms
 But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
 In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
-There are 4 main waiting strategy (all implements `WaitStrategy` interface)
+There are 4 main waiting strategy (all implements `WaitStrategy` interface):
 * BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
 * SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
 * YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
 * BusySpinWaitStrategy
 Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
-Queue is a bad chose cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
+Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
 In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
 So queue because it break SWP can cause false sharing (silent performance killer).
 False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
@@ -13511,7 +13515,6 @@ https://docs.azul.com/prime/Memory-Overview
 * https://www.youtube.com/watch?v=iGRfyhE02lA (Владимир Иванов — G1 Garbage Collector)
 * https://www.youtube.com/watch?v=iB2N8aqwtxc (Алексей Шипилёв — Прагматика Java Memory Model)
 * https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
-* https://www.youtube.com/watch?v=FL7_lxJbX0o (Иван Землянский — Аерон. High performance-транспорт для low latency-микросервисов)
 * https://real-logic.co.uk/about.html (videos by Martin Thompson)
 * compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
 * The Art of Multiprocessor Programming (check both editions)
