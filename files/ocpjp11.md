@@ -53,8 +53,6 @@
 * 7.8 [Synchronized on ID](#synchronized-on-id)
 * 7.9 [Future & CompletableFuture](#future--completablefuture)
 * 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
-* 7.11 [Agrona Library](#agrona-library)
-* 7.12 [LMAX Disruptor](#lmax-disruptor)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -103,7 +101,8 @@
 * 13.6 [Floating Point Number](#floating-point-numbers)
 * 13.7 [sun.misc.Unsafe](#sunmiscunsafe)
 * 13.8 [Linked lists](#linked-lists)
-
+* 13.9 [Agrona Library](#agrona-library)
+* 13.10 [Aeron](#aeron)
 
 
 
@@ -8254,148 +8253,6 @@ class BankAccount {
 }
 ```
 
-###### Agrona Library
-[Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
-To work with it, add dependency to your `pom.xml`
-```
-<dependency>
-  <groupId>org.agrona</groupId>
-  <artifactId>agrona</artifactId>
-  <version>1.8.0</version>
-</dependency>
-```
-Below is a list of some common classes:
-* IdleStrategy - interface to do nothing, common implementation `SleepingMillisIdleStrategy`, using `Thread.sleep` under the hood (yet there are other implementations as well)
-```java
-import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.SleepingMillisIdleStrategy;
-
-public class App{
-    public static void main(String[] args) {
-        IdleStrategy idle = new SleepingMillisIdleStrategy(1000);
-        System.out.println("start");
-        idle.idle();
-        System.out.println("end");
-    }
-}
-```
-* Queue (for producer/consumer):
-    * `ArrayBlockingQueue` (implements `BlockingQueue`) - bounded queue (you have to pass how many elements it would contain), has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
-    The downside is that this thread blocking can create contention. Once queue is full put would wait until some elements polled.
-    * `LinkedBlockingQueue` (implements `BlockingQueue`) - can be both bounded (pass number into construct) - behave same as array blocking queue, and unbounded (don't pass anything into constructor) - in this case you can put as much as memory allow.
-    if memory limited you would get `java.lang.OutOfMemoryError`. Also use blocking & create contention.
-    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms to add new elements. But because it's lock-free it put/poll returns immediately if queue is full/empty.
-    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`. Since it unbounded it can also throw `java.lang.OutOfMemoryError` if memory limited.
-    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` (agrona library, there is no such queue in JDK) - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
-* `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
-```java
-import java.nio.ByteOrder;
-import org.agrona.concurrent.UnsafeBuffer;
-
-public class App{
-    public static void main(String[] args) {
-        UnsafeBuffer buffer = new UnsafeBuffer();
-        /**
-         * first you need to tell where the buffer starts, it's called wrapping the buffer
-         */
-        final int offset = 0;
-        final int length = 10;
-        buffer.wrap(new byte[length], offset, length);
-        final int address = 0;
-        buffer.putLong(address, 11, ByteOrder.BIG_ENDIAN);
-        System.out.println(buffer.getLong(address, ByteOrder.BIG_ENDIAN));
-
-    }
-}
-```
-
-###### LMAX Disruptor
-LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
-Add this to your pom.xml to work with disruptor
-```
-    <dependency>
-      <groupId>com.lmax</groupId>
-      <artifactId>disruptor</artifactId>
-      <version>3.4.4</version>
-    </dependency>
-```
-Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
-Disruptor is a bad naming, cause what is actually is - non-blocking multi-reader/writer queue. Since each reader maintains sequence, you can have many readers that read from queue.
-* multicast events - send same message to multiple consumers
-* consumer dependency graph - if we have 3 consumers: A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
-* memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
-* optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
-* not breaking SWP, while queue does
-Disruptor use following concepts inside:
-* RingBuffer - place to store message/event
-* Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
-* Sequencer - core of the Disruptor
-* Wait Strategy - how consumer wait for events
-SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
-* mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
-* optimistic concurrency - using CAS algorithms
-But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
-In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
-There are 4 main waiting strategy (all implements `WaitStrategy` interface):
-* BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
-* SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
-* YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
-* BusySpinWaitStrategy
-Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
-Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
-In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
-So queue because it break SWP can cause false sharing (silent performance killer).
-False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
-in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
-One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
-`volatile` keyword used for 2 things (it has nothing to do with false sharing):
-* variable visibility - change in one thread would be immediately visible to other threads
-* code order - (without it compiler may reorder you code) 
-`ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
-So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
-You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
-Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
-```java
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.util.DaemonThreadFactory;
-
-public class App {
-    public static void main(String[] args) {
-        System.out.println("__START__");
-        int bufferSize = 4;
-        Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
-        disruptor.handleEventsWith(
-                (event, sequence, endOfBatch) -> System.out.println("1. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event),
-                (event, sequence, endOfBatch) -> System.out.println("2. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event)
-        ).then((event, sequence, endOfBatch) -> {
-            System.out.println("3. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event);
-            Thread.sleep(5000);
-        });
-        RingBuffer<MyEvent> ringBuffer = disruptor.start();
-        for (int i = 0; i < 100; i++) {
-            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer), i);
-            System.out.println("publishEvent=" + i + " thread=" + Thread.currentThread().getName());
-        }
-        System.out.println("__DONE__");
-    }
-}
-
-
-class MyEvent{
-    private int value;
-    public void setValue(int value){
-        this.value = value;
-    }
-    @Override
-    public String toString(){
-        return "MyEvent[value=" + value + "]";
-    }
-}
-```
-It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
-While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
-
 #### JDBC and SQL
 ###### Connection
 Mysql driver is not part of sdk so you have to manually add it to `pom.xml`
@@ -13510,7 +13367,205 @@ public class App{
 [a, b, x]
 ```
 
+###### Agrona Library
+[Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
+To work with it, add dependency to your `pom.xml`
+```
+<dependency>
+  <groupId>org.agrona</groupId>
+  <artifactId>agrona</artifactId>
+  <version>1.8.0</version>
+</dependency>
+```
+Below is a list of some common classes:
+* IdleStrategy - interface to do nothing, common implementation `SleepingMillisIdleStrategy`, using `Thread.sleep` under the hood (yet there are other implementations as well)
+```java
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
 
+public class App{
+    public static void main(String[] args) {
+        IdleStrategy idle = new SleepingMillisIdleStrategy(1000);
+        System.out.println("start");
+        idle.idle();
+        System.out.println("end");
+    }
+}
+```
+* Queue (for producer/consumer):
+    * `ArrayBlockingQueue` (implements `BlockingQueue`) - bounded queue (you have to pass how many elements it would contain), has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
+    The downside is that this thread blocking can create contention. Once queue is full put would wait until some elements polled.
+    * `LinkedBlockingQueue` (implements `BlockingQueue`) - can be both bounded (pass number into construct) - behave same as array blocking queue, and unbounded (don't pass anything into constructor) - in this case you can put as much as memory allow.
+    if memory limited you would get `java.lang.OutOfMemoryError`. Also use blocking & create contention.
+    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms to add new elements. But because it's lock-free it put/poll returns immediately if queue is full/empty.
+    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`. Since it unbounded it can also throw `java.lang.OutOfMemoryError` if memory limited.
+    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` (agrona library, there is no such queue in JDK) - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
+* `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
+```java
+import java.nio.ByteOrder;
+import org.agrona.concurrent.UnsafeBuffer;
+
+public class App{
+    public static void main(String[] args) {
+        UnsafeBuffer buffer = new UnsafeBuffer();
+        /**
+         * first you need to tell where the buffer starts, it's called wrapping the buffer
+         */
+        final int offset = 0;
+        final int length = 10;
+        buffer.wrap(new byte[length], offset, length);
+        final int address = 0;
+        buffer.putLong(address, 11, ByteOrder.BIG_ENDIAN);
+        System.out.println(buffer.getLong(address, ByteOrder.BIG_ENDIAN));
+
+    }
+}
+```
+
+###### LMAX Disruptor
+LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
+Add this to your pom.xml to work with disruptor
+```
+    <dependency>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
+      <version>3.4.4</version>
+    </dependency>
+```
+Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
+Disruptor is a bad naming, cause what is actually is - non-blocking multi-reader/writer queue. Since each reader maintains sequence, you can have many readers that read from queue.
+* multicast events - send same message to multiple consumers
+* consumer dependency graph - if we have 3 consumers: A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
+* memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
+* optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
+* not breaking SWP, while queue does
+Disruptor use following concepts inside:
+* RingBuffer - place to store message/event
+* Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
+* Sequencer - core of the Disruptor
+* Wait Strategy - how consumer wait for events
+SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
+* mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
+* optimistic concurrency - using CAS algorithms
+But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
+In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
+There are 4 main waiting strategy (all implements `WaitStrategy` interface):
+* BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
+* SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
+* YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
+* BusySpinWaitStrategy
+Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
+Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
+In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
+So queue because it break SWP can cause false sharing (silent performance killer).
+False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
+in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
+One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
+`volatile` keyword used for 2 things (it has nothing to do with false sharing):
+* variable visibility - change in one thread would be immediately visible to other threads
+* code order - (without it compiler may reorder you code) 
+`ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
+So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
+You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
+Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
+```java
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.util.DaemonThreadFactory;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("__START__");
+        int bufferSize = 4;
+        Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
+        disruptor.handleEventsWith(
+                (event, sequence, endOfBatch) -> System.out.println("1. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event),
+                (event, sequence, endOfBatch) -> System.out.println("2. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event)
+        ).then((event, sequence, endOfBatch) -> {
+            System.out.println("3. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event);
+            Thread.sleep(5000);
+        });
+        RingBuffer<MyEvent> ringBuffer = disruptor.start();
+        for (int i = 0; i < 100; i++) {
+            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer), i);
+            System.out.println("publishEvent=" + i + " thread=" + Thread.currentThread().getName());
+        }
+        System.out.println("__DONE__");
+    }
+}
+
+
+class MyEvent{
+    private int value;
+    public void setValue(int value){
+        this.value = value;
+    }
+    @Override
+    public String toString(){
+        return "MyEvent[value=" + value + "]";
+    }
+}
+```
+It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
+While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
+
+###### Aeron
+```java
+import io.aeron.Aeron;
+import io.aeron.Publication;
+import io.aeron.Subscription;
+import io.aeron.driver.MediaDriver;
+import io.aeron.logbuffer.FragmentHandler;
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.SleepingIdleStrategy;
+import org.agrona.concurrent.UnsafeBuffer;
+import java.nio.ByteBuffer;
+
+public class App{
+    private static void startPublisherThread(Publication pub, IdleStrategy idle){
+        new Thread(()->{
+            while (!pub.isConnected())
+            {
+                idle.idle();
+            }
+            for (int i = 0; i < 10; i++){
+                final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(256));
+                unsafeBuffer.putStringAscii(0, "msg");
+                long pos = pub.offer(unsafeBuffer);
+                System.out.println("message i=" + i + ", pos=" + pos);
+                while (pos < 0) {
+                    idle.idle();
+                    pos = pub.offer(unsafeBuffer);
+                }
+            }
+
+        }, "PublisherThread").start();
+    }
+    private static void startSubscriptionThread(Subscription sub, IdleStrategy idle){
+        new Thread(() -> {
+            FragmentHandler handler = (buffer, offset, length, header) ->
+                    System.out.println("received msg=" + buffer.getStringAscii(offset));
+            while (sub.poll(handler, 1) <= 0) {
+                idle.idle();
+            }
+        }, "SubscriptionThread").start();
+    }
+
+    public static void main(String[] args)
+    {
+        final String channel = "aeron:ipc";
+        final IdleStrategy idle = new SleepingIdleStrategy(1000);
+        try (MediaDriver driver = MediaDriver.launch();
+             Aeron aeron = Aeron.connect();
+             Subscription sub = aeron.addSubscription(channel, 10);
+             Publication pub = aeron.addPublication(channel, 10))
+        {
+            startPublisherThread(pub, idle);
+            startSubscriptionThread(sub, idle);
+        }
+    }
+}
+```
 
 ### TODO
 https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
