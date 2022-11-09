@@ -5040,7 +5040,7 @@ Don't confuse (see [javadoc for queue](https://docs.oracle.com/javase/6/docs/api
 So if we have a queue[1,2,3], 1 - is head, 3 - tail. If we add 4, it would be added to tail, after 3
 If you want to implement queue(FIFO) - use `Queue` interface or `Deque`, if you want to implement stack(LIFO) - use `Deque` interface. `Deque` is child of `Queue` it extends it to work from both ends.
 All methods divides on 2 types. Some throws exception, others just return null/false
-methods of queue:
+6 basic method of `Queue` interface (actually there are 3 and they duplicated with one which throws exception):
 * boolean add(IllegalStateException)/offer(false) - add to the tail
 * T remove(NoSuchElementException)/poll(null)     - remove from the head
 * T element(NoSuchElementException)/peek(null)    - view element from the head
@@ -9807,7 +9807,7 @@ hello worl
 d, I'm her
 e
 ```
-You can also get it from `FileInputStream/FileOutputStream` and `RandomAccess`
+You can also get it from `FileInputStream/FileOutputStream` and `RandomAccessFile`
 ```java
 FileChannel in = new FileInputStream(absoluteInPath).getChannel();
 FileChannel out = new FileOutputStream(absoluteOutPath).getChannel();
@@ -13413,6 +13413,9 @@ As you see originally all 4 thread runs in parallel, but only 1 get into executi
 ###### Linked lists
 Linked list disadvantages compared to array:
 * CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk
+`RandomAccess` - interface (don't confuse with concrete class `RandomAccessFile` to work with file) - that notify that out list is random access list.
+So `ArrayList` is implements it, yet `LinkedList` not implementing it, cause here you can't access 5th element, you need to iterate over whole list to get to desired position.
+So this interface is simply notify that list can be randomly accessed (all lists based on array should be randomly accessed).
 There are 3 types of linked list (all of them are linear structure represented as chain of nodes, the difference how nodes are related to each other):
 * Singly linked list:
     * each node store 2 fields: value + next node address
@@ -13428,7 +13431,7 @@ public void remove(Node node){
     node.next.prev = node.prev;
 }
 ```
-Yest this only works if you know the Node, if you pass just value, you would still do O(n) to find proper Node, so in this case pure delete by value will still take O(n)
+This only works if you know the Node, if you pass just value, you would still do O(n) to find proper Node, so in this case pure delete by value will still take O(n)
 Skip list:
 * store sorted list of elements in linked list
 * we have singly linked list + every node point to second/fourth/8-th and so on. So search is basically same as binary search, we can just do O(log n)
@@ -13487,12 +13490,25 @@ class SinglyLinkedList{
 ```
 [0,1,2]
 ```
+We have method `List.set(index, value)` where you can set value for every index, for array-based lists (like `ArrayList`) it's easy, you just change index of underlying array
+yet in `LinkedList`, you iterate whole list until you reach desired position, then you change it. So here complexity is O(n), yet in array-based lists it O(1).
+```java
+import java.util.LinkedList;
+import java.util.List;
 
-
-
-
-
-
+public class App{
+    public static void main(String[] args) {
+        List<String> list = new LinkedList<>(List.of("a","b","c"));
+        System.out.println(list);
+        list.set(2, "x");
+        System.out.println(list);
+    }
+}
+```
+```
+[a, b, c]
+[a, b, x]
+```
 
 
 
