@@ -91,18 +91,19 @@
 * 11.13 [Desktop](#desktop)
 * 11.14 [Java Servlet WebApp](#java-servlet-webapp)
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
-12. [Class Diagram](#class-diagram)
-13. [Low latency](#low-latency)
-* 13.1 [CPU and Cache](#cpu-and-cache)
-* 13.2 [Compiler Design](#compiler-design)
-* 13.3 [Java memory model](#java-memory-model)
-* 13.4 [Garbage collection](#garbage-collection)
-* 13.5 [Encoding](#encoding)
-* 13.6 [Floating Point Number](#floating-point-numbers)
-* 13.7 [sun.misc.Unsafe](#sunmiscunsafe)
-* 13.8 [Linked lists](#linked-lists)
-* 13.9 [Agrona Library](#agrona-library)
-* 13.10 [Aeron](#aeron)
+* 11.16 [Class Diagram](#class-diagram)
+* 11.17 [Java17 new features](#java17-new-features)
+12. [Low latency](#low-latency)
+* 12.1 [CPU and Cache](#cpu-and-cache)
+* 12.2 [Compiler Design](#compiler-design)
+* 12.3 [Java memory model](#java-memory-model)
+* 12.4 [Garbage collection](#garbage-collection)
+* 12.5 [Encoding](#encoding)
+* 12.6 [Floating Point Number](#floating-point-numbers)
+* 12.7 [sun.misc.Unsafe](#sunmiscunsafe)
+* 12.8 [Linked lists](#linked-lists)
+* 12.9 [Agrona Library](#agrona-library)
+* 12.10 [Aeron](#aeron)
 
 
 
@@ -12420,7 +12421,7 @@ class B extends A{
 }
 ```
 
-#### Class Diagram
+####### Class Diagram
 * ![exception hierarchy](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/exception-hierarchy.png)
 
 * ![collection interface](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/collection-interface.jpg)
@@ -12429,7 +12430,46 @@ class B extends A{
 
 * ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
 
+###### Java17 new features
+There are several new features avaialble in java 17:
+* multi-line string
+```
+string str = """
+a
+b
+c""";
+```
+* short switch (multiple values + no need for break keyword)
+```
+int x = switch(str) {
+case "a", "b" -> x=1;
+case "c" -> {
+// do some logic
+yield 2; // new keyworkd to use inside switch
+};
+case "d" -> x = 3;
+};
+```
+* direct casting
+```
+Object obj;
+if (obj instanceof String str && !str.isEmpty()){
+    str.trim();
+}
+```
+* records => create final class with final variables, yet you can declare constructor
+you can substitute custom classes like Pair/Tuple
+```
+public record Point(int x, int y){}
+```
+* sealed class (only these 4 classes can be extended from class X)
+```
+sealed class X permits A, B, C, D{}
+```
+
 #### Low latency
+When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actualy
+create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
 change java version:
 * first install several java versions, so you can switch between them
 * you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
@@ -13568,40 +13608,23 @@ public class App{
 ```
 
 ### TODO
-https://www.youtube.com/watch?v=GhiRlhPlJ9Q&t=8s&ab_channel=%D0%A1%D0%B0%D1%88%D0%B0%D0%9B%D1%83%D0%BA%D0%B8%D0%BD
-https://www.baeldung.com/java-memory-layout
-https://www.youtube.com/watch?v=BD9cRbxWQx8
-https://www.youtube.com/watch?v=Q-7y1u9kZV0
-https://www.youtube.com/watch?v=dVZrHGNGvb0&list=PLkBQ5tyr7qbcKXCuMn4Jr-No5I55g7H_E
-https://www.reddit.com/r/terraluna/comments/us8n82/the_only_youtuber_who_corectly_predicted_lunas/
-https://www.blockchaincenter.net/en/bitcoin-rainbow-chart/
-https://docs.azul.com/prime/Memory-Overview
+* https://docs.azul.com/prime/Memory-Overview
 * https://www.baeldung.com/java-profilers
 * take a look into trove library
 * take a look at low-level fix client where you need to build fix string manually
-* mapping between virtual memory and physical memory
 * https://github.com/OpenHFT/Chronicle-Map/blob/ea/docs/CM_Tutorial_Bytes.adoc
 * https://github.com/OpenHFT/Chronicle-Values#chronicle-values
 * kafka commit which offset is read/proceed (so if we seek to it, kafka should notify that this reader already read this offset)
-* https://www.youtube.com/watch?v=iGRfyhE02lA (Владимир Иванов — G1 Garbage Collector)
-* https://www.youtube.com/watch?v=iB2N8aqwtxc (Алексей Шипилёв — Прагматика Java Memory Model)
-* https://www.youtube.com/watch?v=c1jVn5Sm8Uw (Алексей Шипилёв – Shenandoah GC 2.0)
-* https://real-logic.co.uk/about.html (videos by Martin Thompson)
 * compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
 * The Art of Multiprocessor Programming (check both editions)
 * java low latency logging (Log4j2 async use lmax disruptor inside)
 * http://java-performance.info/hashmap-overview-jdk-fastutil-goldman-sachs-hppc-koloboke-trove-january-2015 (goldman sachs using https://github.com/leventov/Koloboke as low latency collections)
-* check all the test for lmax disruptor to get real examples of usage (https://github.com/LMAX-Exchange/disruptor/tree/master/src/test/java/com/lmax/disruptor)
-* aeron vs aeron-cluster
-* netty for low latency (how it compares to lmax/aeron)
 * chronicle queue/map (how it works inside)
-* run time DI (spring) vs compile time DI (dagger)
-* each order execution should generate 2 trades (for order owner & for his counterparty)
 * https://jpbempel.github.io/
 * https://aeroncookbook.com/
 * https://en.wikipedia.org/wiki/IEEE_754
 * https://www.filfre.net/2017/06/tales-of-the-mirror-world-part-1-calculators-and-cybernetics/
 * https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
-* surefire vs failsafe mvn plugin
 * kubernetes, service mesh, istio, helm, kubectl
 * consensus(using raft protocol) is better then primary-secondary https://www.infoq.com/presentations/financial-exchange-architecture
+* run time DI (spring) vs compile time DI (dagger)
