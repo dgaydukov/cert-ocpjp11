@@ -12764,11 +12764,25 @@ All jvm gc can be divided into 4 types:
 * low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
     * initial marking of gc roots
     * if app changed the state of the heap, while gc was running
-* G1 - use multiple threads scan heap by dividing in into many regions and scan regions with most garbage first
+* G1 - use multiple threads scan heap by dividing in into many regions and scan regions with most garbage first. yet do STW to run compact. so it concurrent mark + STW compact.
 * Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
     * partition the heap like G1, yet heap chunks can have different size
     * stop the world - no more then 10ms
     * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
+Z & shenandoah insert load barrier into the code if you load object:
+    zgc:
+    * load barrier - piece of code that generated on the fly and inserted into system
+    * check if object was relocated into new memory layout & update reference to this object (this relocation happens by application itself, so it may incur some latency)
+    shenandoah
+    * append `forward pointer` to each object, which store actual object address, by default it points to object itself
+    * once change happen, forward pointer of old object would point to new object
+    * insert load barrier into java code
+    * this load barier read forward pointer to determine real address of object
+    * write barrier - if object already moved then write to new copy (this code also inserted into your code and may incur latency)
+Yet for CMS, G1, ZGC we still has small pauses to:
+* collect root objects
+* take snapshot
+This needs to be done atomically, so nothing happens in between, that's why we have tiny STW    
 JVM support following gc types:
 --these 2 operate on YoungGen
 * `-XX:+UseSerialGC` - standard serial mark & sweep algo
@@ -12780,6 +12794,8 @@ it will stop all threads and run gc
 card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
 But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
 One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
+So your memory would be like swiss cheese with many holes, if you combine it, looks like you have lots of memory, yet if you try to allocate big array you may fail with OutOfMemory error.
+So G1 in this regard is more advanced one. Cause after some time (days, weeks, months) you will hit a case when all your memory riddled.
 --this one doesn't split heap into new/old-gen
 * `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
     * string deduplication - g1  can find duplicate strings and point all of them into single object
@@ -13608,23 +13624,5 @@ public class App{
 ```
 
 ### TODO
-* https://docs.azul.com/prime/Memory-Overview
-* https://www.baeldung.com/java-profilers
-* take a look into trove library
-* take a look at low-level fix client where you need to build fix string manually
-* https://github.com/OpenHFT/Chronicle-Map/blob/ea/docs/CM_Tutorial_Bytes.adoc
-* https://github.com/OpenHFT/Chronicle-Values#chronicle-values
-* kafka commit which offset is read/proceed (so if we seek to it, kafka should notify that this reader already read this offset)
-* compare chronicle-logger vs async log4j with jmh (implement testing like it high-throughput trading system)
-* The Art of Multiprocessor Programming (check both editions)
-* java low latency logging (Log4j2 async use lmax disruptor inside)
-* http://java-performance.info/hashmap-overview-jdk-fastutil-goldman-sachs-hppc-koloboke-trove-january-2015 (goldman sachs using https://github.com/leventov/Koloboke as low latency collections)
-* chronicle queue/map (how it works inside)
-* https://jpbempel.github.io/
-* https://aeroncookbook.com/
-* https://en.wikipedia.org/wiki/IEEE_754
-* https://www.filfre.net/2017/06/tales-of-the-mirror-world-part-1-calculators-and-cybernetics/
-* https://en.wikipedia.org/wiki/Zero-knowledge_proof#Two_balls_and_the_colour-blind_friend
-* kubernetes, service mesh, istio, helm, kubectl
-* consensus(using raft protocol) is better then primary-secondary https://www.infoq.com/presentations/financial-exchange-architecture
-* run time DI (spring) vs compile time DI (dagger)
+* trove, koloboke, aeron, chronicle
+* chronicle-logger vs async log4j
