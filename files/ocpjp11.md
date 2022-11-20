@@ -1210,7 +1210,7 @@ Type vs state: classes, interfaces and enums - types. Since java support multipl
 State - instance variables of class, so only class can have state. Since java support only one class inheritance => java support one state inheritance. 
 One reason why the Java programming language does not permit you to extend more than one class is to avoid the issues of multiple inheritance of state, 
 which is the ability to inherit fields from multiple classes. [Multiple Inheritance of State, Implementation, and Type](https://docs.oracle.com/javase/tutorial/java/IandI/multipleinheritance.html).
-Java method access keywords
+Java methods visibility:
 ```
 _____________________________________________________________
 |           │ Class │ Package │ Subclass │ Subclass │ World  |
@@ -4520,13 +4520,18 @@ public class App{
         people.put("Jack", 30);
         Iterator iterator = people.keySet().iterator();
         while (iterator.hasNext()){
-            System.out.println(people.get(iterator.next()));
+            System.out.println("nex => "+ people.get(iterator.next()));
             people.put("Kelvin", 35);
         }
     }
 }
 ```
 ```
+nex => 25
+Exception in thread "main" java.util.ConcurrentModificationException
+```
+Another example
+```java
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -13580,7 +13585,8 @@ We have following collections in java:
 - here we use linear resolution where if hashcode already exist, we just put it into next field
 * you can add your cusom hashing strategy by implementing `TObjectHashingStrategy`
 * currently supported by [palantir](https://github.com/palantir/trove)
-* trove doesn't implement java interfaces like `List, Map` so you are stuck with trove concrete implementations
+* doesn't implement java interfaces like `List, Map` so you are stuck with trove concrete implementations
+* doesn't support multi-threading, it's just single thread for primitives
 * add to your project
 ```
 <dependency>
@@ -13635,6 +13641,59 @@ public class App {
 ```
 ```
 class=class com.koloboke.collect.impl.hash.MutableLHashSeparateKVLongObjMap, map={2=java.lang.Object@4cdf35a9, 1=java.lang.Object@4c98385c}
+```
+[Chronicle](https://github.com/OpenHFT):
+* low latency persisted queue
+* chronicle map extends jdk `ConcurrentMap` so you cast any such map to jdk `Map`
+```java
+import net.openhft.chronicle.queue.ChronicleQueue;
+import net.openhft.chronicle.queue.ExcerptAppender;
+import net.openhft.chronicle.queue.impl.single.SingleChronicleQueueBuilder;
+
+public class App{
+    public static void main(String[] args) {
+        try(ChronicleQueue queue = SingleChronicleQueueBuilder
+                .single("chronicle-data").build();) {
+            ExcerptAppender appender = queue.acquireAppender();
+            appender.writeText("hello world");
+            System.out.println(queue.createTailer().readText());
+        }
+    }
+}
+```
+```
+hello world
+```
+2 types of map: in-memory & persisted to file
+```java
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
+public class App {
+    public static void main(String[] args) {
+        ChronicleMapBuilder<Long, String> builder = ChronicleMap
+                .of(Long.class, String.class)
+                .entries(10_000)
+                .averageValueSize(50);
+        Map<Long, String> inMemoryMap = builder.create();
+        inMemoryMap.put(1L, "hello");
+        System.out.println("inMemoryMap => " + inMemoryMap);
+        try {
+            Map<Long, String> persistedMap = builder.createPersistedTo(new File("chronicle-data"));
+            persistedMap.put(1L, "hello");
+            System.out.println("persistedMap => " + persistedMap);
+        } catch (IOException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+}
+```
+```
+inMemoryMap => {1=hello}
+persistedMap => {1=hello}
 ```
 [Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
 To work with it, add dependency to your `pom.xml`
