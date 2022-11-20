@@ -102,8 +102,8 @@
 * 12.6 [Floating Point Number](#floating-point-numbers)
 * 12.7 [sun.misc.Unsafe](#sunmiscunsafe)
 * 12.8 [Linked lists](#linked-lists)
-* 12.9 [Agrona Library](#agrona-library)
-* 12.10 [Aeron](#aeron)
+* 12.9 [Aeron](#aeron)
+* 12.10 [Low latency collections](#low-latency-collections)
 
 
 
@@ -13423,61 +13423,6 @@ public class App{
 [a, b, x]
 ```
 
-###### Agrona Library
-[Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
-To work with it, add dependency to your `pom.xml`
-```
-<dependency>
-  <groupId>org.agrona</groupId>
-  <artifactId>agrona</artifactId>
-  <version>1.8.0</version>
-</dependency>
-```
-Below is a list of some common classes:
-* IdleStrategy - interface to do nothing, common implementation `SleepingMillisIdleStrategy`, using `Thread.sleep` under the hood (yet there are other implementations as well)
-```java
-import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.SleepingMillisIdleStrategy;
-
-public class App{
-    public static void main(String[] args) {
-        IdleStrategy idle = new SleepingMillisIdleStrategy(1000);
-        System.out.println("start");
-        idle.idle();
-        System.out.println("end");
-    }
-}
-```
-* Queue (for producer/consumer):
-    * `ArrayBlockingQueue` (implements `BlockingQueue`) - bounded queue (you have to pass how many elements it would contain), has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
-    The downside is that this thread blocking can create contention. Once queue is full put would wait until some elements polled.
-    * `LinkedBlockingQueue` (implements `BlockingQueue`) - can be both bounded (pass number into construct) - behave same as array blocking queue, and unbounded (don't pass anything into constructor) - in this case you can put as much as memory allow.
-    if memory limited you would get `java.lang.OutOfMemoryError`. Also use blocking & create contention.
-    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms to add new elements. But because it's lock-free it put/poll returns immediately if queue is full/empty.
-    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`. Since it unbounded it can also throw `java.lang.OutOfMemoryError` if memory limited.
-    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` (agrona library, there is no such queue in JDK) - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
-* `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
-```java
-import java.nio.ByteOrder;
-import org.agrona.concurrent.UnsafeBuffer;
-
-public class App{
-    public static void main(String[] args) {
-        UnsafeBuffer buffer = new UnsafeBuffer();
-        /**
-         * first you need to tell where the buffer starts, it's called wrapping the buffer
-         */
-        final int offset = 0;
-        final int length = 10;
-        buffer.wrap(new byte[length], offset, length);
-        final int address = 0;
-        buffer.putLong(address, 11, ByteOrder.BIG_ENDIAN);
-        System.out.println(buffer.getLong(address, ByteOrder.BIG_ENDIAN));
-
-    }
-}
-```
-
 ###### LMAX Disruptor
 LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
 Add this to your pom.xml to work with disruptor
@@ -13623,6 +13568,127 @@ public class App{
 }
 ```
 
+###### Low latency collections
+We have following collections in java:
+* trove
+* koloboke
+* chronicle (build by including cool features from koloboke)
+* agrona
+[Trove](https://bitbucket.org/trove4j/trove/src/master/) - one of the first low latency collections:
+* started as primitive collections (in jdk you have to use wrappers)
+* use open addressing for maps (in jdk we use linked list if 2 or more elements have same hashcode)
+- here we use linear resolution where if hashcode already exist, we just put it into next field
+* you can add your cusom hashing strategy by implementing `TObjectHashingStrategy`
+* currently supported by [palantir](https://github.com/palantir/trove)
+* trove doesn't implement java interfaces like `List, Map` so you are stuck with trove concrete implementations
+* add to your project
+```
+<dependency>
+  <groupId>trove</groupId>
+  <artifactId>trove</artifactId>
+  <version>1.0.2</version>
+</dependency>
+```
+```java
+import gnu.trove.TLongObjectHashMap;
+
+public class App {
+    public static void main(String[] args) {
+        TLongObjectHashMap longToObjMap = new TLongObjectHashMap();
+        longToObjMap.put(1, new Object());
+        longToObjMap.put(2, new Object());
+        System.out.println("longToObjMap => " + longToObjMap);
+    }
+}
+```
+```
+longToObjMap => gnu.trove.TLongObjectHashMap@90d2a429
+```
+[Koloboke](https://github.com/leventov/Koloboke) - low latency library:
+* written by a guy who worked with creator of chronicle (actually they both later worked on chronicle)
+* support jdk interfaces like `List & Map`
+* add to your pom.xml
+```
+<dependency>
+  <groupId>com.koloboke</groupId>
+  <artifactId>koloboke-impl-jdk8</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
+You can cast all map interfaces to java Map
+```java
+import com.koloboke.collect.map.LongObjMap;
+import com.koloboke.collect.map.hash.HashLongObjMaps;
+import java.util.Map;
+
+public class App {
+    public static void main(String[] args) {
+        // use factory to create desired class
+        LongObjMap<Object> map = HashLongObjMaps.getDefaultFactory().newMutableMap();
+        map.put(1L, new Object());
+        map.put(2L, new Object());
+        System.out.println("class=" + map.getClass()+", map=" + map);
+        // we can even cast to jdk Map
+        Map<Long, Object> castMap = map;
+    }
+}
+```
+```
+class=class com.koloboke.collect.impl.hash.MutableLHashSeparateKVLongObjMap, map={2=java.lang.Object@4cdf35a9, 1=java.lang.Object@4c98385c}
+```
+[Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
+To work with it, add dependency to your `pom.xml`
+```
+<dependency>
+  <groupId>org.agrona</groupId>
+  <artifactId>agrona</artifactId>
+  <version>1.8.0</version>
+</dependency>
+```
+Below is a list of some common classes:
+* IdleStrategy - interface to do nothing, common implementation `SleepingMillisIdleStrategy`, using `Thread.sleep` under the hood (yet there are other implementations as well)
+```java
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
+
+public class App{
+    public static void main(String[] args) {
+        IdleStrategy idle = new SleepingMillisIdleStrategy(1000);
+        System.out.println("start");
+        idle.idle();
+        System.out.println("end");
+    }
+}
+```
+* Queue (for producer/consumer):
+    * `ArrayBlockingQueue` (implements `BlockingQueue`) - bounded queue (you have to pass how many elements it would contain), has blocking put/poll that block current thread until there is space in queue (for put) or there are new elements added for poll
+    The downside is that this thread blocking can create contention. Once queue is full put would wait until some elements polled.
+    * `LinkedBlockingQueue` (implements `BlockingQueue`) - can be both bounded (pass number into construct) - behave same as array blocking queue, and unbounded (don't pass anything into constructor) - in this case you can put as much as memory allow.
+    if memory limited you would get `java.lang.OutOfMemoryError`. Also use blocking & create contention.
+    * `ConcurrentLinkedQueue` (doesn't implement BlockingQueue, just Queue) - doesn't block thread, but using CAS algorithms to add new elements. But because it's lock-free it put/poll returns immediately if queue is full/empty.
+    So if you want some blocking logic here you will have to implement it on your own `while(!queue.offer(val)){Thread.onSpinWait();}`. Since it unbounded it can also throw `java.lang.OutOfMemoryError` if memory limited.
+    * `OneToOne/ManyToOne/ManyToMany-ConcurrentArrayQueue` (agrona library, there is no such queue in JDK) - for single/many producers to single/many consumers (again these queues are lock-free and have no blocking methods for put/poll)
+* `UnsafeBuffer` - although in java we have `DirectBuffer` it's not atomic, and if you want to write/read into off-heap memory using thread-safe buffer, this class is way to go
+```java
+import java.nio.ByteOrder;
+import org.agrona.concurrent.UnsafeBuffer;
+
+public class App{
+    public static void main(String[] args) {
+        UnsafeBuffer buffer = new UnsafeBuffer();
+        /**
+         * first you need to tell where the buffer starts, it's called wrapping the buffer
+         */
+        final int offset = 0;
+        final int length = 10;
+        buffer.wrap(new byte[length], offset, length);
+        final int address = 0;
+        buffer.putLong(address, 11, ByteOrder.BIG_ENDIAN);
+        System.out.println(buffer.getLong(address, ByteOrder.BIG_ENDIAN));
+
+    }
+}
+```
+
 ### TODO
-* trove, koloboke, aeron, chronicle
 * chronicle-logger vs async log4j
