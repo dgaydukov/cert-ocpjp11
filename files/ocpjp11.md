@@ -13645,6 +13645,10 @@ class=class com.koloboke.collect.impl.hash.MutableLHashSeparateKVLongObjMap, map
 [Chronicle](https://github.com/OpenHFT):
 * low latency persisted queue
 * chronicle map extends jdk `ConcurrentMap` so you cast any such map to jdk `Map`
+* for map use:
+    * putReturnsNull(true) - this won't return prev value on put, so it would generate less garbage (cause old value needs to be retreived and returned as object)
+    * use special values like `LongValue` instead of `Long`
+    * keys & values must be serializable to be stored in file, otherwise nothing would be stored, you get `ClassCastException: class com.java.test.Person cannot be cast to class java.io.Serializable`
 ```java
 import net.openhft.chronicle.queue.ChronicleQueue;
 import net.openhft.chronicle.queue.ExcerptAppender;
@@ -13694,6 +13698,95 @@ public class App {
 ```
 inMemoryMap => {1=hello}
 persistedMap => {1=hello}
+```
+2 ways to store object
+```java
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+
+public class App {
+    public static void main(String[] args) {
+        ChronicleMapBuilder<Long, Person> builder = ChronicleMap
+                .of(Long.class, Person.class)
+                .entries(100_000)
+                .averageValueSize(20)
+                .putReturnsNull(true);
+        try (ChronicleMap<Long, Person> persistedMap =  builder.createPersistedTo(new File("chronicle-data"))){
+            persistedMap.put(1L, new Person("jack", 30));
+            System.out.println("persistedMap => " + persistedMap);
+        } catch (IOException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+}
+
+@RequiredArgsConstructor
+@Getter
+@ToString
+class Person implements Serializable {
+    private final String name;
+    private final int age;
+}
+```
+```
+persistedMap => {1=Person(name=jack, age=30)}
+```
+Using [Chronicle-Values](https://github.com/OpenHFT/Chronicle-Values)
+In this case we don't need to use `averageValueSize`, if we use we get `IllegalStateException: Size of interface com.java.test.Person instances is constant and statically known, shouldn't be specified via averageValueSize() or averageValue() methods`
+```java
+import net.openhft.chronicle.bytes.Byteable;
+import net.openhft.chronicle.bytes.Bytes;
+import net.openhft.chronicle.core.values.LongValue;
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
+import net.openhft.chronicle.values.MaxUtf8Length;
+import net.openhft.chronicle.values.NotNull;
+import net.openhft.chronicle.values.Values;
+import java.io.File;
+import java.io.IOException;
+
+public class App {
+    public static void main(String[] args) {
+        ChronicleMapBuilder<LongValue, Person> builder = ChronicleMap
+                .of(LongValue.class, Person.class)
+                .entries(100_000)
+                .putReturnsNull(true);
+        try (ChronicleMap<LongValue, Person> persistedMap =  builder.createPersistedTo(new File("chronicle-data"))){
+            LongValue key = Values.newHeapInstance(LongValue.class);
+            key.setValue(1L);
+
+            Person offHeapPerson = Values.newNativeReference(Person.class);
+            final long personMaxSize = offHeapPerson.maxSize();
+            offHeapPerson.bytesStore(Bytes.allocateDirect(personMaxSize), 0, personMaxSize);
+            offHeapPerson.setName("jack");
+            offHeapPerson.setAge(30);
+
+            System.out.println("personMaxSize=" + personMaxSize + ", offHeapPerson=" + offHeapPerson);
+            persistedMap.put(key, offHeapPerson);
+            System.out.println("persistedMap => " + persistedMap);
+        } catch (IOException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+}
+
+interface Person extends Byteable {
+    CharSequence getName();
+    void setName(@NotNull @MaxUtf8Length(10) CharSequence name);
+
+    int getAge();
+    void setAge(int age);
+}
+```
+```
+personMaxSize=15, offHeapPerson=com.java.test.Person$$Native@bbcc4fca
+persistedMap => {net.openhft.chronicle.core.values.LongValue$$Heap@f4242=com.java.test.Person$$Heap@bbcc4fca}
 ```
 [Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
 To work with it, add dependency to your `pom.xml`
