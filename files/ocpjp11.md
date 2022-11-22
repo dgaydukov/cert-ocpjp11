@@ -13788,6 +13788,42 @@ interface Person extends Byteable {
 personMaxSize=15, offHeapPerson=com.java.test.Person$$Native@bbcc4fca
 persistedMap => {net.openhft.chronicle.core.values.LongValue$$Heap@f4242=com.java.test.Person$$Heap@bbcc4fca}
 ```
+There is library chronicle-wire for serialization/deserialization:
+* you can implement `readMarshallable/writeMarshallable` from `Marshallable` for custom read/write, by default all fields are serialized
+* you can use different wires for serialization : `TextWire/BinaryWire/RawWire`, or implement your own by using `Wire`
+* it can be used with chronicle maps for key/value serialization, same way as chronicle-values
+```java
+import lombok.Data;
+import net.openhft.chronicle.bytes.Bytes;
+import net.openhft.chronicle.wire.BinaryWire;
+import net.openhft.chronicle.wire.Marshallable;
+
+public class App {
+    public static void main(String[] args) {
+        Person person = new Person();
+        person.setName("jack");
+        person.setAge(30);
+
+        Bytes bytes = Bytes.elasticByteBuffer();
+        person.writeMarshallable(new BinaryWire(bytes));
+        System.out.println("person=" + person + ", bytes=" + bytes);
+
+        Person deserialized = new Person();
+        deserialized.readMarshallable(new BinaryWire(bytes));
+        System.out.println("deserialized=" + deserialized);
+    }
+}
+
+@Data
+class Person implements Marshallable {
+    private  String name;
+    private int age;
+}
+```
+```
+person=Person(name=jack, age=30), bytes=ÄnameäjackÃage¡
+deserialized=Person(name=jack, age=30)
+```
 [Agrona](https://github.com/real-logic/agrona) - set of data structures for low latency concurrent programming in java. Originally was part of aeron project, but later was moved into separate repository.
 To work with it, add dependency to your `pom.xml`
 ```
@@ -13841,6 +13877,15 @@ public class App{
     }
 }
 ```
+Comparison between chronicle software & real logic:
+* chronicle-queue/map, chronicle wire/values
+* aeron, agrona, SBE
+Under the hood these 2 use good old `Unsafe` class for raw bytes manipulation:
+* chronicle lacking collection library like `agrona`
+* SBE - simple binary encoding, we can achieve same in chronicle using one of 2 libraries
+    * chronicle-values - turn your objects into off-heap array of bytes and manipulate it
+    * chronicle-wire - more generic library for serialization
+* both use concept of memory mapped files
 
 ### TODO
 * chronicle-logger vs async log4j
