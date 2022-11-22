@@ -13886,6 +13886,23 @@ Under the hood these 2 use good old `Unsafe` class for raw bytes manipulation:
     * chronicle-values - turn your objects into off-heap array of bytes and manipulate it
     * chronicle-wire - more generic library for serialization
 * both use concept of memory mapped files
+Comparison between chronicle & in-memory db (according to chronicle developer):
+* redis/memcached work based on loopback/socket principle
+* you can't access database memory directly from java, you have to go through some system interfaces
+* most popular use case is to use loopback or socket
+* but using this you get some latency, cause
+    * you have to do 4 system calls:
+    you need to interrupt kernel, so your call from java is redirected to db interface
+    each such call can cause 100s ns
+    4 calls: put request into socket in java, take request from socket in db
+    put response into socket in db, take response from socket in java
+    each such request would require some system call (os kernel operation)
+    * copy data between java process & db process (again all copy happens in kernel calls) which add up latency
+* on average in best case scenario you can get 1-10 µs. latency using in-memory db
+* with chronicle you can get 1µs, due to direct access to shared memory, without any system calls
+* there are 2 ways to work with shared memory
+    * using JNI interface - jni calls add some latency anyway (around 50ns), not best solution for latency-critical apps
+    * directly manipulate shared memory with `java.misc.Unsafe` - this approach used by chronicle
 
 ### TODO
 * chronicle-logger vs async log4j
