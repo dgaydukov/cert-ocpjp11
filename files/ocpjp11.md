@@ -13128,7 +13128,6 @@ public class App{
 
 Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
 ```
-
 There are several examples where you can use `Unsafe`:
 * allocateInstance - allocate memory but doesn't call constructor
 * change private fields (by the way reflection use `Unsafe` under-the-hood)
@@ -13144,7 +13143,6 @@ Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuf
 * wait with `park/unpark` methods - similar to `Object.wait` but use native OS implementation
 * create function sizeOf to get size of objects
 * remove strings from memory
-
 Basic example with class instantiation & throwing checked exception
 ```java
 import java.lang.reflect.Field;
@@ -13186,7 +13184,6 @@ class Person{
 Exception in thread "main" java.lang.Exception: oops
 ```
 As you see class was created, but constructor not called.
-
 Below is example of off-heap byte array (again use `ByteBuffer.allocate` instead).
 ```java
 import java.lang.reflect.Field;
@@ -13652,22 +13649,49 @@ class=class com.koloboke.collect.impl.hash.MutableLHashSeparateKVLongObjMap, map
 ```java
 import net.openhft.chronicle.queue.ChronicleQueue;
 import net.openhft.chronicle.queue.ExcerptAppender;
+import net.openhft.chronicle.queue.ExcerptTailer;
+import net.openhft.chronicle.queue.RollCycles;
 import net.openhft.chronicle.queue.impl.single.SingleChronicleQueueBuilder;
 
-public class App{
+public class App {
     public static void main(String[] args) {
-        try(ChronicleQueue queue = SingleChronicleQueueBuilder
-                .single("chronicle-data").build();) {
-            ExcerptAppender appender = queue.acquireAppender();
-            appender.writeText("hello world");
-            System.out.println(queue.createTailer().readText());
+        SingleChronicleQueueBuilder builder = SingleChronicleQueueBuilder
+                .single("chronicle-data")
+                .rollCycle(RollCycles.FAST_DAILY);
+        try (ChronicleQueue queue = builder.build()) {
+            final ExcerptAppender writer = queue.acquireAppender();
+            final ExcerptTailer reader = queue.createTailer();
+
+            for (char i = 'a'; i <= 'z'; i++) {
+                writer.writeText(Character.toString(i));
+            }
+
+            long oldIndex = 0;
+            for (int i = 0; i < 5; i++) {
+                if (i == 2) {
+                    oldIndex = reader.index();
+                }
+                System.out.println("index=" + reader.index() + ", lastReadIndex=" + reader.lastReadIndex() + ", text=" + reader.readText());
+            }
+            System.out.println("moving to index=" + oldIndex);
+            reader.moveToIndex(oldIndex);
+            System.out.println("index=" + reader.index() + ", lastReadIndex=" + reader.lastReadIndex() + ", text=" + reader.readText());
         }
     }
 }
 ```
 ```
-hello world
+index=0, lastReadIndex=0, text=a
+index=82978768158721, lastReadIndex=82978768158720, text=b
+index=82978768158722, lastReadIndex=82978768158721, text=c
+index=82978768158723, lastReadIndex=82978768158722, text=d
+index=82978768158724, lastReadIndex=82978768158723, text=e
+moving to index=82978768158722
+index=82978768158722, lastReadIndex=82978768158724, text=c
 ```
+As you see queue is very similar to kafka, so you can:
+* get index of each message & last read index
+* read from specific offset for replaying
 2 types of map: in-memory & persisted to file
 ```java
 import net.openhft.chronicle.map.ChronicleMap;
@@ -13903,6 +13927,31 @@ Comparison between chronicle & in-memory db (according to chronicle developer):
 * there are 2 ways to work with shared memory
     * using JNI interface - jni calls add some latency anyway (around 50ns), not best solution for latency-critical apps
     * directly manipulate shared memory with `java.misc.Unsafe` - this approach used by chronicle
+Event sourcing vs 2PC (two phase commit):
+* previously in enterprise we used 2PC to ensure that we read from one system & write to another, yet this approach incur a lot of latency
+* now we use messaging system with unique ID per message to ensure data integrity
+so if our app is broken, we restart and retreive last message we processed, and then go to broker and ask give me next message after this
+by this logic all modern brokers work like: kafka, chronicle-queue, aeron, lmax disruptor
+Thread affinity:
+* locking is generally bad for latency, use lock-free & CAS
+* yet locking and jumping between threads is even worse
+    * jumping between threads 100s µs
+    * staying on same core - 10s µs
+    So if you have to use locking, make sure your threads stay on same core
+    use java thread affinity libraries to ensure it (java doesn't have this feature out-of-the-box)
+* java thread - normal OS thread, so first get thread ID, then use `taskset` to link thread to specific core
+yet this core can be taken by OS to run other threads, but we can use `isolcpus` to remove core from linux thread planner
+and this core will be used by our thread only.
+Once you configure this java spinlocks `Thread.onSpinWait()` doesn't give huge effect, cause sole purpose of this command is to keep
+burning spu cycles, so OS won't take away this core from your thread, yet if you configures linux and link thread to core, there is
+no point in this java instruction.
+Thread interleaving:
+* interleave - insert something into something (book interleaved with handwritten text - means you insert pages with your handwriting into book)
+* means one thread interleave (kind of happen at the same time as another) another - they share memory (variables) that they both modify, and unexpected results may happen
 
 ### TODO
+* chronicle queue + wire to store object in files
+* testing multi-threaded code
+* checkout conflating queue impl
+* how liquidations work if it running in another thread, and user variables were not volatile
 * chronicle-logger vs async log4j
