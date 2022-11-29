@@ -13990,7 +13990,3 @@ public class App{
     }
 }
 ```
-
-### TODO
-* testing multi-threaded code
-* how liquidations work if it running in another thread, and user variables were not volatile\
