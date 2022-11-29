@@ -104,8 +104,9 @@
 * 12.8 [Linked lists](#linked-lists)
 * 12.9 [Aeron](#aeron)
 * 12.10 [Low latency collections](#low-latency-collections)
+* 12.10 [Low latency collections](#low-latency-collections)
 
-
+###### Low latency logging
 
 #### Basics
 ###### Variable Declarations
@@ -13692,7 +13693,42 @@ index=82978768158722, lastReadIndex=82978768158724, text=c
 As you see queue is very similar to kafka, so you can:
 * get index of each message & last read index
 * read from specific offset for replaying
-2 types of map: in-memory & persisted to file
+You can easily combine queue with wire to save objects:
+```java
+import lombok.Data;
+import net.openhft.chronicle.queue.ChronicleQueue;
+import net.openhft.chronicle.queue.RollCycles;
+import net.openhft.chronicle.queue.impl.single.SingleChronicleQueueBuilder;
+import net.openhft.chronicle.wire.Marshallable;
+
+public class App {
+    public static void main(String[] args) {
+        SingleChronicleQueueBuilder builder = SingleChronicleQueueBuilder
+                .single("chronicle-data")
+                .rollCycle(RollCycles.FAST_DAILY);
+        try (ChronicleQueue queue = builder.build()) {
+            Person person = new Person();
+            person.setName("Jack");
+            person.setAge(30);
+            // saving person
+            queue.acquireAppender().writeDocument(person);
+            Person saved = new Person();
+            boolean readSuccess = queue.createTailer().readDocument(saved);
+            System.out.println("readSuccess=" + readSuccess + ", saved=" + saved);
+        }
+    }
+}
+
+@Data
+class Person implements Marshallable {
+    private  String name;
+    private int age;
+}
+```
+```
+readSuccess=true, saved=Person(name=Jack, age=30)
+```
+There are 2 types of map: in-memory & persisted to file
 ```java
 import net.openhft.chronicle.map.ChronicleMap;
 import net.openhft.chronicle.map.ChronicleMapBuilder;
@@ -13950,8 +13986,6 @@ Thread interleaving:
 * means one thread interleave (kind of happen at the same time as another) another - they share memory (variables) that they both modify, and unexpected results may happen
 
 ### TODO
-* chronicle queue + wire to store object in files
 * testing multi-threaded code
-* checkout conflating queue impl
 * how liquidations work if it running in another thread, and user variables were not volatile
 * chronicle-logger vs async log4j
