@@ -102,11 +102,10 @@
 * 12.6 [Floating Point Number](#floating-point-numbers)
 * 12.7 [sun.misc.Unsafe](#sunmiscunsafe)
 * 12.8 [Linked lists](#linked-lists)
-* 12.9 [Aeron](#aeron)
-* 12.10 [Low latency collections](#low-latency-collections)
+* 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
 
-###### Low latency logging
+
 
 #### Basics
 ###### Variable Declarations
@@ -13426,150 +13425,12 @@ public class App{
 [a, b, x]
 ```
 
-###### LMAX Disruptor
-LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
-Add this to your pom.xml to work with disruptor
-```
-    <dependency>
-      <groupId>com.lmax</groupId>
-      <artifactId>disruptor</artifactId>
-      <version>3.4.4</version>
-    </dependency>
-```
-Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
-Disruptor is a bad naming, cause what is actually is - non-blocking multi-reader/writer queue. Since each reader maintains sequence, you can have many readers that read from queue.
-* multicast events - send same message to multiple consumers
-* consumer dependency graph - if we have 3 consumers: A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
-* memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
-* optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
-* not breaking SWP, while queue does
-Disruptor use following concepts inside:
-* RingBuffer - place to store message/event
-* Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
-* Sequencer - core of the Disruptor
-* Wait Strategy - how consumer wait for events
-SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
-* mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
-* optimistic concurrency - using CAS algorithms
-But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
-In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
-There are 4 main waiting strategy (all implements `WaitStrategy` interface):
-* BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
-* SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
-* YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
-* BusySpinWaitStrategy
-Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
-Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
-In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
-So queue because it break SWP can cause false sharing (silent performance killer).
-False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
-in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
-One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
-`volatile` keyword used for 2 things (it has nothing to do with false sharing):
-* variable visibility - change in one thread would be immediately visible to other threads
-* code order - (without it compiler may reorder you code) 
-`ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
-So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
-You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
-Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
-```java
-import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.dsl.Disruptor;
-import com.lmax.disruptor.util.DaemonThreadFactory;
-
-public class App {
-    public static void main(String[] args) {
-        System.out.println("__START__");
-        int bufferSize = 4;
-        Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
-        disruptor.handleEventsWith(
-                (event, sequence, endOfBatch) -> System.out.println("1. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event),
-                (event, sequence, endOfBatch) -> System.out.println("2. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event)
-        ).then((event, sequence, endOfBatch) -> {
-            System.out.println("3. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event);
-            Thread.sleep(5000);
-        });
-        RingBuffer<MyEvent> ringBuffer = disruptor.start();
-        for (int i = 0; i < 100; i++) {
-            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer), i);
-            System.out.println("publishEvent=" + i + " thread=" + Thread.currentThread().getName());
-        }
-        System.out.println("__DONE__");
-    }
-}
-
-
-class MyEvent{
-    private int value;
-    public void setValue(int value){
-        this.value = value;
-    }
-    @Override
-    public String toString(){
-        return "MyEvent[value=" + value + "]";
-    }
-}
-```
-It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
-While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
-
-###### Aeron
-```java
-import io.aeron.Aeron;
-import io.aeron.Publication;
-import io.aeron.Subscription;
-import io.aeron.driver.MediaDriver;
-import io.aeron.logbuffer.FragmentHandler;
-import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.SleepingIdleStrategy;
-import org.agrona.concurrent.UnsafeBuffer;
-import java.nio.ByteBuffer;
-
-public class App{
-    private static void startPublisherThread(Publication pub, IdleStrategy idle){
-        new Thread(()->{
-            while (!pub.isConnected())
-            {
-                idle.idle();
-            }
-            for (int i = 0; i < 10; i++){
-                final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(256));
-                unsafeBuffer.putStringAscii(0, "msg");
-                long pos = pub.offer(unsafeBuffer);
-                System.out.println("message i=" + i + ", pos=" + pos);
-                while (pos < 0) {
-                    idle.idle();
-                    pos = pub.offer(unsafeBuffer);
-                }
-            }
-
-        }, "PublisherThread").start();
-    }
-    private static void startSubscriptionThread(Subscription sub, IdleStrategy idle){
-        new Thread(() -> {
-            FragmentHandler handler = (buffer, offset, length, header) ->
-                    System.out.println("received msg=" + buffer.getStringAscii(offset));
-            while (sub.poll(handler, 1) <= 0) {
-                idle.idle();
-            }
-        }, "SubscriptionThread").start();
-    }
-
-    public static void main(String[] args)
-    {
-        final String channel = "aeron:ipc";
-        final IdleStrategy idle = new SleepingIdleStrategy(1000);
-        try (MediaDriver driver = MediaDriver.launch();
-             Aeron aeron = Aeron.connect();
-             Subscription sub = aeron.addSubscription(channel, 10);
-             Publication pub = aeron.addPublication(channel, 10))
-        {
-            startPublisherThread(pub, idle);
-            startSubscriptionThread(sub, idle);
-        }
-    }
-}
-```
+###### Low latency logging
+The whole idea is that we use some non-blocking queue, so the executing threads not blocked (waste time) for log writing
+it just add this message to some non-blocking queue, and then we have some logger thread, that actually does logging
+You can implement it yourself with any lock-free multi-threading queue, but there are 2 solutions available:
+* [chronicle logger](https://github.com/OpenHFT/Chronicle-Logger) - use chronicle queue under the hood
+* [async log4j2](https://logging.apache.org/log4j/2.x/manual/async.html) - use lmax disruptor under the hood
 
 ###### Low latency collections
 We have following collections in java:
@@ -13577,6 +13438,8 @@ We have following collections in java:
 * koloboke
 * chronicle (build by including cool features from koloboke)
 * agrona
+* lmax disruptor
+* aeron
 [Trove](https://bitbucket.org/trove4j/trove/src/master/) - one of the first low latency collections:
 * started as primitive collections (in jdk you have to use wrappers)
 * use open addressing for maps (in jdk we use linked list if 2 or more elements have same hashcode)
@@ -13984,8 +13847,150 @@ no point in this java instruction.
 Thread interleaving:
 * interleave - insert something into something (book interleaved with handwritten text - means you insert pages with your handwriting into book)
 * means one thread interleave (kind of happen at the same time as another) another - they share memory (variables) that they both modify, and unexpected results may happen
+[LMAX Disruptor](https://lmax-exchange.github.io/disruptor)
+LMAX (London multi asset exchange) - company that launched derivative exchange for retail users in 2010
+Add this to your pom.xml to work with disruptor
+```
+    <dependency>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
+      <version>3.4.4</version>
+    </dependency>
+```
+Disruptor (kind of `BlockingQueue`) - moves data (messages/events) between threads within same process with support:
+Disruptor is a bad naming, cause what is actually is - non-blocking multi-reader/writer queue. Since each reader maintains sequence, you can have many readers that read from queue.
+* multicast events - send same message to multiple consumers
+* consumer dependency graph - if we have 3 consumers: A depends on B which depends on C, so we don't want C to get new message until both A & B completed handling of this message
+* memory pre-allocation - preallocate the storage required for the events within the Disruptor so GC won't run and stall your system
+* optionally lock-free - use memory barrier & compare-and-swap algo to get lock-free performance
+* not breaking SWP, while queue does
+Disruptor use following concepts inside:
+* RingBuffer - place to store message/event
+* Sequence (kind of `AtomicLong`) - each consumer & disruptor maintains a sequence to know where current state is
+* Sequencer - core of the Disruptor
+* Wait Strategy - how consumer wait for events
+SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
+* mutual exclusion - block resource so only 1 thread write at a time (using `synchronized`)
+* optimistic concurrency - using CAS algorithms
+But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
+In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
+There are 4 main waiting strategy (all implements `WaitStrategy` interface):
+* BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
+* SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
+* YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
+* BusySpinWaitStrategy
+Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
+Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
+In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
+So queue because it break SWP can cause false sharing (silent performance killer).
+False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
+in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
+One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
+`volatile` keyword used for 2 things (it has nothing to do with false sharing):
+* variable visibility - change in one thread would be immediately visible to other threads
+* code order - (without it compiler may reorder you code) 
+`ringBufferSize` - second param to `Disruptor` constructor. It determine the size of RingBuffer. Producer can write only until size is full. Once all consumer read some sequence, it can be overwritten by producer.
+So producer should know what is latest sequence number that was read by all consumers, and check if buffer size not full, only then they can write.
+You can test it by setting one consumer with `Thread.sleep` and other without. And one without - would read whole ring buffer. But only once second consumer would read messages, new would be added by producer.
+Basic example (2 consumer runs in parallel, third wait for these 2 and run after - dependecy graph)
+```java
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.dsl.Disruptor;
+import com.lmax.disruptor.util.DaemonThreadFactory;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("__START__");
+        int bufferSize = 4;
+        Disruptor<MyEvent> disruptor = new Disruptor<>(MyEvent::new, bufferSize, DaemonThreadFactory.INSTANCE);
+        disruptor.handleEventsWith(
+                (event, sequence, endOfBatch) -> System.out.println("1. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event),
+                (event, sequence, endOfBatch) -> System.out.println("2. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event)
+        ).then((event, sequence, endOfBatch) -> {
+            System.out.println("3. thread=" + Thread.currentThread().getName() + ", sequence=" + sequence + ", event=" + event);
+            Thread.sleep(5000);
+        });
+        RingBuffer<MyEvent> ringBuffer = disruptor.start();
+        for (int i = 0; i < 100; i++) {
+            ringBuffer.publishEvent((event, sequence, buffer) -> event.setValue(buffer), i);
+            System.out.println("publishEvent=" + i + " thread=" + Thread.currentThread().getName());
+        }
+        System.out.println("__DONE__");
+    }
+}
+
+
+class MyEvent{
+    private int value;
+    public void setValue(int value){
+        this.value = value;
+    }
+    @Override
+    public String toString(){
+        return "MyEvent[value=" + value + "]";
+    }
+}
+```
+It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
+While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
+[aeron](https://aeroncookbook.com/aeron/overview/)
+```java
+import io.aeron.Aeron;
+import io.aeron.Publication;
+import io.aeron.Subscription;
+import io.aeron.driver.MediaDriver;
+import io.aeron.logbuffer.FragmentHandler;
+import org.agrona.concurrent.IdleStrategy;
+import org.agrona.concurrent.SleepingIdleStrategy;
+import org.agrona.concurrent.UnsafeBuffer;
+import java.nio.ByteBuffer;
+
+public class App{
+    private static void startPublisherThread(Publication pub, IdleStrategy idle){
+        new Thread(()->{
+            while (!pub.isConnected())
+            {
+                idle.idle();
+            }
+            for (int i = 0; i < 10; i++){
+                final UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(256));
+                unsafeBuffer.putStringAscii(0, "msg");
+                long pos = pub.offer(unsafeBuffer);
+                System.out.println("message i=" + i + ", pos=" + pos);
+                while (pos < 0) {
+                    idle.idle();
+                    pos = pub.offer(unsafeBuffer);
+                }
+            }
+
+        }, "PublisherThread").start();
+    }
+    private static void startSubscriptionThread(Subscription sub, IdleStrategy idle){
+        new Thread(() -> {
+            FragmentHandler handler = (buffer, offset, length, header) ->
+                    System.out.println("received msg=" + buffer.getStringAscii(offset));
+            while (sub.poll(handler, 1) <= 0) {
+                idle.idle();
+            }
+        }, "SubscriptionThread").start();
+    }
+
+    public static void main(String[] args)
+    {
+        final String channel = "aeron:ipc";
+        final IdleStrategy idle = new SleepingIdleStrategy(1000);
+        try (MediaDriver driver = MediaDriver.launch();
+             Aeron aeron = Aeron.connect();
+             Subscription sub = aeron.addSubscription(channel, 10);
+             Publication pub = aeron.addPublication(channel, 10))
+        {
+            startPublisherThread(pub, idle);
+            startSubscriptionThread(sub, idle);
+        }
+    }
+}
+```
 
 ### TODO
 * testing multi-threaded code
-* how liquidations work if it running in another thread, and user variables were not volatile
-* chronicle-logger vs async log4j
+* how liquidations work if it running in another thread, and user variables were not volatile\
