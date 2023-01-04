@@ -3542,7 +3542,7 @@ diff => PT1H
 ```
 In 13th of march 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 
-Instant vs OffsetDateTime vs ZonedDateTime:
+Don't confuse:
 * `Instant` - just store current datetime from utc
 * `OffsetDateTime` - `Instant` + utc offset
 * `ZonedDateTime` - `OffsetDateTime` + time zone
@@ -4462,7 +4462,36 @@ public class App {
 Constructor of `HashMap/LinkedHashMap` can have 2 and 3 params: 
 * capacity - default size of underlying array (number of buckets)
 * loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
-* accessOrder (only for LinkedHashMap cause we have order here) - if true, those you get goes up
+    * so if you have 16 elements, once you inserted 12, it would resize
+    * once map size is increased, rehashing happens to equally distribute items across the map
+    * usually we set values 0-1, yet if you set 2, that would means once we reach 200% elements, resize & rehashing happen (we insert twice many elements as capacity)
+* accessOrder (only for LinkedHashMap cause we have order here):
+    * by default false - you access your elements in the order they were inserted (re-insert doesn't affect the order)
+    * true - now you have access-ordered map, so each time you call get/put, internally map is reordered, and they called last during iteration
+    so least accessed called first:
+```java
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class App{
+    public static void main(String[] args) {
+        Map<Integer, String> map = new LinkedHashMap<>(16, 0.75F, true);
+        map.put(1, "a");
+        map.put(2, "b");
+        map.put(3, "c");
+        map.put(4, "d");
+        System.out.println(map);
+        map.put(1, "x");
+        map.get(2);
+        System.out.println(map);
+    }
+}
+```
+```
+{1=a, 2=b, 3=c, 4=d}
+{3=c, 4=d, 1=x, 2=b}
+```
+As you can see, since we accessed elemtned with indexed 1/2, they moved to bottom
 Giving these 3 params you can easily create your own LRU cache.
 How HashMap works:
 * inside there is list of buckets (backed by array of `HashMap.Node`)
@@ -4576,7 +4605,6 @@ failFast
 Exception in thread "main" java.util.ConcurrentModificationException
 ```
 In case of `HashMap` if we try to modify object we got exception, but for concurrent - it's ok
-
 Simple example of RingBuffer
 ```java
 import java.util.*;
@@ -4596,7 +4624,7 @@ public class App {
 class LruCache<K, V> extends LinkedHashMap<K, V>{
     private final int capacity;
     public LruCache(int capacity){
-        super(capacity+1, 2, true);
+        super(capacity+1, 0.75f, true);
         this.capacity = capacity;
     }
 
@@ -4610,7 +4638,6 @@ class LruCache<K, V> extends LinkedHashMap<K, V>{
 {1=1, 2=1, 3=1}
 {3=1, 1=1, 4=1}
 ```
-
 `NavigableMap` - has ability to navigate back and forth.
 There are 4 methods to navigate in both `NavigableMap` and `NavigableSet`
 higher(key) - move up (null if last)
@@ -6829,6 +6856,8 @@ Exception in thread "main" java.lang.IllegalArgumentException
 ```
 Don't confuse:
 * `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it
+yield just suspend thread and notify os scheduler that it would like to resume ASAP, hence it's non-determenistic, while sleep, always suspend thread for specified amount of time.
+that's wy you should never use it, cause it behaviour non-determentistic and can't be used correctly
 * `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
@@ -13442,7 +13471,11 @@ We have following collections in java:
 * aeron
 [Trove](https://bitbucket.org/trove4j/trove/src/master/) - one of the first low latency collections:
 * started as primitive collections (in jdk you have to use wrappers)
-* use open addressing for maps (in jdk we use linked list if 2 or more elements have same hashcode)
+* use open addressing for maps
+    *  in jdk we use linked list if 2 or more elements have same hashcode, since java8 we use balanced tree (red-black tree) to store collisions
+    * closed addressing (used by JDK) - when you have hash collision you create list for single bucket, when you lookup you go through the list and compare keys
+    * here we don't use any list, instead we always put elements into underlying array, in case of hash collision, we put key into another bucket
+    when we lookup, we found starting array slot, and then go down one-by-one (for linear) comparing keys, until we either found our key or empty spot
 - here we use linear resolution where if hashcode already exist, we just put it into next field
 * you can add your cusom hashing strategy by implementing `TObjectHashingStrategy`
 * currently supported by [palantir](https://github.com/palantir/trove)
