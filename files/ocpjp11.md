@@ -53,6 +53,7 @@
 * 7.8 [Synchronized on ID](#synchronized-on-id)
 * 7.9 [Future & CompletableFuture](#future--completablefuture)
 * 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
+* 7.11 [Reactive Streams](#reactive-streams)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -8288,6 +8289,73 @@ class BankAccount {
 }
 ```
 
+###### Reactive Streams
+There are 2 reactive implementations: RxJava & Akka, yet starting from java9, jdk provides reactive interfaces `Flow`
+And one implementation of concurrent publisher `SubmissionPublisher`.
+There are 2 ways for producer-consumer problem:
+* pull - when consumer polls producer, upside consumer controle speed, downside - waste of resources for polling
+* push - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower then producer, we may have data loss
+* push-on-request - when producers pushed to consumer based on consumer request, so we combine upsides from both pull/push approach
+To summirize reative is when consumer decide when to handle next item, by signallin it to producer, and it's the job of producer to handle
+multiple consumers, based on their speed.
+Notice that java9 is very open, for `Publisher` there is only 1 method to imlement `subscribe`, the actual `publish` implementation
+is up to you, in case of SubmissionPublisher it called `submit`
+```java
+import lombok.Getter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Flow;
+import java.util.concurrent.SubmissionPublisher;
+
+public class App{
+    public static void main(String[] args) throws InterruptedException {
+        Flow.Subscriber<String> subscriber = new SimpleSubscriber<>();
+        SubmissionPublisher<String> publisher = new SubmissionPublisher<>();
+        publisher.subscribe(subscriber);
+        List.of("a","aa","aaa","aaaa").forEach(publisher::submit);
+        publisher.close();
+        Thread.sleep(100);
+        System.out.println(((SimpleSubscriber)subscriber).getList());
+    }
+}
+
+class SimpleSubscriber<T> implements Flow.Subscriber<T>{
+    private Flow.Subscription sub;
+    @Getter
+    private List<T> list = new ArrayList<>();
+
+    @Override
+    public void onSubscribe(Flow.Subscription sub) {
+        System.out.println("init...");
+        this.sub = sub;
+        this.sub.request(1);
+    }
+
+    @Override
+    public void onNext(T t) {
+        list.add(t);
+        // we need this to signal to publisher that we are ready to receive new element
+        // this make it reactive, so push-on-request
+        sub.request(1);
+    }
+
+    @Override
+    public void onError(Throwable ex) {
+        System.out.println("ERR => " + ex);
+    }
+
+    @Override
+    public void onComplete() {
+        System.out.println("DONE");
+    }
+}
+```
+```
+init...
+DONE
+[a, aa, aaa, aaaa]
+```
+
 #### JDBC and SQL
 ###### Connection
 Mysql driver is not part of sdk so you have to manually add it to `pom.xml`
@@ -12679,6 +12747,7 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values
+SubmissionPublisher
 Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores
 Memory basics:
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
