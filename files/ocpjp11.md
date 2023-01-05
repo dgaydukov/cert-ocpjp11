@@ -8290,16 +8290,25 @@ class BankAccount {
 ```
 
 ###### Reactive Streams
+Don't confuse:
+* java stream API - working with data as sequence of events, using functional interfaces
+* java reactive streams - way of communication between producer & consumer, where consumer request data, and producer push data to consumer based on such request
 There are 2 reactive implementations: RxJava & Akka, yet starting from java9, jdk provides reactive interfaces `Flow`
 And one implementation of concurrent publisher `SubmissionPublisher`.
 There are 2 ways for producer-consumer problem:
-* pull - when consumer polls producer, upside consumer controle speed, downside - waste of resources for polling
-* push - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower then producer, we may have data loss
-* push-on-request - when producers pushed to consumer based on consumer request, so we combine upsides from both pull/push approach
-To summirize reative is when consumer decide when to handle next item, by signallin it to producer, and it's the job of producer to handle
+* pull (no backpressure) - when consumer polls producer, upside - consumer controls speed, downside - waste of resources for polling
+* push (backpressure on consumer) - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower then producer, we may have data loss
+* push-on-request (backpressure on producer) - when producers pushed to consumer based on consumer request, so we combine upsides from both pull/push approach
+To summirize reative is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle
 multiple consumers, based on their speed.
-Notice that java9 is very open, for `Publisher` there is only 1 method to imlement `subscribe`, the actual `publish` implementation
-is up to you, in case of SubmissionPublisher it called `submit`
+Notice that java9 is very open, for `Publisher` there is only 1 method to implement `subscribe`, the actual `publish` implementation
+is up to you, in case of SubmissionPublisher it called `submit`.
+It's under `java.util.concurrent` package, cause handle multiple consumers based on their speed, required some concurrency/buffering handling.
+For transformation we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
+transform inside, and then publish to another consumer.
+Backpressure handling - 2 ways to handle this:
+* increase buffer size
+* drop some items
 ```java
 import lombok.Getter;
 import java.util.ArrayList;
@@ -12747,7 +12756,14 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values
-SubmissionPublisher
+Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier.
+Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps,
+it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
+There are 4 types of memory barrier:
+* LoadLoad - all loads before barrier, happens before loads after barrier
+* LoadStore - all loads before barrier, happens before stores after barrier
+* StoreStore - all stores before barrier, happens before stores after barrier
+* StoreLoad - all loads before barrier, happens before stores after barrier
 Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores
 Memory basics:
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
