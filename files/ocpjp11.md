@@ -84,7 +84,7 @@
 * 11.6 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
 * 11.7 [Annotations](#annotations)
 * 11.8 [Reflection API](#reflection-api)
-    * 11.8.2 [Get param names](#get-param-names)
+    * 11.8.1 [Get param names](#get-param-names)
 * 11.9 [Compile Time Annotation Processor](#compile-time-annotation-processor)
 * 11.10 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
 * 11.11 [JMX (java management extension)](#jmx-java-management-extension)
@@ -94,6 +94,7 @@
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
 * 11.16 [Class Diagram](#class-diagram)
 * 11.17 [Java17 new features](#java17-new-features)
+* 11.18 [Remote debugging](#remote-debugging)
 12. [Low latency](#low-latency)
 * 12.1 [CPU and Cache](#cpu-and-cache)
 * 12.2 [Compiler Design](#compiler-design)
@@ -12577,6 +12578,37 @@ public record Point(int x, int y){}
 ```
 sealed class X permits A, B, C, D{}
 ```
+
+###### Remote debugging
+How debugging works:
+* when you compile java code you can use option `javac -g`, which would include debug information
+    * by default line number & source file information is included
+    * you can include local variables names with `-g:vars`
+    * you can exclude all debug info with `-g:none` - which makes compiled files lighter, yet it's not adviced
+* since your compiled jar contains debug information by default, until you explicitly compiled it without it
+    * you can debug your jar file
+    * when exceptions happens, java can print stacktrace with original line numbers
+* make sure when debugging your source code correspond to compiled file
+    * otherwise if your source code changed and not the same that was used for compilation you can run into funny problems
+    like breakpoints not working at all, or fire in strange places
+* bidirectional:
+    * debugger sends breaking points to JVM, and it pause execution there
+        * you can also modify code during debugging, and such code would be sent to JVM, which would use hot code replacement
+        and now, new code would be executed. If you restart debugging, all such temporary code changes would be gone
+    * JVM can send variable contents back to debugger so you can inspect them
+How remote debugging works:
+* JDWP (Java Debug Wire Protocol) - protocol designed for remote debugging of java apps
+* JVM Tool Interface - provides debugging abilities to JVM (ability to inspect objects, set breakpoints)
+* JDI (java debug interface) - pass debugging requests from debugger to JVM
+* when connecting debugger to remote JVM either one can act as a server and other attaches to it
+* you should start JVM on remote server
+    * `java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005`
+    * if server=n, JVM will connect to debugger
+    * if suspend=y, JVM will wait until debugger is connected
+* then from IDE, choose host & port (you specified port on the server)
+    * make sure port on remote host is open for connection (use telnet to check)
+    * launch app from IDE
+    * make sure that your code version correspond to remote built version
 
 #### Low latency
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actualy
