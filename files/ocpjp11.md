@@ -3567,6 +3567,7 @@ ZonedDateTime =>  2019-11-18T16:37:56.938073+08:00[Asia/Hong_Kong]
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. 
 TimeZone - is more broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is more broader concept than timeOffset.
 Java & DB time practice (we use mysql here as example):
+* timestamp - the number of milliseconds since the `epoch` namely midnight, January 1, 1970 UTC
 * you have 3 classes in java to map to SQL, under `java.sql` package 
     * Date - only dates
     * Time - only time
@@ -3586,10 +3587,19 @@ Java & DB time practice (we use mysql here as example):
 * best way to store dates is to store
     * timezone as IANA string
     * store time as millisec in bigint
+        * this is better, cause timestamp - number of millisec from jan 1970, would always be the same, tz no matter
+        yet when you need to display exact time, depending upon your TZ you will see different time,
+        so best approach just store time as timestamp, and it always utc by default
         * this would avoid any problems with `timestamp` field like https://stackoverflow.com/questions/71346404/mysql-timestamp-throwing-incorrect-datetime-value-on-one-specific-datetime
         where your server timezone is bermuda, and due to DST, they switch and some time is missing, and you insert missing time.
     * or store datetime + LocalDate, but for localdate whenever you call `now()`, make sure you call it with UTC timezone, so you always get UTC time
         * don't use `Instant` here, cause althougn `now()` returns UTC time by default, it also store timezone inside as Z letter, and you may have issues applying datetimeformat, if you don't want to store zone inside date
+* LocalDateTime doesn't store timezone, internally it stores timestamp as seconds, but when displayed, it use current TZ to display time
+    * since TZ is not present in LocalDateTime, there is no way to convert it to timestamp with millisec
+    * yet you can add timezone, convert to Instant and get timestamp from there
+    `LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli();`
+    * same true with opposite, if you have epochmillisec, then convert it into Instant, and then get LocalDateTime from it
+    * this class useful if you have users in different timezones, then you can display for each his exact time by applying his TZ
 ```java
 import java.sql.Timestamp;
 import java.time.Instant;
