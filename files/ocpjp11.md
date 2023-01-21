@@ -3566,6 +3566,55 @@ ZonedDateTime =>  2019-11-18T16:37:56.938073+08:00[Asia/Hong_Kong]
 ```
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. 
 TimeZone - is more broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is more broader concept than timeOffset.
+Java & DB time practice (we use mysql here as example):
+* you have 3 classes in java to map to SQL, under `java.sql` package 
+    * Date - only dates
+    * Time - only time
+    * Timestamp - stores both date & time
+* in mysql you have 3 main data types
+    * date - store date only
+    * datetime - store both date & time (end range `9999-12-31 23:59:59`)
+    * timestamp - store both date & time as millisec (end range `2038-01-19 03:14:07`)
+        * MySQL converts TIMESTAMP values from the current time zone to UTC for storage, and back from UTC to the current time zone for retrieval. (This does not occur for other types such as DATETIME)
+        * If you store a TIMESTAMP value, and then change the time zone and retrieve the value, the retrieved value is different from the value you stored
+        * pay attention that it display time in local timezone, that's why mysql uses conversion internally
+* we have the following mapping (java => mysql)
+    * java.sql.Date => date
+    * java.sql.Timestamp => datetime/timestamp
+* there is no native way to store timezone, so best practice assume to store it in another string column
+    * best way to store timezone is IANA format (don't store as offset, cause it error prone)
+* best way to store dates is to store
+    * timezone as IANA string
+    * store time as millisec in bigint
+        * this would avoid any problems with `timestamp` field like https://stackoverflow.com/questions/71346404/mysql-timestamp-throwing-incorrect-datetime-value-on-one-specific-datetime
+        where your server timezone is bermuda, and due to DST, they switch and some time is missing, and you insert missing time.
+    * or store datetime + LocalDate, but for localdate whenever you call `now()`, make sure you call it with UTC timezone, so you always get UTC time
+        * don't use `Instant` here, cause althougn `now()` returns UTC time by default, it also store timezone inside as Z letter, and you may have issues applying datetimeformat, if you don't want to store zone inside date
+```java
+import java.sql.Timestamp;
+import java.time.Instant;
+
+public class App{
+    public static void main(String[] args) {
+        final long timestamp = System.currentTimeMillis();
+        final Instant instant = Instant.now();
+        System.out.println("timestamp       => " + timestamp);
+        System.out.println("toEpochMilli    => " + instant.toEpochMilli());
+        System.out.println("getEpochSecond  => " + instant.getEpochSecond());
+
+        java.sql.Timestamp sqlDatetime = new Timestamp(timestamp);
+        System.out.println("sqlDatetime     => " + sqlDatetime);
+        System.out.println("instant         => " + Instant.ofEpochMilli(timestamp));
+    }
+}
+```
+```
+timestamp       => 1674294464706
+toEpochMilli    => 1674294464707
+getEpochSecond  => 1674294464
+sqlDatetime     => 2023-01-21 17:47:44.706
+instant         => 2023-01-21T09:47:44.706Z
+```
 
 ###### Formatting
 Formatting: There are 3 classes to format date and 1 for numbers
