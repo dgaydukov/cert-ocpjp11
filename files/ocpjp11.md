@@ -27,7 +27,8 @@
 4. [Generics](#generics)
 * 4.1 [Type erasure](#type-erasure)
 * 4.2 [PECS (producer extends consumer super)](#-pecs-producer-extends-consumer-super)
-* 4.2 [Generic method overriding](#generic-method-overriding)
+* 4.3 [Generic method overriding](#generic-method-overriding)
+* 4.4 [Generic arrays](#generic-arrays)
 5. [Collections](#collections)
 * 5.1 [List and Set](#list-and-set)
 * 5.2 [Array and Enumeration to List and back](#array-and-enumeration-to-list-and-back)
@@ -4121,9 +4122,8 @@ class B extends A{
     }
 }
 ```
-
 Pay attention that due to type erasure we can set return value and params just as `List`. In that case we can pass any list.
-```java
+```
 @Override
 public List getNumberListWithParams(List list){
     return null;
@@ -4136,6 +4136,42 @@ class A{
     public void getList(List<Integer> list){}
 }
 ```
+
+###### Generic arrays
+You can't create generic array, this code `T[] arr = new T[10]` won't compiled.
+The main reasons is that arrays store and check types on runtime, while generic on compile time change everything to `Object`.
+So if above was possible, you would get `ClassCastException` whenever you substitute T with anything rather then Object.
+Yet there are 2 ways to create genetic array. Below we consider real-world example where you want to build your queue, which use array as internal storage.
+Queue should be generic and handle any data type.
+Both ways act the same, cause `newInstnace` return object, and since first version is shorter, it's more preferrable.
+```java
+class CustomQueue<T>{
+    private T[] buffer;
+
+    public CustomQueue(int capacity){
+        buffer = (T[]) new Object[capacity];
+    }
+    
+    public CustomQueue(Class<T> clz, int capacity){
+        buffer = (T[]) Array.newInstance(clz, capacity);
+    }
+}
+```
+Another way is just to use array of objects, and convert when we add/fetch elements
+```java
+class CustomQueue<T>{
+    private Object[] buffer;
+
+    public CustomQueue(int capacity){
+        buffer = new Object[capacity];
+    }
+    public T getItem(){
+        return (T) buffer[0];
+    }
+}
+```
+Same with instantiation, we can't do just `T t = new T[]`, we should call something like `T t = (T)clz.newInstance()`
+First you need to make sure that T is class, that why `Class<T> clz` is required, then you can use reflection to instantiate the class.
 
 #### Collections
 `Vector` - is synchronized (almost all methods has `syncronized` keyword), only one thread at a time can use it. `ArrayList` - is not synchronized.
