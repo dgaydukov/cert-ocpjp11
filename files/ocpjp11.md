@@ -168,14 +168,14 @@ public class App {
     }
 }
 ```
-**Although we clear see that we set variables `s` anyway (if n greater than 0, s = "yes", if not s = "no"), but compiler doesn't execute the code, and it just sees it as 2 different `if` statement without else, and thinks that we don't initialize `s`. To fix it you need to add `else` to any if and set `s` there.
+Although we clearly see that we set variables `s` anyway (if n greater than 0, s = "yes", if not s = "no"), but compiler doesn't execute the code, and it just sees it as 2 different `if` statement without else, and thinks that we don't initialize `s`. To fix it you need to add `else` to any if and set `s` there.
 
 Constants in java are made with `static final` keywords. They are used different naming conventions.
 ```java
 private static final int NUM_BUCKETS = 45;
 ```
 
-Division by zero. When we divide double by zero (or int by 0.0) we don't get exception.
+Division by zero. When we divide double by zero (or int by 0.0) we don't get exception
 ```java
 public class App {
     public static void main(String[] args){
@@ -194,8 +194,7 @@ Exception in thread "main" java.lang.ArithmeticException: / by zero
 ```
 When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got Infinity. 
 
-We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 32 bits, both use 1 bit to store sign(+ or -), but int store all digit so max value is 2**31, 
-but float use 8 bit store exponent (so max exponent value = 127, and 2**127 is the max value to store) and 23 bits to store floating value. Since floating value would be 1-2, so max is 1.9999, then max float value is 2**128 or  3.4*10**38.
+We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 32 bits, both use 1 bit to store sign(+ or -), but int store all digit so max value is 2**31, but float use 8 bit store exponent (so max exponent value = 127, and 2**127 is the max value to store) and 23 bits to store floating value. Since floating value would be 1-2, so max is 1.9999, then max float value is 2**128 or  3.4*10**38.
 ```java
 int i = 1;
 float f = i;
@@ -211,7 +210,7 @@ max values:
 So we can assign int/long to float/double without actual cast, but vice versa - compile error
 
 Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile time constants. The reason is that Java/C++/C implement switch as jump (branch) table. Switch can be empty-bodied (not labels & default)
-Variable declared inside `case` are visible throughout switch only if they are in order. As you see a is declared before it used in second case, so it's valid, but b is used before it would be declared in second case, so it's invalid.
+Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it used in second case, so it's valid, but b is used before it would be declared in second case, so it's invalid.
 ```java
 public class App {
     static public final void main(String[] args) {
@@ -270,7 +269,7 @@ public class App{
 In first case we first have (1+1) * (4) = 8
 in second = (4) * (4+1) = 20
 
-We cant use both number & char in `switch` statement, if they are equal.
+We cant use both int & char in `switch` statement, if they are equal.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -333,7 +332,7 @@ final with wrappers
 final Short s1 = 1;
 short s2 = -s1; // won't compile, s1 is cast to int by default 
 ```
-The key here is that final - is the reference to memory, not the value itself, so rules with constants doesn’t apply here.
+The key here is that final - is the reference to memory, not the value itself, so rules with constants don't apply here.
 When you create long with multiplication, it would be treated as int.
 Intellij also show you warning `Numeric overflow Exception`. Although `long` can hold more then 10B, `int` is only 2B.
 By default all operations are converted to int, then cast to long, so in below example 10B would be converted to int (which will cause overflow)
@@ -355,6 +354,8 @@ l2 => 10737418240
 ```
 
 ###### Short circuit boolean
+* AND - true only if both true
+* OR - true if one is true
 Short-circuit logical operators. Operators &&/& and ||/| result the same, when applied to boolean. The difference is that double - is called short-circuit. For example since (true||false) will always return true, if first is true, it won’t even execute second operand. 
 But in case of single operator (& or |), it will execute both.
 ```java
@@ -412,8 +413,7 @@ false
 ```
 As you see, the same result, but in second case we execute all operands, but in first only first - cause it’s already enough to determine the output.
 
-Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign b to true and it always work. 
-In production code it’s better to use `true == b`. In this case if you omit one `=`, compiler will show error, cause that would mean you are trying to assign value to keyword `true`.
+Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign b to true and it always work. In production code it’s better to use `true == b`. In this case if you omit one `=`, compiler will show error, cause that would mean you are trying to assign value to keyword `true`.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -606,9 +606,7 @@ obj += "2";
 Object obj2 = "1";
 obj2 += 2; // won't compiled
 ```
-That’s why first statement compiled correctly, cause it works like 
-Object + String => Object.toString + String
-But second failed, cause it works like Object + Integer, which can’t work
+That’s why first statement compiled correctly, cause it works like Object + String => Object.toString + String. But second failed, cause it works like Object + Integer, which can’t work
 
 ```java
 Object obj = null;
@@ -636,9 +634,7 @@ s1 == s2 => true
 s3 == s4 => false
 s5 == s1 => true
 ```
-First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. 
-Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false.
-In third case we interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2.
+First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2.
 
 `trim` vs. `strip`
 `trim` - old method to trim a string, strip - is java11, the difference is working with unicode. 
@@ -1133,10 +1129,8 @@ x|y => 5 / 101
 
 #### Classes and Objects
 ###### toString, equals, hashcode, clone
-These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods.
-Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called
-it won't use your version, but from `Object` itself.
-If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
+These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called
+it won't use your version, but from `Object` itself. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -8338,7 +8332,7 @@ B
 
 ###### ReentrantLock/ReentrantReadWriteLock/StampedLock
 There are 3 main class to work with `Lock` interface:
-* ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method.
+* ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. renetrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
 * ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
 This can be same as using `synchronized` + `volatile` and not synchronized read.
 We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock)
@@ -9523,13 +9517,11 @@ Rules of changing serialized classes:
 * if some fields are removed from new class version, they just ignored during deserialization.
 Don't confuse:
 * java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
-* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format.
-There are other options available (XML/JSON - text based, Protobuffer/Thrift/Avro - binary), yet SBE is faster low-latency apps.
+* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, Protobuffer/Thrift/Avro - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streamig data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
 SBE design:
 * xml schema - set layout & data type of message (which fields would be used)
-* compiler take the schema and generate optimized java file with java code
-you use SBEtool to generate encoder/decoder java classes, that would convert binary back and forth
-* message - genrated on runtime based on java file
+* compiler take the schema and generate optimized java file with java code, you use SBEtool to generate encoder/decoder java classes, that would convert binary back and forth
+* message - generated on runtime based on java file
 * no garbage - sbe use direct buffer, so no GC happening during message creation
 * use array as underlying storage, so cpu cache prefetching can expedite the process
 SBE better then java serialization:
@@ -10880,10 +10872,8 @@ Array is an object, and stored all data in the heap, even array of int, would be
 Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
 ByteBuffer provides view into some (undefined) underlying storage of bytes
 There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
-* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes (not subject to the GC).
-constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself
-under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is storedin heap.
-* `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - in-heap memory, backed by `byte[]` which in the end resides in heap memory, since the name contains heap word.
+* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes and uses `Unsafe` under-the-hood for memory allocation, so it not subject to the GC. constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is stored in heap.
+* `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - in-heap memory, backed by array of bytes `byte[]` which in the end resides in heap memory, since the name contains heap word.
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
 Conclusion, if you are fine with on-heap memory, you can just use simple array of bytes, no need to use any buffer, but if you want off-heap memory, use DirectByteBuffer
 this leads me to conclusion, that it should be faster and more useful then HeapByteBuffer. Yet both implement same base class, so they can be used interchangeably.
@@ -12706,8 +12696,7 @@ How remote debugging works:
     * make sure that your code version correspond to remote built version
 
 #### Low latency
-When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actualy
-create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
+When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
 change java version:
 * first install several java versions, so you can switch between them
 * you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
@@ -12735,22 +12724,9 @@ so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9
 ###### CPU and Cache
 there are 3 types of memory:
 * memory - main memory of PC called RAM
-* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. 
-  if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size
-  since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit
-  for pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bit
-  for pc that works with numbers word-addressable memory is better, cause integer is 4byte
-* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory)
-So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
-* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache)
-  with cpu cache we have following problem. how we can store memory location from which we read single byte.
-  if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address
-  this is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes
-  useful cache size - size of only data without memory unit address, most cpu caches shows only this number
-  sof if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes
-  when cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache
-  cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory
-  using different algos like LRU (least recently used)
+* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size, since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit. For pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bi, for pc that works with numbers word-addressable memory is better, cause integer is 4byte
+* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory). So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
+* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache). With cpu cache we have following problem: how we can store memory location from which we read single byte. if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address. This is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes, useful cache size - size of only data without memory unit address, most cpu caches shows only this number, so if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes. When cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache. Cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory, using different algos like LRU (least recently used).
 There are 2 types of architecture of cpu:
 * instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
     instruction sets can be of different architectural complexity:
@@ -12781,8 +12757,7 @@ There are 2 types of architecture of cpu:
         complexity but with greater compiler complexity
     * MISC (minimal instruction set computer) - used in educational purposes
         * OISC (one instruction set computer)
-* microarchitecture - internal design of cpu. Processors with different microarchitecture can have common instruction set, like intel and AMD
-although have different internal design, yet share same set of instructions/registers.
+* microarchitecture - internal design of cpu. Processors with different microarchitecture can have common instruction set, like intel and AMD, although have different internal design, yet share same set of instructions/registers.
 it represented as connection of machine elements which can be anything from registers to complete ALU (arithmetic logic unit)
 Concept of distinct microarchitecture as compare to instruction set was developed by IBM.
 Instruction may specify:
@@ -12841,18 +12816,13 @@ java -server -XX:+UnlockDiagnosticVMOptions -XX:+PrintAssembly -XX:PrintAssembly
 `javap` - java disassemble tool, where p stands for print, so `javap => java print`
 You can view bytecode with intellij plugin `jclasslib bytecode viewer` without using `javac` compiler. just open file and go to `view => Show Bytecode with Jclasslib`
 Don't confuse 2 types of compilers:
-* JIT (just-in-time) - compile only those part of code that are executing, machine files stored in memory
-if some code is never executed during jvm life, then it would never be compiled into machine code
-also in such approach compile can see how performance is going and optimize some part on runtime
-since java using JIT, there is no machine code files, it compiles it during execution
-moreover JIT interpret code first time it needs it, and only if this code is revoked several time, compile it into machine code. `-XX:CompileThreshold= (default is 10000) `
+* JIT (just-in-time) - compile only those part of code that are executing, machine files stored in memory, if some code is never executed during jvm life, then it would never be compiled into machine code also in such approach compile can see how performance is going and optimize some part on runtime. Since java using JIT, there is no machine code files, it compiles it during execution moreover JIT interpret code first time it needs it, and only if this code is revoked several time, compile it into machine code. `-XX:CompileThreshold= (default is 10000) `
 * AOT (ahead-of-time) - precompile everything into machine code. machine code files stored in the disk
 hotspot - compiler of jvm:
 * OSR (On Stack Replacement) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
   while it was running. if function use loop - such optimization may be useful. when it occur, jvm is paused and stack frame is replaced
   by compiled frame. By default each function is interpreted until certain point when it became hot and then it compiled to machine code.
-* biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast
- if different thread try to acquire lock, then bias should be removed
+* biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast,  if different thread try to acquire lock, then bias should be removed
 * deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
 ```java
 public int getValue(int i){
@@ -12862,8 +12832,7 @@ public int getValue(int i){
     return i/2;
 }
 ```
-compiler may think that this `if` condition may never happen and compile without it, but at some point we may come to this, so hotspot would deoptimize
-basically remove compiled code and start interpreting code. you can see it by enable `-XX:+TraceDeoptimization`
+compiler may think that this `if` condition may never happen and compile without it, but at some point we may come to this, so hotspot would deoptimize, basically remove compiled code and start interpreting code. you can see it by enable `-XX:+TraceDeoptimization`
 x86 assemble - family of backward-compatible languages based on intel8088 cpu from 1972, based on short commands for register names.
 Many compilers produce assemble as intermediate language before turning it into machine code
 There are 2 main syntax types:
@@ -12882,7 +12851,7 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 ###### Java Memory Model
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
-* weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values
+* weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values. Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores.
 Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier.
 Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps,
 it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
@@ -12891,18 +12860,11 @@ There are 4 types of memory barrier:
 * LoadStore - all loads before barrier, happens before stores after barrier
 * StoreStore - all stores before barrier, happens before stores after barrier
 * StoreLoad - all loads before barrier, happens before stores after barrier
-Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores
 Memory basics:
-proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time
-that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc
-so byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data.
-memory address - fixed-length unsigned integer
+proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc. So byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
 Don't confuse:
-* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller)
-to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create
-mapping between logical and physical memory, so your program need not to care to work with main memory. 
-Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory
+* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
+* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program need not to care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory
 we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
 VM (virtual memory) guarantee:
 * one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
@@ -12931,10 +12893,7 @@ There are 2 types of memory address resolution:
    there were a few decimal-addressable machines, but they not used nowadays
 Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
-* word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access
-so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported.
-that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once
-yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
+* word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
 JMM - describes how threads share memory. This make sense for multithreading programming.
 If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
 * how memory is shared between multiple threads
@@ -12946,6 +12905,14 @@ If you are running single thread, everything is straightforward. Problems arise 
     thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
 * within thread `as-if-serial` semantics should be observed
 compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
+Cache Coherence:
+* cpu algo (most popular algo - MESI) that ensures that cache always read the most recent data from cache
+* there are 4 states cache line in MESI protocol:
+    * invalid - cache line is obsolete, you can't read from it
+    * shared - cpu can read, but can't write into it
+    * exclusive - cpu can write, once any cpu moved cache line into this state, other cpu mark their lines as invalid
+    * modified - once we write data into cache line, it state changes from exclusive to modified.
+Once cpu wants to write data into it cache, it mark cache line as exclusive, wait until all other cpu mark their cache line into invalid, and only then modify it's own cache line - as you see cache inconsistency is impossible.
 Take a look at following example:
 ```java
 int x = 1;
@@ -12963,11 +12930,8 @@ JVM:
 * heap - contains all objects created by java app
 On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
 Rules:
-* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others
-This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside.
-`volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
-* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other
-if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
+* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other. if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
 So to summarize you can say:
 * `volatile` - single write + multiple reads
     * happens before - also it prevent code re-ordering
@@ -12976,8 +12940,7 @@ So to summarize you can say:
     * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
     * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
 * `synchronized`  - multiple writes + multiple reads 
-JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization.
-so don't overuse native methods cause it again slow down performance
+JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
 
 ###### Garbage collection
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
@@ -12997,9 +12960,7 @@ JVM:
     * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
 * cache - stored compiled code
 * stack - unique per thread, stored local variables and code execution
-GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`.
-since simple checking of all objects one-by-one is not effective, several algos exist to run GC.
-Mark & Sweep model - default implementation in java GC:
+GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`. since simple checking of all objects one-by-one is not effective, several algos exist to run GC. Mark & Sweep model - default implementation in java GC:
 * mark - identify & mark all object references starting from GC root, the rest is garbage
     * GC root - local/static variables, active threads
     * before destroying object, GC called `finalize` method exactly once
@@ -13023,7 +12984,7 @@ Z & shenandoah insert load barrier into the code if you load object:
     * append `forward pointer` to each object, which store actual object address, by default it points to object itself
     * once change happen, forward pointer of old object would point to new object
     * insert load barrier into java code
-    * this load barier read forward pointer to determine real address of object
+    * this load barrier read forward pointer to determine real address of object
     * write barrier - if object already moved then write to new copy (this code also inserted into your code and may incur latency)
 Yet for CMS, G1, ZGC we still has small pauses to:
 * collect root objects
@@ -13054,9 +13015,8 @@ So G1 in this regard is more advanced one. Cause after some time (days, weeks, m
 This can be useful if you have low-latency app with huge memory or for performance testing
 * `-XX:+UseShenanodoahGC` - 
 SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
-so if we don't do this, while we run app may change reference and we can accidentally remove used object
-example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this
-so it's better to make snapshot of object graph at the beginning and use it for marking
+so if we don't do this, while we run, app may change reference and we can accidentally remove used object
+example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking
 When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
 we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
 Don't confuse:
@@ -13065,11 +13025,9 @@ Don't confuse:
 Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
 * concurrent gc - run at the same time as your app running, so don't cause `stop the world`
 So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
-Don't confuse:
 Pros to know how gc works - you can better handle:
 * memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
-* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue
-this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
+* constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue, this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
 * cpu usage - constant `stop the world` cause a lot of cpu consumption
 gc tuning:
 * adjust heap size
@@ -13115,11 +13073,11 @@ public class App{
 * always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
     * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
         * most commands were removed in java11, if you try to run above command in java11 you will get 
-        ```
-        Unrecognized VM option 'PrintGCTimeStamps'
-        Error: Could not create the Java Virtual Machine.
-        Error: A fatal exception has occurred. Program will exit.
-        ```
+```
+Unrecognized VM option 'PrintGCTimeStamps'
+Error: Could not create the Java Virtual Machine.
+Error: A fatal exception has occurred. Program will exit.
+```
     * java11 `-Xlog:gc*=debug:file=logs.txt`
 * download & run gcviewer to check gc logs
     * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
@@ -13146,8 +13104,7 @@ in big-endian you have to move all digits right. But with little-endian you just
 In the old days little-endian has advantage, cause you can read 32 bit variable as 8 or 16bit variable.
 Endianess:
 * for cpu is not an issue anymore, cause developers use high-level programming language.
-* for network transfer - can be a problem, but only if you use binary representation, since most protocol these days use XML/JSON, no issue with text protocols
-yet for SBE, and any binary representation, endianess still an issue, so pay attention to it. 
+* for network transfer - can be a problem, but only if you use binary representation, since most protocol these days use XML/JSON, no issue with text protocols, yet for SBE, and any binary representation, endianess still an issue, so pay attention to it. 
 Don't confuse:
 * signed - those who store sign `+/-`. So for 4 bytes int, range would be -2B to +2B
 * unsigned - only positive. So for 4 bytes integer => rage 0 to 4B. In java `char` is unsigned, yet byte/int/long - signed
@@ -13170,8 +13127,7 @@ There are several character encoding:
 * Unicode
     * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
     * no limit on bits, min size - 2 bytes, even for english
-    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong
-    so in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
+    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong, in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
     * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
     * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
     * standard still alive, in latest version-13 - there are 143k characters
@@ -13568,10 +13524,8 @@ As you see originally all 4 thread runs in parallel, but only 1 get into executi
 
 ###### Linked lists
 Linked list disadvantages compared to array:
-* CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk
-`RandomAccess` - interface (don't confuse with concrete class `RandomAccessFile` to work with file) - that notify that out list is random access list.
-So `ArrayList` is implements it, yet `LinkedList` not implementing it, cause here you can't access 5th element, you need to iterate over whole list to get to desired position.
-So this interface is simply notify that list can be randomly accessed (all lists based on array should be randomly accessed).
+CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk. 
+`RandomAccess` - interface (don't confuse with concrete class `RandomAccessFile` to work with file) - that notify that our list is random access list. So `ArrayList` is implements it, yet `LinkedList` not implementing it, cause here you can't access 5th element, you need to iterate over whole list to get to desired position. So this interface is simply notify that list can be randomly accessed (all lists based on array should be randomly accessed).
 There are 3 types of linked list (all of them are linear structure represented as chain of nodes, the difference how nodes are related to each other):
 * Singly linked list:
     * each node store 2 fields: value + next node address
@@ -13667,9 +13621,7 @@ public class App{
 ```
 
 ###### Low latency logging
-The whole idea is that we use some non-blocking queue, so the executing threads not blocked (waste time) for log writing
-it just add this message to some non-blocking queue, and then we have some logger thread, that actually does logging
-You can implement it yourself with any lock-free multi-threading queue, but there are 2 solutions available:
+The whole idea is that we use some non-blocking queue, so the executing threads not blocked (waste time) for log writing, it just add log messages to some non-blocking queue, and then we have some logger thread, that actually does logging. You can implement it yourself with any lock-free multi-threading queue, but there are 2 solutions available:
 * [chronicle logger](https://github.com/OpenHFT/Chronicle-Logger) - use chronicle queue under the hood
 * [async log4j2](https://logging.apache.org/log4j/2.x/manual/async.html) - use lmax disruptor under the hood
 
@@ -13686,8 +13638,7 @@ We have following collections in java:
 * use open addressing for maps
     *  in jdk we use linked list if 2 or more elements have same hashcode, since java8 we use balanced tree (red-black tree) to store collisions
     * closed addressing (used by JDK) - when you have hash collision you create list for single bucket, when you lookup you go through the list and compare keys
-    * here we don't use any list, instead we always put elements into underlying array, in case of hash collision, we put key into another bucket
-    when we lookup, we found starting array slot, and then go down one-by-one (for linear) comparing keys, until we either found our key or empty spot
+    * here we don't use any list, instead we always put elements into underlying array, in case of hash collision, we put key into another bucket, when we lookup, we found starting array slot, and then go down one-by-one (for linear) comparing keys, until we either found our key or empty spot
 - here we use linear resolution where if hashcode already exist, we just put it into next field
 * you can add your cusom hashing strategy by implementing `TObjectHashingStrategy`
 * currently supported by [palantir](https://github.com/palantir/trove)
@@ -14046,14 +13997,29 @@ public class App{
 }
 ```
 Comparison between chronicle software & real logic:
-* chronicle-queue/map, chronicle wire/values
+* chronicle-queue/map, chronicle wire/values (same as SBE for aeron)
 * aeron, agrona, SBE
 Under the hood these 2 use good old `Unsafe` class for raw bytes manipulation:
 * chronicle lacking collection library like `agrona`
 * SBE - simple binary encoding, we can achieve same in chronicle using one of 2 libraries
     * chronicle-values - turn your objects into off-heap array of bytes and manipulate it
     * chronicle-wire - more generic library for serialization
-* both use concept of memory mapped files
+* chronicle use memory mapped file, kind of IPC queue, while aeron works on UDP/IPC, yet client talk to media-driver via shared memory (since media-driver can be another process or thread - main advantage that when your main process has GC pause, if you media-driver is another process it can go on with it's own busyness, while if it just a thread it would have to wait, so best way to talk between 2 process is memory-mapped files ). As you see in essense we can say that both chronicle & aeron use concept of memory-mapped files.
+Aeron has it's own transport that operates above UDP (there is no TCP for aeron, aothough you can implement it above TCP), yet although UDP is not reliable as TCP, aeron transport takes care of it, and ensure that you would receive ALL the messages in exactry the same ORDER they were originally sent.
+Aeron archive (using `aeron-spy:udp` channel) - record/replay/replicate messages.
+Don't confuse - aeron uses:
+* shared memory - to connect client and media driver, so it better to use `/dev/shm/aeronDirName` - as directory param, cause it's unix default implementation of shared memory
+* UDP/ICP - to connect 2 separate clients (or better say to connect 2 media drivers)
+    * UDP - uses UDP protocol for data transfer
+    * IPC - again using same shared memory inside single PC for data transfer between publisher & subscriber (media driver kind of remove itself and leave pub & sub to asynchonously exchange messages through shared memory)
+top aeron (and generally any low-latency sensitive) principle:
+* garbage free
+* lock-free algos
+* non-blocking IO (don't wait OS comeback for any request for IO)
+* keep cpu pipeline hot & avoid cpu stall
+* single writer principle - if you write concurrent code, try if you can to make your data structure to be single writer, this would greatly simplify implementation
+* pass messages between thread rather then share state
+* avoid unnecesary data copies
 Comparison between chronicle & in-memory db (according to chronicle developer):
 * redis/memcached work based on loopback/socket principle
 * you can't access database memory directly from java, you have to go through some system interfaces
@@ -14074,7 +14040,7 @@ Comparison between chronicle & in-memory db (according to chronicle developer):
 Event sourcing vs 2PC (two phase commit):
 * previously in enterprise we used 2PC to ensure that we read from one system & write to another, yet this approach incur a lot of latency
 * now we use messaging system with unique ID per message to ensure data integrity
-so if our app is broken, we restart and retreive last message we processed, and then go to broker and ask give me next message after this
+so if our app is broken, we restart and retrieve last message we processed, and then go to broker and ask give me next message after this
 by this logic all modern brokers work like: kafka, chronicle-queue, aeron, lmax disruptor
 Thread affinity:
 * locking is generally bad for latency, use lock-free & CAS
@@ -14083,11 +14049,7 @@ Thread affinity:
     * staying on same core - 10s µs
     So if you have to use locking, make sure your threads stay on same core
     use java thread affinity libraries to ensure it (java doesn't have this feature out-of-the-box)
-* java thread - normal OS thread, so first get thread ID, then use `taskset` to link thread to specific core
-yet this core can be taken by OS to run other threads, but we can use `isolcpus` to remove core from linux thread planner
-and this core will be used by our thread only.
-Once you configure this java spinlocks `Thread.onSpinWait()` doesn't give huge effect, cause sole purpose of this command is to keep
-burning spu cycles, so OS won't take away this core from your thread, yet if you configures linux and link thread to core, there is
+* java thread - normal OS thread, so first get thread ID, then use `taskset` to link thread to specific core, yet this core can be taken by OS to run other threads, but we can use `isolcpus` to remove core from linux thread planner and this core will be used by our thread only. Once you configure this java spinlocks `Thread.onSpinWait()` doesn't give huge effect, cause sole purpose of this command is to keep burning spu cycles, so OS won't take away this core from your thread, yet if you configures linux and link thread to core, there is
 no point in this java instruction.
 Thread interleaving:
 * interleave - insert something into something (book interleaved with handwritten text - means you insert pages with your handwriting into book)
@@ -14119,18 +14081,20 @@ SWP (Single Writer Principle) - there are 2 types to handle concurrent writes:
 * optimistic concurrency - using CAS algorithms
 But both can create a lot of extra work, so CPU just resolve concurrency instead of doing actual work.
 In such scenario if you can design your system so you have 1 writer - this is best approach, not to spend precious CPU cycles on maintain concurrency
+Yet Disruptor can support multiple writers, in this case CAS used to ensure that sequence updated correctly between several writers (yet even CAS add latency [although not as big as lock](https://lmax-exchange.github.io/disruptor/disruptor.html), but if we have only 1 writer, we can do it without CAS). So when you write to disruptor:
+* writer claim next slot in sequence (sequence - simple counter for SWP, or atomic counter for multiple writers)
+* once sequence is incremented, entry in ringbuffer available for writing
+* writer write data into the entry and update separate counter (cursor in ringbuffer for latest available entry)
+* consumer use memory barrier to read the cursor and then go to ringbuffer to read actual data
+* each consumer has their own sequence of read slots in ringbuffer - which can be used by writer to avoid overflow
+Having said this we can summarize that disruptor - is basically a simple queue, where you have producer & consumer using lock-free algos, while aeron fully-fledged framework with multiple components like: archive, cluster, udp/icp communication, media driver & shared memory.
 There are 4 main waiting strategy (all implements `WaitStrategy` interface):
 * BlockingWaitStrategy (default) - use lock & condition to wake-up thread. The slowest one
 * SleepingWaitStrategy (bad for low-latency) - sleep for 1 ns, internally use `Unsafe.park`
 * YieldingWaitStrategy (good for low-latency) - internally use `Thread.yield()`
-* BusySpinWaitStrategy
-Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space
-Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue.
-In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
-So queue because it break SWP can cause false sharing (silent performance killer).
-False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk)
-in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM.
-One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
+* BusySpinWaitStrategy - keep cpu busy for a while, so OS won't put other thread into this core, so you don't have memory flush
+Under-the-hood `BlockingQueue` use `ReentrantLock` & `Condition` so all blocking operations like `take/put` waits until element in queue or there is space. Queue is a bad choice cause it breaks SWP, cause for both put & take operations you basically modify/write to queue and here contention happens, so disruptor is alternative to queue. In disruptor there is only 1 writer, that put messages into `RingBuffer`, all other are readers, that just read messages based on their sequence number.
+Queue breaks SWP - this can cause false sharing (silent performance killer). False sharing - when 2 threads modify different variables, that happened to be in same cache line (cpu store not single variables but chuck of memory of 64KB in single line, and 2 different variables may end in same chunk). in such scenario, although it 2 different variables, 2 threads would invalidate cache of each other. Because of the 2 cores would need to request variable again from RAM. One solution to false sharing is cache line padding where you add 7 long values to your value, so it stored in separate cache line
 `volatile` keyword used for 2 things (it has nothing to do with false sharing):
 * variable visibility - change in one thread would be immediately visible to other threads
 * code order - (without it compiler may reorder you code) 
@@ -14177,7 +14141,7 @@ class MyEvent{
 }
 ```
 It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
-While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website)
+While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website).
 [aeron](https://aeroncookbook.com/aeron/overview/)
 ```java
 import io.aeron.Aeron;
@@ -14235,3 +14199,7 @@ public class App{
     }
 }
 ```
+aeron cluster:
+* framework for building clustered application based on aeron technology
+* you write your code (like matching engine) and add cluster interface `ClusteredService` which provides all lifecycle events which your app should handle
+* you have clustered app out of the box, where aeron cluster take care of mainating state, storing snapshot, send/receive messages
