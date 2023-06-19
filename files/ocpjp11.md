@@ -4918,11 +4918,7 @@ collectorMap => {1=30, 2=20, 3=10}
 ```
 
 ###### binarySearch
-`Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It return  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside.
-So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. 
-Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4.
-We can pass `Comparator` into both `sort` and `binarySearch` - and it should be the same comparator, otherwise - unpredictable result.
-And objects inside list or array should implement `Comparable` or you should pass `Comparator` (if you pass null as comparator, natural sort would be used, no NPE) otherwise `ClassCastException`.
+`Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It return  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside. So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4. e can pass `Comparator` into both `sort` and `binarySearch` - and it should be the same comparator, otherwise - unpredictable result. And objects inside list or array should implement `Comparable` or you should pass `Comparator` (if you pass null as comparator, natural sort would be used, no NPE) otherwise `ClassCastException`.
 ```java
 import java.util.*;
 
@@ -4961,7 +4957,6 @@ b => 1
 bb => -3
 ```
 If bb was inside array, it position would be 2, right after b and before d. But since it’s not in array index returned is -(2+1) => -3
-
 Although `Object` doesn't implement `Comparable` directly, when you pass list of objects to sort, if all objects of same type, this type would be used.
 So if you have list of objects, where all integers, sort would work fine and use comparable from integer. 
 But in case you have different types (for example Integer and String) you will get `ClassCastException`, Integer can't be casterd to String.
@@ -4985,9 +4980,7 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 ```
 
 ###### Order and duplicates
- `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. 
-List is a type of ordered collection that maintains the elements in insertion order while Set is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.
-`Set` is not preserving order. If you want to preserve order use `LinkedHashSet`. All elements inside set are unique. Internally set using map, and use it's keys as values.
+ `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. `List` is a type of ordered collection that maintains the elements in insertion order while `Set` is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.  All elements inside set are unique. Internally set using map, and use it's keys as values.
 ```java
 import java.util.*;
 
@@ -5007,9 +5000,7 @@ hashSet => [1, 2, 3]
 treeSet => [1, 2, 3]
 linkedHashSet => [3, 2, 1]
 ```
-
-Also `TreeSet` and all started from `Tree` is not allowed null values. You can put into `TreeSet` as values and `TreeMap` as keys only objects that implement `Comparable<T>` or to pass `Comparator<T>` directly into constructor. 
-If neither of this, `ClassCastException` is thrown. This is also the case for `PriorityQueue`
+Also `TreeSet` and all started from `Tree` doesn't allowed null values. You can put into `TreeSet` as values and `TreeMap` as keys only objects that implement `Comparable<T>` or to pass `Comparator<T>` directly into constructor. If neither of this, `ClassCastException` is thrown. This is also the case for `PriorityQueue`
 ```java
 import java.util.*;
 
@@ -5060,7 +5051,7 @@ How sets work:
     * all write methods `add/set/remove` are `synchronized`, inside they add/remove new value and then replace array
     * get is not synchronized, it just return element from array. Since array is volatile, once write operation is done, it would be replaced, and volatile guarantee happened-before, so read would always read latest value
     * since under-the-hood implementation is based on array, `contains` takes O(n) time
-    * if you want `contains` to run O(n) you have to use `ConcurrentHashMap.newKeySet` or combine `AtomicReference` with `HashSet` and replace set on each modification (atomic use volatile inside, so on replace it would guarantee happened-before)
+    * if you want `contains` to run O(1) you have to use `ConcurrentHashMap.newKeySet` or combine `AtomicReference` with `HashSet` and replace set on each modification (atomic use volatile inside, so on replace it would guarantee happened-before)
     Don't confuse:
     * volatile array - means whole object is volatile. If you just change one element in one thread, it may be not visible in another. But if you replace whole array (with 1 new element) in first thread, then new value would be seen from second thread. Basically `CopyOnWriteArrayList` is doing this
     * array of volatile elements - you can use one of `AtomicLongArray/AtomicIntegerArray/AtomicReferenceArray`
@@ -5115,7 +5106,6 @@ treeSet => [Person[id=1, name=Mike], Person[id=2, name=Mike]]
 hashSet => [Person[id=1, name=Mike]]
 ```
 As you see simple hash has single object cause `hashcode/equlas` return same value, but `TreeSet` use comparable to compare objects, that's why there are 2 objects there.
-
 `SortedSet` has 2 methods to finds subsets `headSet` and `tailSet`
 ```java
 import java.util.*;
@@ -5160,6 +5150,7 @@ Exception in thread "main" java.lang.IllegalArgumentException: key out of range
 Don't confuse (see [javadoc for queue](https://docs.oracle.com/javase/6/docs/api/java/util/Queue.html))
 * head - start of the queue, from where you read & remove elements
 * tail - end of the queue, where you add new elements.
+how to remember: What people in the United States commonly call a line, as in the thing you stand in at the post office, people in other English speaking countries call a queue. So, it's easier for Americans to keep the terminology straight if you substitute "line" for "queue." In other words, when you are in the head, or front, of the line, you are the next to be called.
 So if we have a queue[1,2,3], 1 - is head, 3 - tail. If we add 4, it would be added to tail, after 3
 If you want to implement queue(FIFO) - use `Queue` interface or `Deque`, if you want to implement stack(LIFO) - use `Deque` interface. `Deque` is child of `Queue` it extends it to work from both ends.
 All methods divides on 2 types. Some throws exception, others just return null/false
@@ -5167,7 +5158,6 @@ All methods divides on 2 types. Some throws exception, others just return null/f
 * boolean add(IllegalStateException)/offer(false) - add to the tail
 * T remove(NoSuchElementException)/poll(null)     - remove from the head
 * T element(NoSuchElementException)/peek(null)    - view element from the head
-
 For `BlockingQueue` there are blocking operations:
 * T take (InterruptedException) - wait until elements appear in queue and poll it. Keep in mind that simple `poll` would immediately return null if queue is empty
 * void put (InterruptedException) - wait until there is space in queue and add new element
@@ -5722,7 +5712,6 @@ public class App {
     }
 }
 ```
-
 `Predicate` (one argument) and `BiPredicate` (two arguments)  - take params, return boolean (used to check something).
 ```java
 import java.util.function.*;
@@ -5744,7 +5733,6 @@ public class App {
 Adult
 Older
 ```
-
 `Function` and `BiFunction` take 2 (one param, 1 return) and 3 (2 params, 1 return) params.
 ```java
 import java.util.function.*;
@@ -5762,8 +5750,6 @@ public class App {
 5
 hello world
 ```
-
-
 `UnaryOperator` and `BinaryOperator` are special types of `Function` and `BinaryFunction`, when both input param and output are the same.
 ```java
 import java.util.function.*;
@@ -5788,7 +5774,6 @@ public class App {
 9
 9
 ```
-
 If we don't want to autobox/unbox value we can use functions that work directly with primitives. In some cases working with these functions can speed up your program, cause no need to spend time for autoboxing/unboxing.
 There are 5 types of functions that work with primitives. `xxx` - can be int, long, double (not byte,short,char,float,boolean).
 `XxxUnaryOperator` - takes xxx, returns xxx, call - applyAsInt
@@ -5796,7 +5781,6 @@ There are 5 types of functions that work with primitives. `xxx` - can be int, lo
 `XxxFunction<T>` - takes xxx, returns T, call - apply
 `ToXxxFunction<T>` - takes T, return xxx, call - applyAsInt
 `ToXxxBiFunction<T, U>` - takes 2 params T and U, returns xxx, call - applyAsInt
-
 We have 4 types of primitive supplier: `XxxSupplier`, you can call it as `getAsXxx`, (xxx - int, long, double, boolean)
 We have 3 types of primitive consumer `XxxConsumer`, you can call it as `accept`. (xxx - int, long, double)
 we have 3 types of object-&-primitive consumer `ObjXxxConsumer<T>`, it accepts 2 params (T, xxx), you can call it as `accept`. (xxx - int, long, double). Can be useful when you need BiConsumer with one object and one primitive.
@@ -5893,7 +5877,6 @@ class My{
     }
 }
 ```
-
 Method reference works a little bit different from lambda.
 It creates reference of the current object (if we change object, method would be called for old value)
 lambda - just wrap(delay) object invocation (so if we change object, method would be called on new object)
@@ -5917,7 +5900,6 @@ public class App {
 HELLO
 WORLD
 ```
-
 Here is nice example where method reference useful to write neat code. `ValidatorFactory.getValidator` - return single validator,
 but in reality it return all validators with `validate` method, that run it on all validators
 ```java
@@ -6000,7 +5982,7 @@ public class App{
 shuffled => [a, A,  , , 1]
 sorted => [,  , 1, A, a]
 ```
-
+Don't confuse:
 `Comparable` - just interface with one method `int compareTo(T var1)`.
 `Comparator` - functional interface with method `int compare(T var1, T var2)`
 `Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
@@ -6062,7 +6044,7 @@ class Person {
 }
 ```
 If you want to sort by height in reversed order you can add `reversed()`
-```java
+```
 public static Comparator<Person> sort() {
     Comparator<Person> comparator = Comparator.comparing(person -> person.name);
     comparator = (comparator.thenComparingInt(person -> person.height)).reversed();
@@ -6130,9 +6112,7 @@ public class App {
     }
 }
 ```
-
-Streams are lazy loading, they start to execute when terminate operation called, that's why if you create stream from source and then changed source, 
-when you call stream terminal operation it would be called on modified source. Also called late binding.
+Streams are lazy loading, they start to execute when terminate operation called, that's why if you create stream from source and then changed source, when you call stream terminal operation it would be called on modified source. Also called late binding.
 ```java
 import java.util.*;
 import java.util.stream.Stream;
@@ -6174,9 +6154,7 @@ average => 3.0
 sum => 15
 count => 5
 ```
-Pay attention, that this method, sort values automatically. We also have such classes for long and double `LongSummaryStatistics` and `DoubleSummaryStatistics`.
-
-We can work with optional as with streams. Suppose we want to print Integer if it only 3 digits.
+Pay attention, that this method, sort values automatically. We also have such classes for long and double `LongSummaryStatistics` and `DoubleSummaryStatistics`. We can work with optional as with streams. Suppose we want to print Integer if it only 3 digits.
 ```java
 import java.util.*;
 import java.util.stream.Stream;
