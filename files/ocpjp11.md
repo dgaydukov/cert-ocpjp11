@@ -7621,7 +7621,6 @@ semaphore release all...
 barrier run...
 9012345678
 ```
-
 We can pass second param `Runnable` to `CyclicBarrier`, if we need to run some code, after barrier has been passed. Notice that this runnable will run exactly once by final thread that would reach barrier.
 ```java
 import java.util.concurrent.*;
@@ -7657,8 +7656,7 @@ pool-1-thread-2: done
 pool-1-thread-3: done
 pool-1-thread-1: done
 ```
-
-You can also implement your own synchronizer logic usein `AtomicInteger` and round-robin design
+You can also implement your own synchronizer logic using `AtomicInteger` and round-robin design
 ```java
 import java.util.LinkedList;
 import java.util.Queue;
@@ -8122,7 +8120,7 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 ###### Synchronized on ID
 Sometimes you have to do some non-idempotent operation, for this you set some flag in db, and if second request came you throw exception.
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
-This keyword syncronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
+This keyword synchronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
 But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
 For this purpose it's better to use some id
 Plz note that sometimes for each string new object created (for example you use this logic to syncronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
@@ -10868,15 +10866,12 @@ public class App {
 This approach is best when working with strings, cause it abstracts away from working with bytes
 
 ###### DirectByteBuffer vs HeapByteBuffer
-Array is an object, and stored all data in the heap, even array of int, would be stored in the heap.
+Array is an object, and stores all data in the heap, even array of int, would be stored in the heap.
 Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
-ByteBuffer provides view into some (undefined) underlying storage of bytes
-There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
+ByteBuffer provides view into some (undefined) underlying storage of bytes. There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
 * `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes and uses `Unsafe` under-the-hood for memory allocation, so it not subject to the GC. constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is stored in heap.
 * `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - in-heap memory, backed by array of bytes `byte[]` which in the end resides in heap memory, since the name contains heap word.
-Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class
-Conclusion, if you are fine with on-heap memory, you can just use simple array of bytes, no need to use any buffer, but if you want off-heap memory, use DirectByteBuffer
-this leads me to conclusion, that it should be faster and more useful then HeapByteBuffer. Yet both implement same base class, so they can be used interchangeably.
+Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class. Conclusion, if you are fine with on-heap memory, you can just use simple array of bytes, no need to use any buffer, but if you want off-heap memory, use `DirectByteBuffer`, this leads me to conclusion, that it should be faster and more useful then `HeapByteBuffer`. Yet both implement same base class, so they can be used interchangeably.
 Don't confuse:
 * multithreading lock - lock based on thread
 * file lock - lock based on process (so multiple thread can access same file, no locking here)
@@ -10902,21 +10897,17 @@ public class App{
 directBuffer => java.nio.DirectByteBuffer
 heapBuffer => java.nio.HeapByteBuffer
 ```
-Memory mapped file - concept where you map HDD file to virtual memory, and then can treat this file as memory region, read/write, but OS take care
-to do read/write to actual disk file on the background. For end user - you just work with region of virtual memory.
-We can use `MappedByteBuffer/FileChannel` to work with memory-mapped file.
+Memory mapped file - concept where you map HDD file to virtual memory, and then can treat this file as memory region, read/write, but OS take care to do read/write to actual disk file on the background. For end user - you just work with region of virtual memory. We can use `MappedByteBuffer/FileChannel` to work with memory-mapped file.
 there is some difference between old java io and new one:
 Java I/O:
 * java perform IO by requesting OS to drain from buffer (write operation) or fill a buffer (read operation)
-* OS using disk controller to perform DMA call to extract data from HDD to system kernel memory
-DMA (Direct memory access) - allows for modern computers to access main memory without CPU. CPU first initiate DMA, then do it's own stuff,
-once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and process data
-* once DMA done, OS copy data from temporary buffer in OS kernel space, into java process space
-* Kernel tries to cache data, so if data already there, it just copied to java buffer, otherwise it's fetched from disk
-* mapping kernel space & user space to same physical address, you don't need to do extra work by copy buffer from kernel to user memory space
+* OS using disk controller to perform DMA call to extract data from HDD to system kernel memory. DMA (Direct memory access) - allows for modern computers to access main memory without CPU. CPU first initiate DMA, then do it's own stuff, once data fetched, cpu receives `interrupt` from DMAC (DMA controller) and process data:
+    * once DMA done, OS copy data from temporary buffer in OS kernel space, into java process space
+    * Kernel tries to cache data, so if data already there, it just copied to java buffer, otherwise it's fetched from disk
+    * mapping kernel space & user space to same physical address, you don't need to do extra work by copy buffer from kernel to user memory space
 * all disk IO done on page level, so kernel align virtual memory pages into disk pages
 Java new I/O:
-* Memory-mapped I/O establish direct mmapping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
+* Memory-mapped I/O establish direct mapping between user memory space into disk, so you can treat file on the disk, like a big in-memory array
 read file into memory
 * you can read/write into this buffer, don't forget to use flip, cause get/put move buffer one position further, so if you don't call flip
 after you read from file, nothing would be written, and `BufferOverflowException` would be thrown on first attempt to write
