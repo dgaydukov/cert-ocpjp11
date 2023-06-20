@@ -4394,7 +4394,6 @@ subList => [z, z, c, x]
 list => [z, z, c, x, d]
 Exception in thread "main" java.util.ConcurrentModificationException
 ```
-
 Since stream check for concurrent modification in the end, if we remove element from the list, 
 underlying array [a,b,c] would become [b,c,null], but since we already pass position 0 and go to position 1
 we got c, and then at position 2 we encounter null, where we try to call null.equals(a) - so we got NPE
@@ -4460,6 +4459,33 @@ false
 -1
 -1
 false
+```
+Don't confuse:
+* fail-fast iterator - fails (throw exception) if it detects that collection is modified while iterating (`ArrayList`)
+* fail-safe iterator -  doesn't throw concurrent modification exception (`ConcurrentHashMap` and `CopyOnWriteArrayList`)
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App{
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>(List.of("a","b","c"));
+        // under-the-hood we are using native iterator for ArrayList
+        for (String s: list){
+            if(s.equals("a")){
+                list.remove(s);
+            }
+        }
+        // we don't use any iterator here, just get each element by index, that's why here we can remove elements safely
+        for(int i = 0; i < list.size(); i++){
+            String s = list.get(i);
+            if(s.equals("a")){
+                list.remove(s);
+            }
+        }
+        System.out.println(list);
+    }
+}
 ```
 
 ###### Array and Enumeration to List and back
