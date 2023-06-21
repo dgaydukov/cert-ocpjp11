@@ -4463,24 +4463,48 @@ false
 Don't confuse:
 * fail-fast iterator - fails (throw exception) if it detects that collection is modified while iterating (`ArrayList`)
 * fail-safe iterator -  doesn't throw concurrent modification exception (`ConcurrentHashMap` and `CopyOnWriteArrayList`)
+There are 3 ways you can iterate over fail-fast iterator in java and get:
+* exception
+* incorrect behavior
+* correct behavior without exception using `Iterator`
 ```java
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class App{
     public static void main(String[] args) {
         List<String> list = new ArrayList<>(List.of("a","b","c"));
-        // under-the-hood we are using native iterator for ArrayList
+        /**
+         * under-the-hood native iterator for ArrayList is used, which causes exception if we try to modify the list during iteration
+         */
         for (String s: list){
             if(s.equals("a")){
                 list.remove(s);
             }
+            System.out.println(s);
         }
-        // we don't use any iterator here, just get each element by index, that's why here we can remove elements safely
+        /**
+         * This is wrong solution, although we don't catch any exception here, and first element is deleted
+         * yet since index is not updated correctly, we skip second element
+         */
         for(int i = 0; i < list.size(); i++){
             String s = list.get(i);
+            System.out.println(s);
             if(s.equals("a")){
                 list.remove(s);
+            }
+        }
+        System.out.println(list);
+        /**
+         * correct way to iterate and remove elements, cause in this case internal counters like `modCount` updated accordingly
+         */
+        Iterator<String> iterator = list.iterator();
+        while(iterator.hasNext()){
+            String s = iterator.next();
+            System.out.println(s);
+            if(s.equals("a")){
+                iterator.remove();
             }
         }
         System.out.println(list);
