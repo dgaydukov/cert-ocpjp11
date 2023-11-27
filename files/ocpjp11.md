@@ -96,6 +96,7 @@
 * 11.16 [Class Diagram](#class-diagram)
 * 11.17 [Java17 new features](#java17-new-features)
 * 11.18 [Remote debugging](#remote-debugging)
+* 11.19 [Junit Testing](#junit-testing)
 12. [Low latency](#low-latency)
 * 12.1 [CPU and Cache](#cpu-and-cache)
 * 12.2 [Compiler Design](#compiler-design)
@@ -12713,6 +12714,50 @@ How remote debugging works:
     * make sure port on remote host is open for connection (use telnet to check)
     * launch app from IDE
     * make sure that your code version correspond to remote built version
+
+###### Junit Testing
+Junit Parametrized Tests:
+* you can test interface directly by providing it's implementations
+* You just create instances of the interface and feed them to your test
+* Check below code - as you see we create 2 instances of `Car` class but instead of creating 2 separate tests, we create single parametrized test that covers both scenarios.
+```java
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import java.util.stream.Stream;
+
+public class InterfaceTest {
+    @ParameterizedTest
+    @MethodSource("getAllCars")
+    public void maxSpeedTest(Car car, int expectedSpeed) {
+        Assertions.assertEquals(expectedSpeed, car.speed(), "Max car speed should be: "+expectedSpeed);
+    }
+
+    private static Stream<Arguments> getAllCars() {
+        return Stream.of(
+                Arguments.of(new FamilyCar(), 60),
+                Arguments.of(new SportCar(), 120)
+        );
+    }
+}
+
+interface Car {
+    int speed();
+}
+class FamilyCar implements Car {
+    @Override
+    public int speed() {
+        return 60;
+    }
+}
+class SportCar implements Car {
+    @Override
+    public int speed() {
+        return 120;
+    }
+}
+```
 
 #### Low latency
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
