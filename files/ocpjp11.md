@@ -4270,8 +4270,8 @@ public class App {
         Map<Character, Integer> map1 = new HashMap<>();
         Map<Character, Integer> map2 = new HashMap<>();
         for(char ch: str.toCharArray()){
-            map1.merge(ch, 1, (oldValue, newValue)->oldValue+newValue);
-            map2.compute(ch, (key, oldValue)->oldValue == null ? 1 : oldValue + 1);
+            map1.merge(ch, 1, (oldValue, newValue) -> oldValue+newValue);
+            map2.compute(ch, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
         }
         System.out.println("map1 => " + map1);
         System.out.println("map2 => " + map2);
@@ -4284,7 +4284,7 @@ map2 => {a=3, b=2, c=1}
 ```
 
 ###### List and Set
-All collections has a method `contains(Object o)` to check if element in collection. But `Map` doesn’t have such a method. Instead it has 2 methods `containsKey(Object o)` and `containsValue(Object o)`.
+All collections has a method `contains(Object o)` to check if element in collection. But `Map` doesn’t have such a method. Instead, it has 2 methods `containsKey(Object o)` and `containsValue(Object o)`.
 If you pass wrong object, you won't get `ClassCastException`, just false. The reason, is that inside they compare by `equals` method.
 ```java
 import java.util.*;
@@ -4315,7 +4315,7 @@ class Person{
 true
 ```
 
-List.of & list.copyOf - static methods that create unmodifiable (can’t add, remove, change) list, and can’t take null (they throw NPE if any element passed is null),
+`List.of` & `List.copyOf` - static methods that create unmodifiable (can’t add, remove, change) list, and can’t take null (they throw NPE if any element passed is null),
 List.of can takes 0 to n params, varags (so you can pass array). If you pass list there it will be treated as regular object - list of 1 list will be created.
 List.copyOf - can take only collection.
 Immutable vs Unmodifiable. Unmodifiable - is just a view, although you can't modify it directly, if underlying collection, has been modified, this view will reflect changes. 
@@ -4395,9 +4395,7 @@ subList => [z, z, c, x]
 list => [z, z, c, x, d]
 Exception in thread "main" java.util.ConcurrentModificationException
 ```
-Since stream check for concurrent modification in the end, if we remove element from the list, 
-underlying array [a,b,c] would become [b,c,null], but since we already pass position 0 and go to position 1
-we got c, and then at position 2 we encounter null, where we try to call null.equals(a) - so we got NPE
+Since stream check for concurrent modification in the end, if we remove element from the list, underlying array [a,b,c] would become [b,c,null], but since we already pass position 0 and go to position 1 we got c, and then at position 2 we encounter null, where we try to call null.equals(a) - so we got NPE
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -6897,7 +6895,7 @@ Java doesn’t wait for daemon threads, only for normal threads. To make a threa
 Below code will exit immediately, but if you comment out `daemon=true`, then app would never exit, cause thread will run forever.
 This is similar to `detach`, so when you set `daemon=true` you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
 Yet `thread::detach` doesn't exist in java, so once you set `daemon=true`, if your main process stops, all daemon threads would be killed
-So there is no way in JVM to create thread that would continue to run while your main app id dead (yet you can start new JVM with new PID from your app)
+So there is no way in JVM to create thread that would continue to run while your main app is dead (yet you can start new JVM with new PID from your app)
 Keep in mind if you call `.join` on the daemon thread, your app would wait for such thread (in our case forever, cause of `while(true)`)
 ```java
 import java.lang.management.ManagementFactory;
@@ -6968,19 +6966,17 @@ t2 finished
 ```
 Although t2 has higher priority, `ExecutorService` still runs t1 first.
 Thread priority does not guarantee execution order. It comes into play when resources are limited. If the System is running into constraints due to memory or CPU, then the higher priority threads will run first.
-Yet if you try to set priority more than max (10) you will get this error. Priority should be in this interval `newPriority <= 10 && newPriority >= 1`
+Yet if you try to set priority more than max (10) you will get this error. Priority should be in this interval `1-10`
 ```
 Exception in thread "main" java.lang.IllegalArgumentException
 	at java.base/java.lang.Thread.setPriority(Thread.java:1141)
 	at com.java.test.App.main(App.java:21)
 ```
 Don't confuse:
-* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it
-yield just suspend thread and notify os scheduler that it would like to resume ASAP, hence it's non-determenistic, while sleep, always suspend thread for specified amount of time.
-that's wy you should never use it, cause it behaviour non-determentistic and can't be used correctly
+* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it , yield just suspend thread and notify os scheduler that it would like to resume ASAP, hence it's non-deterministic, while sleep, always suspend thread for specified amount of time. That's wy you should never use it, cause it behaviour non-deterministic and can't be used correctly
 * `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
-* wait - can be invoked only inside `synchronized` block, can be awaken by calling `notify/notifyAll`
+* wait - can be invoked only inside `synchronized` block, can be awakened by calling `notify/notifyAll`
 * join - call on other thread and make current thread wait until other thread finish execution
     * you can run new thread with `start`, but if you want current thread to wait until new thread finished you call `join`
 Don’t confuse:
@@ -7019,7 +7015,7 @@ thread start2
 thread finish2
 ```
 As you see, threads were executed sequentially.
-There is no way to interrupt a thread, until thread itself has some logic to handle interruption. What you can do is to call `thread.interrupt` to to send interrupt event to thread, interrupted thread should have logic for checking `.interrupted()` and make some action on it. 
+There is no way to interrupt a thread, until thread itself has some logic to handle interruption. What you can do is to call `thread.interrupt` to send interrupt event to thread. Interrupted thread should have logic for checking `.interrupted()` and make some action on it. 
 Blocking methods like `Object.wait` or `Thread.sleep` has default implementation of interruption (that's why they throw `InterruptedException`).
 ```java
 import java.util.concurrent.ExecutorService;
@@ -7495,7 +7491,7 @@ put done 100 Thread-1
 ```
 
 ###### fork/join framework
-The `fork/join` framework famous for it work stealing - it is specifically design to tackle recursive algorithms. Although you can write you own recursive traverse (which would definitely be prone to error) and use threadpool, `fork/join` has such logic out of the box.
+The `fork/join` framework famous for it work stealing - it is specifically design to tackle recursive algorithms. Although you can write you own recursive traverse (which would definitely be prone to error) and use ThreadPool, `fork/join` has such logic out of the box.
 ```java
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -7795,7 +7791,7 @@ sequential => str-11 => thread:16
 So any attempt to add null key/value with throw NPE.
 
 ###### Deadlock and Livelock
-Deadlock vs Livelock. Deadlock - when 2 threads acquire 2 resources in different order. In such a scenario it’s possible that Thread1 has acquired first resource and wait to acquire second, Thread2 has acquired second and wait to acquire 1. In such case they will wait each other forever.
+Deadlock - when 2 threads acquire 2 resources in different order. In such a scenario it’s possible that Thread1 has acquired first resource and wait to acquire second, Thread2 has acquired second and wait to acquire 1. In such case they will wait each other forever.
 ```java
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -7846,9 +7842,8 @@ public class App {
 r1 has acquired o1: pool-1-thread-1
 r2 has acquired o2: pool-1-thread-2
 ```
-As you see r1 => got o1 and trying to get o2. At the same time r2 => got 02 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
-Real-world example of deadlock is transfer balance in account. If 2 users decided to transfer money to each other, and it would be processed by 2 different threads
-you may risk deadlock. That's why in trading systems, we prefer to use single-threaded app to process all balances
+As you see r1 => got o1 and trying to get o2. At the same time r2 => got o2 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
+Real-world example of deadlock is transfer balance in account. If 2 users decided to transfer money to each other, and it would be processed by 2 different threads you may risk deadlock. That's why in trading systems, we prefer to use single-threaded app to process all balances.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -8150,9 +8145,9 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 Sometimes you have to do some non-idempotent operation, for this you set some flag in db, and if second request came you throw exception.
 But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
 This keyword synchronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
-But if you set it to method level, then all requests for all objects would wait each other. You have to syncronized on each object separately.
+But if you set it to method level, then all requests for all objects would wait each other. You have to synchronized on each object separately.
 For this purpose it's better to use some id
-Plz note that sometimes for each string new object created (for example you use this logic to syncronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
+Plz note that sometimes for each string new object created (for example you use this logic to synchronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
 in this case there are 2 solutions:
 * use `intern` method for string (convert either whole object or particular fields `obj.toString().intern()`)
 * use `ConcurrentHashMap` with key as your string and value just `new Object()`. This would guarantee that each time same string came, you already have this value in your amp, and then use `synchronized (map.get(yourString)){}`
@@ -8359,7 +8354,7 @@ B
 
 ###### ReentrantLock/ReentrantReadWriteLock/StampedLock
 There are 3 main class to work with `Lock` interface:
-* ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. renetrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
+* ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. Reentrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
 * ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
 This can be same as using `synchronized` + `volatile` and not synchronized read.
 We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock)
@@ -12917,8 +12912,7 @@ CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values. Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores.
 Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier.
-Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps,
-it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
+Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
 There are 4 types of memory barrier:
 * LoadLoad - all loads before barrier, happens before loads after barrier
 * LoadStore - all loads before barrier, happens before stores after barrier
