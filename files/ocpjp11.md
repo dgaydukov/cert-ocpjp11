@@ -1121,6 +1121,7 @@ public class App{
 ```
 x => 5 / 101
 y => 4 / 100
+# since it's int and it store 32 bits, we have number with length 32
 ~x => -6 / 11111111111111111111111111111010
 x>>1 => 2 / 10
 x<<1 => 10 / 1010
@@ -1131,8 +1132,8 @@ x|y => 5 / 101
 
 #### Classes and Objects
 ###### toString, equals, hashcode, clone
-These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called
-it won't use your version, but from `Object` itself. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
+These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called , it won't use your version, but from `Object` itself. 
+By default `Object.clone` is `protected`, so you have to implement `Cloneable` interface and  override the mthod to be able to call this method. If you just try to override the method without implementing `Cloneable` you will get `CloneNotSupportedException`. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -1244,7 +1245,11 @@ class Immutable{
     public Immutable(StringBuilder sb){
         this.sb = new StringBuilder(sb);
     }
-    public StringBuilder getSb(){
+
+  /**
+   * If you just return sb, you will lose immutability, because such object can be changed, and by this internal state would be changed
+   */
+  public StringBuilder getSb(){
         return new StringBuilder(sb);
     }
 }
@@ -1262,8 +1267,7 @@ public class App {
 }
 ```
 
-Whenever we don’t supply any constructor java create default one with no argument. Java also call parent constructor inserting `super()` into our one. 
-That’s the reason why this code won’t compile. Inside B, java create public no-argument constructor and call super - constructor inside A, but since in A we added 1 argument constructor, java didn’t inject default one. So it can’t find default constructor in A and show you an error.
+Whenever we don’t supply any constructor java create default one with no argument. Java also call parent constructor inserting `super()` into our one. That’s the reason why this code won’t compile. Inside B, java create public no-argument constructor and call super - constructor inside A, but since in A we added 1 argument constructor, java didn’t inject default one. So it can’t find default constructor in A and show you an error.
 ```java
 class A{
     public A(int v){
@@ -1348,7 +1352,7 @@ printB => i: 2
 printA => i: 1
 ```
 
-Polymorphism is the ability to pass one object as type of another. Here instance `a` is reference to object `B`, but it’s type is `A`. Since it’s type is A it’s value is limited, so we can call only methods available in A. 
+Polymorphism is the ability to pass one object as type of another. Here instance `b` is reference to object `B`, but it’s type is `A`. Since it’s type is A it’s value is limited, so we can call only methods available in A. 
 The point here if we override some method from A in B, then when we call these methods, they will be called from B. To call all B methods, we must cast it to type B.
 ```java
 public class App {
@@ -1373,7 +1377,7 @@ class B extends A{
 }
 ```
 
-We can cast to parent without parenthesis
+We can cast to parent without parenthesis (without explicit casting)
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1400,6 +1404,11 @@ public class App {
     }
 }
 ```
+But since `B` and `C` are unrelated, we get `ClassCastException`
+```
+Exception in thread "main" java.lang.ClassCastException: class com.example.demo.B cannot be cast to class com.example.demo.C (com.example.demo.B and com.example.demo.C are in unnamed module of loader 'app')
+	at com.example.demo.App.main(App.java:12)
+```
 
 If object is null, you can still call static method on it. The compiler checks for the type of the reference and uses that instead of the object.
 ```java
@@ -1425,7 +1434,7 @@ Static and instance initializers - order of execution:
 * first - static variable/block in order they are in code
 * second - instance variable/block of code, in order they are in code
 * third - constructor
-In case one class extends other, fist all initializers of parent fires than of child.
+* In case one class extends other, fist all initializers of parent fires than of child.
 ```java
 public class App {
     public static final int NUM_VALUE;
