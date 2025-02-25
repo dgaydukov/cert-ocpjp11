@@ -292,10 +292,10 @@ public class App {
     }
 }
 ```
-As you see, since a=97, we can’t use char & int here, cause they are basically duplicates.
+As you see, since `a=97`, we can’t use char & int here, cause they are basically duplicates.
 
 ###### Numeric promotion
-Numeric promotion - result of math operation (+,-,*,/,&,>>) is promoted to highest type (short+long => long), if two types are equal and less then int (byte, short) they are promoted to int.
+Numeric promotion - result of math operation (+,-,*,/,&,>>) is promoted to the highest type (short+long => long), if two types are equal and less than int (byte, short) they are promoted to int.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -357,8 +357,7 @@ l2 => 10737418240
 ###### Short circuit boolean
 * AND - true only if both true
 * OR - true if one is true
-Short-circuit logical operators. Operators &&/& and ||/| result the same, when applied to boolean. The difference is that double - is called short-circuit. For example since (true||false) will always return true, if first is true, it won’t even execute second operand. 
-But in case of single operator (& or |), it will execute both.
+Short-circuit logical operators. Operators &&/& and ||/| result the same, when applied to boolean. The difference is that double - is called short-circuit. For example since (true||false) will always return true, if first is true, it won’t even execute second operand. But in case of single operator (& or |), it will execute both.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -652,10 +651,7 @@ System.out.println(s.strip());
 abc
 ```
 
-As you see, `trim` doesn’t remove whitespaces, cause this unicode whitespace is not considered whitespace by `trim`.
-Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently.
-Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new
-empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
+As you see, `trim` doesn’t remove whitespaces, cause this unicode whitespace is not considered whitespace by `trim`.  Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently.  Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
 ```java
 public class App {
     public static void main(String[] args){
@@ -737,10 +733,7 @@ hello world
 hello
 5 50
 ```
-Pay attention, that we can only increase capacity, so setting value less than current, will not affect capacity.
-We can also use `trimToSize()` to trim StringBuilder to current length.
-Setting capacity in no way affect `StrinbBuilder` you can set it to improve performance.
-Setting length affect the `StrinbBuilder`. If it more than current length it fill sb with empty data, if less it trims sb to set value.
+Pay attention, that we can only increase capacity, so setting value less than current, will not affect capacity. We can also use `trimToSize()` to trim StringBuilder to current length. Setting capacity in no way affect `StrinbBuilder` you can set it to improve performance. Setting length affect the `StrinbBuilder`. If it more than current length it fill sb with empty data, if less it trims sb to set value.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -777,8 +770,7 @@ System.out.println('a' + 'b');
 195
 ```
 
-Compare 2 `StringBuilder` classes: Because `StringBuilder` doesn’t implement `equals` method and use it from `Object.equals` it returns true only we we compare the same instances. 
-To compare them by their content, we can use `compareTo` method. `Objects.equals` also won’t work since it’s just a safe call to a.equals(b). So we can use 2 ways to compare
+Compare 2 `StringBuilder` classes: Because `StringBuilder` doesn’t implement `equals` method and use it from `Object.equals` it returns true only if we compare the same instances. To compare them by their content, we can use `compareTo` method. `Objects.equals` also won’t work since it’s just a safe call to a.equals(b). So we can use 2 ways to compare
 ```java
 import java.util.Objects;
 
@@ -801,7 +793,7 @@ sb1.compareTo(sb2) == 0 => true
 ```
 **`StringBuilder.compareTo` works the same as String.compareTo and close to `Arrays.compare` (see tip 92).
 
-`compareTo` works as left-right and return int. since upper letters preceeds lower letters, a is higher than A.
+`compareTo` works as left-right and return int. since upper letters precedes lower letters, a is higher than A.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -815,7 +807,7 @@ A => 65, a => 97
 32
 ```
 
-####### Arrays
+###### Arrays
 Valid array declarations
 ```java
 class App {
@@ -1090,15 +1082,24 @@ Arrays.mismatch => 0
 ```
 
 ###### Bitwise and Bit Shift Operators
-There are 2 types of operations:
-* bitwise
+There are 2 types of bitwise:
+* unary
     * `~` unary bitwise operator - invert bit pattern - change 0 to 1, and vice versa
-    * `&` - AND - like logical &&
-    * `^` - exclusive OR - like logical ||
-    * `|` inclusive OR - 1 if both bits are different
-* bitshift
+      * java `byte` values are in range `-128 to 127`
+      * `~5 => ~0000 0101 => 1111 1010 => -6`
+      * How do you know that `1111 1010` is equal to `-6`
+        * Since first byte is `1` we know that it's negative
+        * How negative is stored in computer: we take positive => invert all bytes => add 1
+        * step 1: take positive number 6 `6 => 0000 0110`
+        * step 2: invert all bytes `0000 0110 => 1111 1001`
+        * step 3: add 1 `1111 1001 +1 => 1111 1010`
+        * So we can use this algo to calculate negative back to decimal value.
     * `>>` signed right shift - move all bits to right `5>>1 => 101>>1 => 10 = 2`
     * `<<` signed left shift - move all bits to left `5<<1 => 101<<1 => 1010 = 10`
+* binary
+  * `&` - AND - like logical &&
+  * `^` - exclusive OR - like logical ||
+  * `|` inclusive OR - 1 if both bits are different
 As you see strange behavior of inversion, this is due to fact, that int is 32 bits, and if we invert 5 `101`, then 29 first bitst that are 0
 sets to 1, that's why we got such strange number. For proper inversion we should take last 3 bits `..*010` and convert it into int
 if we do it we got proper result `~5 = 2`
