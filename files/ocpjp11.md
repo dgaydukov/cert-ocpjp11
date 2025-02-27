@@ -108,8 +108,9 @@
 * 12.8 [Linked lists](#linked-lists)
 * 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
-
-
+13. [Java Versions](#java-versions)
+* 13.1 [Java 17](#java-17)
+* 13.2 [Java 21](#java-21)
 
 #### Basics
 ###### Variable Declarations
@@ -3438,7 +3439,7 @@ public class App{
             System.out.println("more than " + sec + " seconds");
         }
     }
-    private static void sleep(int sec){
+    private static void sleep(long sec){
         try {
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex){
@@ -6008,8 +6009,8 @@ shuffled => [a, A,  , , 1]
 sorted => [,  , 1, A, a]
 ```
 Don't confuse:
-`Comparable` - just interface with one method `int compareTo(T var1)`.
-`Comparator` - functional interface with method `int compare(T var1, T var2)`
+* `Comparable` - just interface with one method `int compareTo(T var1)`.
+* `Comparator` - functional interface with method `int compare(T var1, T var2)`
 `Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
 Since `Comparator` is functional interface we can pass lambda that takes 2 params.
 ```java
@@ -6068,8 +6069,8 @@ class Person {
     }
 }
 ```
-If you want to sort by height in reversed order you can add `reversed()`
-```
+If you want to sort by height in reversed order you can add `reversed()` to the code
+```java
 public static Comparator<Person> sort() {
     Comparator<Person> comparator = Comparator.comparing(person -> person.name);
     comparator = (comparator.thenComparingInt(person -> person.height)).reversed();
@@ -6217,10 +6218,10 @@ Optional.of(null) => java.lang.NullPointerException
 null
 ```
 
-We can check if elements in stream matching a specific criteria by using one of these 3 methods. Pay attention that all of them are short-circuiting and take predicate as param.
-anyMatch - true if find any object that match. Once found match - stop searching, return true.
-allMatch - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true.
-noneMatch - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. 
+We can check if elements in stream matching a specific criteria by using one of these 3 methods. Pay attention that all of them are short-circuiting and take predicate as param:
+* `anyMatch` - true if you find any object that match. Once found match - stop searching, return true.
+* `allMatch` - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true.
+* `noneMatch` - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. 
 ```java
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -6314,7 +6315,7 @@ public class App {
 ```
 As you see, although we have sorted array, `findAny` just return random number, but `findFirst` return first element of sorted array.
 
-By default stream `reduce` returns the same type, if you want to change it, you have to use version of `reduce` with 3 arguments.
+By default, stream `reduce` returns the same type, if you want to change it, you have to use version of `reduce` with 3 arguments.
 ```java
 import java.util.*;
 
@@ -6352,7 +6353,7 @@ We need for parallel execution third function (combiner), that will combine part
 compiler force us to use combiner for sequential execution, although it's never called. That's why for sequential you can change combiner to `(a, b) => 0`, and it would work fine, but if you change it for parallel you will got 0 as result.
 
 ###### Parallel streams
-By default for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
+By default, for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
 ```java
 import java.util.*;
 
@@ -6401,13 +6402,12 @@ Also when we transform stream from parallel to sequential all stream would be se
 at the beginning or before terminal, whole stream would work either parallel or sequential.
 
 ###### Collectors
-`Collectors` - list of functions that terminate streams and allow you to transform your stream into string, list, set, map. `Stream.collect` take `Collector` interface as input parameter.
-There is no `.toArray` collector, but you can collect toList, and then call `toArray()` from stream.
+`Collectors` - list of functions that terminate streams and allow you to transform your stream into string, list, set, map. `Stream.collect` take `Collector` interface as input parameter. There is no `.toArray` collector, but you can collect toList, and then call `toArray()` from stream.
 So almost all methods in `Collectors` class that we pass into `collect` return `Collector` object. Generally there should be enough methods in `Collectors` class, but if you need you can create our own by implementing this interface.
 `Collector/Collection` - interfaces, `Collectors/Collections` - concrete classes with many static factories to solve common problems.
 
 Collectors.mapping takes a function and another collector, and creates a new collector which first applies the function and then collects the mapped elements using the given collectors. Thus, the following are equivalent:
-```java
+```
 items.stream().map(f).collect(c);
 items.stream().collect(Collectors.mapping(f, c));
 ```
@@ -6437,9 +6437,7 @@ public class App{
 filterMap => {2=[bb, cc], 3=[aaa]}
 filteringMap => {2=[bb, cc], 3=[aaa]}
 ```
-
 The same is true for all other repeated collectors like `minBy,maxBy,counting,mapping,filtering,averagingInt/Long/Double,summingInt/Long/Double` and so on.
-
 ```java
 import java.util.*;
 import java.util.function.Function;
@@ -6756,8 +6754,7 @@ public class App {
 1
 ```
 
-Beware that `min/max` take comparator as param. So if you put some other operation you will get wrong result.
-Inside `max` calling `BinaryOperator.maxBy`, that checks if result is greater or equal to 0, return first otherwise return second.
+Beware that `min/max` take comparator as param. So if you put some other operation you will get wrong result. Inside `max` calling `BinaryOperator.maxBy`, that checks if result is greater or equal to 0, return first otherwise return second.
 ```java
 import java.util.*;
 import java.util.stream.Stream;
@@ -6787,8 +6784,7 @@ max2 => Optional[5]
 
 #### Concurrency
 ###### Threads
-Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have clearly override one method `run` to run it.
-If you extends from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
+Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have to override one method `run` to run it. If you extend from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -6865,12 +6861,8 @@ Thread[Thread-0,5,main] java.lang.RuntimeException: oops
 futureTask start
 futureTask: java.util.concurrent.ExecutionException: java.lang.RuntimeException: oops
 ```
-By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause FutureTask(class)=>RunnableFuture(interface)=>Runnable, Future.
-`Future` - interface returned by ExecutorService submit,invoke methods, `FutureTask` - concrete task. You can pass it into new Thread or ExecutorService submit/invoke methods.
-Java doesn’t wait for daemon threads, only for normal threads. To make a thread a daemon just set it property to true `setDaemon(true)`.
-Below code will exit immediately, but if you comment out `daemon=true`, then app would never exit, cause thread will run forever.
-This is similar to `detach`, so when you set `daemon=true` you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread)
-Yet `thread::detach` doesn't exist in java, so once you set `daemon=true`, if your main process stops, all daemon threads would be killed
+By default `Thread` takes `Runnable`, but we can also pass `Callable` wrapped into `FutureTask`, cause `FutureTask(class)=>RunnableFuture(interface)=>Runnable`. `Future` - interface returned by ExecutorService `submit,invoke` methods, `FutureTask` - concrete task. You can pass it into new Thread or ExecutorService submit/invoke methods.
+Java doesn’t wait for daemon threads, only for normal threads. To make a thread a daemon just set it property to true `setDaemon(true)`. Below code will exit immediately, but if you comment out `daemon=true`, then app would never exit, cause thread will run forever. This is similar to `detach`, so when you set `daemon=true` you kind of detach your thread from main app (it would run for some time as your main app runs, but main process won't wait for such thread). Yet `thread::detach` doesn't exist in java, so once you set `daemon=true`, if your main process stops, all daemon threads would be killed
 So there is no way in JVM to create thread that would continue to run while your main app is dead (yet you can start new JVM with new PID from your app)
 Keep in mind if you call `.join` on the daemon thread, your app would wait for such thread (in our case forever, cause of `while(true)`)
 ```java
@@ -6891,7 +6883,7 @@ public class App {
         thread.start();
         System.out.println("done");
     }
-    private static void sleep(int seconds) {
+    private static void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException ex) {
@@ -6940,8 +6932,7 @@ t2 starts
 t1 finished
 t2 finished
 ```
-Although t2 has higher priority, `ExecutorService` still runs t1 first.
-Thread priority does not guarantee execution order. It comes into play when resources are limited. If the System is running into constraints due to memory or CPU, then the higher priority threads will run first.
+Although t2 has higher priority, `ExecutorService` still runs t1 first. Thread priority does not guarantee execution order. It comes into play when resources are limited. If the System is running into constraints due to memory or CPU, then the higher priority threads will run first.
 Yet if you try to set priority more than max (10) you will get this error. Priority should be in this interval `1-10`
 ```
 Exception in thread "main" java.lang.IllegalArgumentException
@@ -6949,7 +6940,7 @@ Exception in thread "main" java.lang.IllegalArgumentException
 	at com.java.test.App.main(App.java:21)
 ```
 Don't confuse:
-* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed and it behaves differently for windows/linux, you should avoid using it , yield just suspend thread and notify os scheduler that it would like to resume ASAP, hence it's non-deterministic, while sleep, always suspend thread for specified amount of time. That's wy you should never use it, cause it behaviour non-deterministic and can't be used correctly
+* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed, and it behaves differently for windows/linux, you should avoid using it , yield just suspend thread and notify OS scheduler that it would like to resume ASAP, hence it's non-deterministic, while sleep, always suspend thread for specified amount of time. That's wy you should never use it, cause it behaviour non-deterministic and can't be used correctly
 * `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awakened by calling `notify/notifyAll`
@@ -6960,37 +6951,41 @@ Don’t confuse:
 * `start` - run in another thread
 ```java
 class App {
-    public static void main(String[] args) {
-        Thread thread = new Thread(() -> {
-            System.out.println("thread start");
-            sleep(1);
-            System.out.println("thread finish");
-        });
-        Thread thread2 = new Thread(() -> {
-            System.out.println("thread start2");
-            sleep(1);
-            System.out.println("thread finish2");
-        });
-        thread.run();
-        thread2.run();
-    }
+  public static void main(String[] args) {
+    Thread thread = new Thread(() -> {
+      System.out.println("thread1 start");
+      sleep(1);
+      System.out.println("thread1 finish");
+    });
+    Thread thread2 = new Thread(() -> {
+      System.out.println("thread2 start");
+      sleep(1);
+      System.out.println("thread2 finish");
+    });
+    System.out.println("__start__");
+    thread.run();
+    thread2.run();
+    System.out.println("__finish_");
+  }
 
-    private static void sleep(int seconds) {
-        try {
-            Thread.sleep(seconds * 1000);
-        } catch (InterruptedException ex) {
-            System.out.println("sleep ERR: " + ex);
-        }
+  private static void sleep(long seconds) {
+    try {
+      Thread.sleep(seconds * 1000);
+    } catch (InterruptedException ex) {
+      System.out.println("sleep ERR: " + ex);
     }
+  }
 }
 ```
-```
-thread start
-thread finish
-thread start2
-thread finish2
-```
 As you see, threads were executed sequentially.
+```
+__start__
+thread1 start
+thread1 finish
+thread2 start
+thread2 finish
+__finish_
+```
 There is no way to interrupt a thread, until thread itself has some logic to handle interruption. What you can do is to call `thread.interrupt` to send interrupt event to thread. Interrupted thread should have logic for checking `.interrupted()` and make some action on it. 
 Blocking methods like `Object.wait` or `Thread.sleep` has default implementation of interruption (that's why they throw `InterruptedException`).
 ```java
@@ -7007,7 +7002,7 @@ public class App {
         service.shutdownNow();
         System.out.println("done " + Thread.currentThread());
     }
-    private static void sleep(int sec) {
+    private static void sleep(long sec) {
         try {
             System.out.println("sleep " + Thread.currentThread());
             Thread.sleep(sec * 1000);
@@ -7038,12 +7033,12 @@ public class App {
     }
 }
 ```
+As you see after calling `interrupt` thread still goes on.
 ```
 finish
 start thread
 done thread
 ```
-As you see after calling `interrupt` thread still goes on.
 Here we are explicitly have code that check interrupted variable.
 ```java
 public class App {
@@ -7114,7 +7109,7 @@ public class App {
         System.out.println("future3 => " + future3.get());
         service.shutdown();
     }
-    private static void sleep(int seconds) {
+    private static void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException ex) {
@@ -7134,8 +7129,7 @@ future1 => null
 future2 => MyRunnable done
 future3 => MyCallable done
 ```
-`invokeAll` and `invokeAny` takes only callables and return results. The difference is that `invokeAll` wait until all threads are executed and return ordered list (order in which initial list of callables was passed) as array of Futures. 
-`invokeAny` - run all threads, but wait only the first one and return it (not future) and terminates all unfinished threads.
+`invokeAll` and `invokeAny` takes only callables and return results. The difference is that `invokeAll` wait until all threads are executed and return ordered list (order in which initial list of callables was passed) as array of Futures. `invokeAny` - run all threads, but wait only the first one and return it (not future) and terminates all unfinished threads.
 ```java
 import java.util.*;
 import java.util.concurrent.*;
@@ -7167,6 +7161,7 @@ public class App {
             try {
                 System.out.println("result: " + future.get());
             } catch (InterruptedException | ExecutionException ex) {
+              System.out.println("ex: " + ex);
             }
         });
         System.out.println("\ninvokeAny => ");
@@ -7175,7 +7170,7 @@ public class App {
 
         service.shutdown();
     }
-    private static void sleep(int seconds) {
+    private static void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException ex) {
@@ -7184,6 +7179,7 @@ public class App {
     }
 }
 ```
+Take note, that `invokeAny` terminates(send interrupt) all unfinished threads once anyone is finish.
 ```
 invokeAll => 
 MyCallable number 1 start
@@ -7207,7 +7203,6 @@ MyCallable number 2 finish
 sleep ERR: java.lang.InterruptedException: sleep interrupted
 MyCallable number 3 finish
 ```
-Take note, that invokeAny terminates(send interrupt) all unfinished threads once anyone is finish.
 
 For scheduling we can use `ScheduledExecutorService` method `schedule` (run once at some point in future). We can pass either `Runnable` or `Callable` to this method.
 ```java
@@ -7244,7 +7239,7 @@ public class App {
         service.shutdown();
     }
 
-    private static void sleep(int seconds) {
+    private static void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException ex) {
@@ -7290,7 +7285,7 @@ public class App {
         sleep(5);
         service.shutdown();
     }
-    private static void sleep(int seconds) {
+    private static void sleep(long seconds) {
         try {
             Thread.sleep(seconds * 1000);
         } catch (InterruptedException ex) {
@@ -7346,7 +7341,7 @@ public class App {
             highLevelQueue.put(value);
         }).start();
     }
-    private static void sleep(int sec) {
+    private static void sleep(long sec) {
         try {
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex) {
@@ -7426,7 +7421,7 @@ Getting highLevelQueue value
 Putting 1 into highLevelQueue
 highLevelQueue value: 1
 ```
-It’s better to use new api, cause you can set additional methods like `awaitUntil` - wait for some time and `awaitUninterruptibly` - to wait until signal, even if someone interrupted process.
+It’s better to use new API, cause you can set additional methods like `awaitUntil` - wait for some time and `awaitUninterruptibly` - to wait until signal, even if someone interrupted process.
 `lockInterruptibly` will throw `lockInterruptibly`, while simple `lock` can be interrupted, but won't throw exception.
 `SynchronousQueue` - special type of queue with one element. put - is waiting until take is done. Useful when you have 2 threads that need to change data and continue.
 ```java
@@ -7605,7 +7600,7 @@ public class App {
         service.shutdown();
     }
 
-    private static void sleep(int sec){
+    private static void sleep(long sec){
         try{
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex){
@@ -7763,8 +7758,7 @@ sequential => str-11 => thread:16
 ```
 
 ###### Concurrent collections
-`ConcurrentMap` and `ConcurrentSkipListMap` and `Hashtable` are not allowing null keys or values. The reason is that in simple `HashMap` you can have null key/value, and if you run `map.get` and get null you can easily check it with `containsKey`. But in concurrent- since value may be deleted this won't work.
-So any attempt to add null key/value with throw NPE.
+`ConcurrentMap` and `ConcurrentSkipListMap` and `Hashtable` are not allowing null keys or values. The reason is that in simple `HashMap` you can have null key/value, and if you run `map.get` and get null you can easily check it with `containsKey`. But since value may be deleted this won't work. So any attempt to add null key/value with throw NPE.
 
 ###### Deadlock and Livelock
 Deadlock - when 2 threads acquire 2 resources in different order. In such a scenario it’s possible that Thread1 has acquired first resource and wait to acquire second, Thread2 has acquired second and wait to acquire 1. In such case they will wait each other forever.
@@ -8118,12 +8112,7 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
 ```
 
 ###### Synchronized on ID
-Sometimes you have to do some non-idempotent operation, for this you set some flag in db, and if second request came you throw exception.
-But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword.
-This keyword synchronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object).
-But if you set it to method level, then all requests for all objects would wait each other. You have to synchronized on each object separately.
-For this purpose it's better to use some id
-Plz note that sometimes for each string new object created (for example you use this logic to synchronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
+Sometimes you have to do some non-idempotent operation, for this you set some flag in db, and if second request came you throw exception. But what if several requests came at the same time. In this case they all will read flag as false. For this you should use `syncronized` keyword. This keyword synchronize objects not based on hashcode/equals, but base on internal monitor of each object (so 2 string can be absolutely same yet `syncronized` would see them as 2 different object). But if you set it to method level, then all requests for all objects would wait each other. You have to synchronized on each object separately. For this purpose it's better to use some id. Plz note that sometimes for each string new object created (for example you use this logic to synchronize inside spring controller method where you parse user input, in this case each time method is called new object string is created, but value can be the same)
 in this case there are 2 solutions:
 * use `intern` method for string (convert either whole object or particular fields `obj.toString().intern()`)
 * use `ConcurrentHashMap` with key as your string and value just `new Object()`. This would guarantee that each time same string came, you already have this value in your amp, and then use `synchronized (map.get(yourString)){}`
@@ -8185,7 +8174,7 @@ public class App{
         }
     }
 
-    private void sleep(int sec) {
+    private void sleep(long sec) {
         try {
             Thread.sleep(2000);
         } catch (InterruptedException ex){
@@ -8267,7 +8256,7 @@ public class App {
         sleep(3);
         return "B";
     }
-    public static void sleep(int sec){
+    public static void sleep(long sec){
         try{
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex){
@@ -8281,8 +8270,7 @@ thread=Thread[ForkJoinPool.commonPool-worker-19,5,main], isDaemon=true
 future.get => AB
 res=AB, err=null
 ```
-You can run futures in parallel with `allOf`, so it would be completed when last futures from list would be done. 
-Yet it returns void, so if you need results from these futures, you should call get/join to each of the future separately.
+You can run futures in parallel with `allOf`, so it would be completed when last futures from list would be done. Yet it returns void, so if you need results from these futures, you should call get/join to each of the future separately.
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -8312,7 +8300,7 @@ public class App {
         sleep(3);
         return "B";
     }
-    public static void sleep(int sec){
+    public static void sleep(long sec){
         try{
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex){
@@ -8331,10 +8319,7 @@ B
 ###### ReentrantLock/ReentrantReadWriteLock/StampedLock
 There are 3 main class to work with `Lock` interface:
 * ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. Reentrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
-* ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface)
-This can be same as using `synchronized` + `volatile` and not synchronized read.
-We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock)
-and also readLock ensure that once writeLock is happening no read should be possible
+* ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface). This can be same as using `synchronized` + `volatile` and not synchronized read. We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock), and also readLock ensure that once writeLock is happening no read should be possible
 * StampedLock - same as ReentrantReadWriteLock, but using a few additional methods:
     * `tryConvertToWriteLock` - convert read lock to write lock
     * `tryOptimisticRead` - use optimistic read
@@ -8385,14 +8370,14 @@ There are 2 reactive implementations: RxJava & Akka, yet starting from java9, jd
 And one implementation of concurrent publisher `SubmissionPublisher`.
 There are 2 ways for producer-consumer problem:
 * pull (no backpressure) - when consumer polls producer, upside - consumer controls speed, downside - waste of resources for polling
-* push (backpressure on consumer) - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower then producer, we may have data loss
+* push (backpressure on consumer) - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower than producer, we may have data loss
 * push-on-request (backpressure on producer) - when producers pushed to consumer based on consumer request, so we combine upsides from both pull/push approach
-To summirize reative is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle
+To summarize reactive is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle
 multiple consumers, based on their speed.
 Notice that java9 is very open, for `Publisher` there is only 1 method to implement `subscribe`, the actual `publish` implementation
 is up to you, in case of SubmissionPublisher it called `submit`.
 It's under `java.util.concurrent` package, cause handle multiple consumers based on their speed, required some concurrency/buffering handling.
-For transformation we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
+For transformation, we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
 transform inside, and then publish to another consumer.
 Backpressure handling - 2 ways to handle this:
 * increase buffer size
@@ -8455,7 +8440,7 @@ DONE
 
 #### JDBC and SQL
 ###### Connection
-Mysql driver is not part of sdk so you have to manually add it to `pom.xml`
+Mysql driver is not part of SDK so you have to manually add it to `pom.xml`
 ```
 <dependency>
   <groupId>mysql</groupId>
@@ -8609,7 +8594,7 @@ name => Gary Larson
 name => Gary Larson
 ```
 
-How many db connections can be created. It will vary between 150 and 280, but on average around 200. Here is nice way to check it out. 
+How many db connections can be created. It will vary between 150 and 280, but on average around 200. Here is a nice way to check it out. 
 ```java
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -8664,7 +8649,6 @@ public class App {
 ```
 time: 14 sec
 ```
-
 As you see we have created 100k statements and resultsets without closing, and it’s ok. Creating and closing connections is also expensive
 ```java
 import java.sql.Connection;
@@ -8690,9 +8674,7 @@ public class App {
 ```
 time: 24 sec
 ```
-It took us 24s to create and close 10k connection.
-All the above clearly shows us, that we need a connection pool.
-Why not to use just one connection then? Answer is simple it’s very slow
+It took us 24s to create and close 10k connection. All the above clearly shows us, that we need a connection pool. Why not to use just one connection then? Answer is simple - it’s very slow.
 
 ```java
 public class App {
@@ -8722,7 +8704,6 @@ public class App {
 time: 17 sec
 
 As you see, to execute 200k queries it took us 17sec. Maybe we can speed it up by using threads, let’s see
-
 ```java
 public class App {
     public static void main(String[] args) {
@@ -8813,7 +8794,7 @@ public class App {
 ```
 time: 7 sec
 ```
-Here we are using pool of connections, and once we have use it, return it to db. We almost triple speed by this.
+Here we are using pool of connections, and once we have used it, return it to db. We almost triple speed by this.
 
 ###### Statement and PreparedStatement
 It's better to always use `PreparedStatement` cause you can:
@@ -8864,7 +8845,7 @@ There are 3 interfaces to execute queries:
 `Statement` (extends AutoClosable) - can be obtained `Statement s = conn.createStatement("");`
 `PreparedStatement` (extends Statement) - can be obtained `PreparedStatement s = conn.prepareStatement("");`
 `CallableStatement` (extends PreparedStatement) - can be obtained `CallableStatement s = conn.prepareCall("");` 
-Sql example of stored procedure to fetch lastname by id. Although it's pretty useless, cause you can achieve the same with simple query, you can write more complex precedures to get some complex data.
+Sql example of stored procedure to fetch lastname by id. Although it's pretty useless, cause you can achieve the same with simple query, you can write more complex procedures to get some complex data.
 ```
 # create procedure
 DELIMITER $$
@@ -8914,11 +8895,7 @@ public class App {
 ```
 
 ###### Transactions
-It’s easy to work with transaction in JDBC. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. 
-But we can set it to false, and in the end, call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);`
-(this will commit everything as side-effect, if autoCommit=true no exception is thrown). 
-This will ensure that only after all code executed successfully data would be flushed into db. 
-As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
+It’s easy to work with transaction in JDBC. By default `autoCommit` is true, so after each `executeUpdate` we flush data to db. But we can set it to false, and in the end, call `conn.commit` (will throw SQLException if autoCommit=true) or `conn.setAutoCommit(true);` (this will commit everything as side effect, if autoCommit=true no exception is thrown). This will ensure that only after all code executed successfully data would be flushed into db. As you see in the third query we make a mistake (ids=3 instead of id=3), so all 3 updates won’t be executed against db.
 ```java
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -8979,7 +8956,7 @@ It searches all parents until it found one that doesn't implement `Serializable`
 and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor.
 Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`.
 Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
-Otherwise compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
+Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
 Java serialization is binary serialization, so your file would have binary content (compare to xml/json).
 You can decode this binary file for one of below example with following command
 ```
@@ -11465,7 +11442,7 @@ public class App {
         sleep(1);
         System.out.println("done");
     }
-    public static void sleep(int sec){
+    public static void sleep(long sec){
         try {
             Thread.sleep(sec * 1000);
         } catch (InterruptedException ex) {
@@ -14237,3 +14214,8 @@ aeron cluster:
 * framework for building clustered application based on aeron technology
 * you write your code (like matching engine) and add cluster interface `ClusteredService` which provides all lifecycle events which your app should handle
 * you have clustered app out of the box, where aeron cluster take care of mainating state, storing snapshot, send/receive messages
+
+
+#### Java Versions
+###### Java 17
+###### Java 21
