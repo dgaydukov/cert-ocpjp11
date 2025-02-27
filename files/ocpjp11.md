@@ -1704,7 +1704,7 @@ class A{
 1
 ```
 
-When casting values, static members get shadowed. That happens because static members - bound in compiler time (static binding), and all other in run times (dynamic bindings).
+When casting values, static members get shadowed. That happens because static members - bound in compiler time (static binding), and all other in runtime (dynamic bindings).
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1760,7 +1760,7 @@ John
 in B
 Jack
 ```
-So when we declare `B b = null;`, no loading of class B happens. The same true when we call static instance member (both variables & methods) of it’s parent. But when we call static variable of it’s own, it loading class and fire static initializer.
+So when we declare `B b = null;`, no loading of class B happens. The same true when we call static instance member (both variables & methods) of its parent. But when we call static variable of its own, it's loading class and fire static initializer.
 
 `instanceof` will always compile if one of argument is interface. The reason is that `B` can have children, that can implement interface, so it’s allowable. 
 If you make class `B` final, first 2 lines won’t compile as well. Also autoboxing won't work, so you can't use primitives with `instanceof`.
@@ -1822,7 +1822,7 @@ cool
 Exception in thread "main" java.lang.NullPointerException
 ```
 
-Order of execution. In A constructor App.print would be called, but since App is not initialized yet and i is 0, so 0 - is printed.
+Order of execution. In `A` constructor `App.print` would be called, but since `App` is not initialized yet, than `i=0`. But on second time, `i` would be properly initialized and display 4.
 ```java
 class A {
     {
@@ -1856,8 +1856,7 @@ init App
 4
 ```
 Liskov substitution principle for java inheritance:
-1. method argument types - overriden method argument should be identical or wider. But in java we support only identical
-neither X, not Z would work in below example. As you see java not fully supported this rule
+1. method argument types - overridden method argument should be identical or wider. But in java we support only identical, neither X, not Z would work in below example. As you see java not fully supported this rule
 ```java
 class X{}
 class Y extends X{}
@@ -1872,8 +1871,7 @@ class B extends A{
 }
 ```
 2. return type should be identical or subtype - called covariance in java
-3. execption - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception
-Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
+3. execption - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
 
 ###### Interfaces
 All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
@@ -1898,7 +1896,9 @@ class A implements I{}
 1 2 3 4
 ```
 
-Interfaces can have `default` (which can be only called on instance of class that implements interface)  and `static` (which can only be called on interface itself) methods.
+Interfaces can have 2 methods:
+* `default` - can be only called on instance of class that implements interface. Were added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compiled until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
+* `static` - can only be called on interface itself.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1932,7 +1932,8 @@ public class App {
         B b = new B();
         b.print(); // prints B
         A a = new B();
-        a.print(); // compiler's error
+        // you can call static interface method only on interface itself
+        a.print(); // compiler's error: illegal static interface method call
     }
 }
 interface A{
@@ -2350,7 +2351,7 @@ enum Days{
 In enum declaration constants should go first. 
 ```java
 enum Days{
-    String s1; // won't compile. Enum constans should be first
+    String s1; // won't compile. Enum constants should be first
     
     SAT,
     SUN;
@@ -2399,7 +2400,6 @@ enum Days{
 [6:Sat, Sun:7]
 ```
 
-
 ###### Exceptions
 If parent exception goes before child, the `catch` block with child exception won’t compile with the error: `exception com.java.app.MyException has already been caught`
 ```java
@@ -2435,8 +2435,9 @@ public class App{
 }
 ```
 ```
-finallyException in thread "main"
-java.lang.RuntimeException: at com.java.test.App.main(App.java:15)
+finally
+Exception in thread "main" java.lang.RuntimeException: 3
+	at com.example.demo.App.main(App.java:11)
 ```
 
 If you have checked exception you can’t catch them until they are clearly thrown from the method itself
@@ -2481,7 +2482,6 @@ Throwable: java.lang.ExceptionInInitializerError
 done
 ```
 
-
 Exceptions thrown inside `catch` block can’t be handled by next `catch` block
 ```java
 public class App {
@@ -2510,7 +2510,6 @@ Exception in thread "main" java.lang.RuntimeException
 	at com.java.app.App.main(App.java:15)
 ```
 As you can see when we throw `throw new RuntimeException();` it wan’t be caught by the next catch, so this code `System.out.println(3);` will never be executed. Yet `finally` would be executed right before throwing exception.
-
 
 When you overriding method that throws checked exception you are allowed:
 * not to throw any exception
@@ -2579,7 +2578,7 @@ public class App{
       try{
           throw new IOException("ex");
       } catch (IOException|RuntimeException ex){
-          ex = new FileNotFoundException(); // won't compile cause ex of type IOException|RuntimeException and they don't have any commong child
+          ex = new FileNotFoundException(); // won't compile cause ex of type IOException|RuntimeException and they don't have any common child
       }
   }
 }
@@ -2637,7 +2636,7 @@ public class App {
     }
 }
 ```
-As you see we catch `MyCheckedException`, so if child throws it parent, the catch would be broken, that’s why child can throw only more specific (children) exceptions. For constructors it’s other way around.
+As you see we catch `MyCheckedException`, so if child throws it parent, the catch would be broken, that’s why child can throw only more specific (children) exceptions. For constructors, it’s the other way around.
 ```java
 try{
     new A1();
@@ -2647,7 +2646,7 @@ try{
 ```
 We can catch `MyCheckedException` itself, it’s parent Exception, but not child `MySecondCheckedException`. And this is the exact reason, why when we override constructor we can throw only exception itself or more generic, cause when we create object, it will invoke it’s parent that throws more specific exception.
 
-When overrdding constructor you can also throw from child any other unrelated checked & unchecked exceptions, but for method - only checked
+When overriding constructor you can also throw from child any other unrelated checked & unchecked exceptions, but for method - only checked
 ```java
 class A{
     public A() throws IOException{}
@@ -2702,10 +2701,7 @@ java.lang.NullPointerException
 ```
 
 Try with resources guarantees that resources would be closed. In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`.
-The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. 
-It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case.
-So they introduced the AutoClosable interface with a less restrictive close() semantic ... and retro-fitted Closeable as a subtype of AutoCloseable.
-                                                                                                           
+The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case. So they introduced the AutoClosable interface with a less restrictive close() semantic ... and retro-fitted Closeable as a subtype of AutoCloseable.                                                        
 When variable declared inside try with resource it becomes final.
 ```java
 import java.io.Closeable;
@@ -2808,9 +2804,7 @@ Exception in thread "main" java.lang.RuntimeException: something went wrong with
 		... 1 more
 ```
 
-In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way more simpler.
-In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code.
-Pay attention, that by default try-with-resources close resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
+In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way simpler. In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code. Pay attention, that by default try-with-resources closes resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
 Suppressed exception - exception that is thrown in try-with-resources. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
 ```java
 import java.util.Arrays;
@@ -2856,7 +2850,6 @@ suppressed: [com.java.test.CloseResourceException]
 ```
 Although close method throws CloseResourceException after getConnection, this exception is not propagated, but instead appends as suppressed exception. All suppressed exception are stored in `ex.getSuppressed()` - which returns a `Throwable[]`.
 **Pay attention that if we throw exception in finally, it will overwrite getConnection exception.
-
 Resource are closed before catch/finally
 ```java
 public class App implements AutoCloseable{
@@ -2931,8 +2924,7 @@ Nested classes can be of 2 types:
 * static nested classes (called just static classes) - those declared with `static` keyword
 * instance nested classes (called just inner classes) - those declared without `static` keyword
 
-By default java expects every class to have it's own file and be declared `public` there. But you can declare many classes in single file (but only one that matches filename can be public).
-When you compile file with public class and it includes inner classes, java compile them into separate files.
+By default, java expects every class to have its own file and be declared `public` there. But you can declare many classes in single file (but only one that matches filename can be public). When you compile file with public class, and it includes inner classes, java compile them into separate files.
 ```java
 public class App {
     public class A {}
@@ -3011,8 +3003,7 @@ class Outer{
 }
 ```
 
-Nested non-static class can’t have static members, except `final static` methods. Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. 
-Since we can have many instances of outer class and each has it's own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
+Nested non-static class can’t have static members, except `final static` methods. Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. Since we can have many instances of outer class and each has its own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
 ```java
 class A {
     private int i1=1;
@@ -3040,7 +3031,7 @@ class A {
 }
 ```
 
-Default constructor access modifies. By default if we not explicitly add any constructor, java add default no-arg constructor with the same modifier as class itself. You can check it with `javap` disassembler tool.
+Default constructor access modifies. By default, if we not explicitly add any constructor, java add default no-arg constructor with the same modifier as class itself. You can check it with `javap` disassembler tool.
 ```java
 public class Outer{
     // public default no-arg constructor
@@ -3103,7 +3094,7 @@ Anonymous classes - can be created out of interface/(abstract)class by implement
 * have static fields (yet they can have final static fields)
 * have static methods (both final & non-final)
 
-You can add private & public members, but only public members declared in original type would be accesible.
+You can add private & public members, but only public members declared in original type would be accessible.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -3378,7 +3369,7 @@ seconds since 01-01-1970 UTC [OffsetDateTime.now().toEpochSecond()] => 158381501
 For time intervals we have 2 classes `Period` and `Duration`.
 `Period` - used for days, months, years
 `Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
-`Duration.toString` always return `PT` and then duration itself. PT - stands for Period of Time.
+`Duration.toString` always return `PT` (stands for Period of Time) and then duration itself.
 ```java
 import java.time.Duration;
 import java.time.Period;
@@ -3432,7 +3423,7 @@ Period          +           -             -                 -
 Duration        -           +             +                 +
 ```
 
-Calculate difference between two localtimes and compare it to n seconds
+Calculate difference between two localtime and compare it to n seconds
 ```java
 import java.time.Duration;
 import java.time.LocalTime;
@@ -3481,7 +3472,7 @@ Exception in thread "main" java.lang.IllegalArgumentException: No TimeUnit equiv
 ```
 
 ###### Timezone and DST
-`Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(greenwhich mean time) practically the same thing, the difference is how they calculate seconds, gmt - using solar time, utc - atomic clock.
+`Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(Greenwhich mean time) practically the same thing, the difference is how they calculate seconds, gmt - using solar time, utc - atomic clock.
 ```java
 import java.time.Duration;
 import java.time.Instant;
@@ -3548,11 +3539,11 @@ dateTime2 => 2016-03-13T03:30-04:00[US/Eastern]
 diff => 1
 diff => PT1H
 ```
-In 13th of march 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
+On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 
 Don't confuse:
-* `Instant` - just store current datetime from utc
-* `OffsetDateTime` - `Instant` + utc offset
+* `Instant` - just store current datetime from UTC
+* `OffsetDateTime` - `Instant` + UTC offset
 * `ZonedDateTime` - `OffsetDateTime` + time zone
 ```java
 import java.time.*;
@@ -3570,8 +3561,7 @@ Instant =>        2019-11-18T08:37:56.893718Z
 OffsetDateTime => 2019-11-18T16:37:56.937434+08:00
 ZonedDateTime =>  2019-11-18T16:37:56.938073+08:00[Asia/Hong_Kong]
 ```
-There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. 
-TimeZone - is more broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is more broader concept than timeOffset.
+There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. TimeZone - is broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is broader concept than timeOffset.
 Java & DB time practice (we use mysql here as example):
 * timestamp - the number of milliseconds since the `epoch` namely midnight, January 1, 1970 UTC
 * you have 3 classes in java to map to SQL, under `java.sql` package 
@@ -3771,7 +3761,7 @@ z   - time zone  text (z/zz/zzz-HKT, zzzz-Hong Kong Standard Time)
 Z   - time offset (Z/ZZ/ZZZ-+0800, ZZZZ-GMT+08:00)
 ```
 
-We can have arbitrary text inside pattern, we just need to enclose in in single quotes ''
+We can have arbitrary text inside pattern, we just need to enclose it in single quotes ''
 ```java
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -3823,9 +3813,9 @@ list.add("Hi");
 String x = (String) list.get(0);
 ```
 
-####### PECS (producer extends consumer super)
-This’s cause a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. 
-The exception if overriding method has `List<anything>` but overriden just `List`.
+###### PECS (producer extends consumer super)
+Because a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. 
+The exception if overriding method has `List<anything>` but overridden just `List`.
 ```java
 import java.util.*;
 
@@ -3948,8 +3938,7 @@ class MyType<T>{
 list => []
 ```
 
-Pay attention when we extend or implement generic interface and don't set it's generic type. As you see although MusicPlayer can take only Music (or it's children) as generic param, this generic doesn't go to Player. 
-And since Player has no generic we can pass any object into `musicPlayer.play`. Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
+Pay attention when we extend or implement generic interface and don't set its generic type. As you see although MusicPlayer can take only Music (or it's children) as generic param, this generic doesn't go to Player. And since Player has no generic we can pass any object into `musicPlayer.play`. Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -4020,18 +4009,12 @@ class B extends A{
     public void m1() {} // overriding method
 }
 ```
-For one method to correctly override another they should have the same signature (method name + params) and covariant return type.
-Covariant return (let's use <=) - return of the same type or it's subtype. For example `B` <= `A`, and `ArrayList<String>` <= `List<String>`.
+For one method to correctly override another they should have the same signature (method name + params) and covariant return type. Covariant return (let's use <=) - return of the same type, or it's subtype. For example `B` <= `A`, and `ArrayList<String>` <= `List<String>`.
 Generic covariant return: 
 `List<B> <= List<? extends B> <= List<? extends A>`
 `List<A> <= List<? super A> <= List<? super B>`
-Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime.
-For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`.
-So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. 
-From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion.
-The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
-Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a place holder for whatever type is actually used while invoking the method. 
-For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
+Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
+Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a placeholder for whatever type is actually used while invoking the method. For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
 T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
 ```java
 import java.util.*;
@@ -4089,7 +4072,7 @@ List<A>
 List<B>
 List<C>
 ```
-param inside B.getList can be only of type A, otherwise it’s not overriding, but overloading.
+param inside `B.getList can` be only of type A, otherwise it’s not overriding, but overloading.
 
 `List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. 
 For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
@@ -4143,12 +4126,9 @@ class A{
 ```
 
 ###### Generic arrays
-You can't create generic array, this code `T[] arr = new T[10]` won't compiled.
-The main reasons is that arrays store and check types on runtime, while generic on compile time change everything to `Object`.
-So if above was possible, you would get `ClassCastException` whenever you substitute T with anything rather then Object.
+You can't create generic array, this code `T[] arr = new T[10]` won't compile. The main reasons is that arrays store and check types on runtime, while generic on compile time change everything to `Object`. So if above was possible, you would get `ClassCastException` whenever you substitute T with anything rather than Object.
 Yet there are 2 ways to create genetic array. Below we consider real-world example where you want to build your queue, which use array as internal storage.
-Queue should be generic and handle any data type.
-Both ways act the same, cause `newInstnace` return object, and since first version is shorter, it's more preferrable.
+Queue should be generic and handle any data type. Both ways act the same, cause `newInstnace` return object, and since first version is shorter, it's more preferable.
 ```java
 class CustomQueue<T>{
     private T[] buffer;
@@ -4179,7 +4159,7 @@ Same with instantiation, we can't do just `T t = new T[]`, we should call someth
 First you need to make sure that T is class, that why `Class<T> clz` is required, then you can use reflection to instantiate the class.
 
 #### Collections
-`Vector` - is synchronized (almost all methods has `syncronized` keyword), only one thread at a time can use it. `ArrayList` - is not synchronized.
+`Vector` - is synchronized array (almost all methods has `syncronized` keyword), only one thread at a time can use it. `ArrayList` - is not synchronized.
 Collections lambda methods
 ```java
 import java.util.*;
@@ -4222,6 +4202,7 @@ public class App {
         });
         // takes BiFunction (key and value) and returns new value, if no entry, value (second param) is null
         map.compute("b", (k, v) -> 0);
+        // if key doesn't exist, set value, otherwise apply BiFunction and set new value for this key
         map.merge("c", 5, (oldValue, newValue) -> 0);
         System.out.println(map);
     }
@@ -4294,8 +4275,7 @@ map2 => {a=3, b=2, c=1}
 ```
 
 ###### List and Set
-All collections has a method `contains(Object o)` to check if element in collection. But `Map` doesn’t have such a method. Instead, it has 2 methods `containsKey(Object o)` and `containsValue(Object o)`.
-If you pass wrong object, you won't get `ClassCastException`, just false. The reason, is that inside they compare by `equals` method.
+All collections have a method `contains(Object o)` to check if element in collection. But `Map` doesn’t have such a method. Instead, it has 2 methods `containsKey(Object o)` and `containsValue(Object o)`. If you pass wrong object, you won't get `ClassCastException`, just false. The reason, is that inside they compare by `equals` method.
 ```java
 import java.util.*;
 
@@ -4325,11 +4305,9 @@ class Person{
 true
 ```
 
-`List.of` & `List.copyOf` - static methods that create unmodifiable (can’t add, remove, change) list, and can’t take null (they throw NPE if any element passed is null),
-List.of can takes 0 to n params, varags (so you can pass array). If you pass list there it will be treated as regular object - list of 1 list will be created.
-List.copyOf - can take only collection.
+`List.of` & `List.copyOf` - static methods that create unmodifiable (can’t add, remove, change) list, and can’t take null (they throw NPE if any element passed is null), `List.of` can takes 0 to n params, varags (so you can pass array). If you pass list there it will be treated as regular object - list of 1 list will be created. `List.copyOf` - can take only collection.
 Immutable vs Unmodifiable. Unmodifiable - is just a view, although you can't modify it directly, if underlying collection, has been modified, this view will reflect changes. 
-Immutable - completely separate unmodifiable collection. It can't be modified and it doesn't reflect changes in case of modification of underlying collection.
+Immutable - completely separate unmodifiable collection. It can't be modified, and it doesn't reflect changes in case of modification of underlying collection.
 `Arrays.asList` - you can't add new values to list, but can modify existing. The reason is that list still backed by array, and array has a fixed size.
 ```java
 import java.util.*;
@@ -4522,8 +4500,7 @@ public class App{
 ```
 
 ###### Array and Enumeration to List and back
-Array to List. When convert from array to list, they both become linked and change in one is reflecting in another. Moreover such a list is fixed like an array. 
-You can change values, but can’t add new one. If you don’t want this use `new ArrayList<>(Arrays.asList(arr))`.
+Array to List. When convert from array to list, they both become linked and change in one is reflecting in another. Moreover, such a list is fixed like an array. You can change values, but can’t add new one. If you don’t want this use `new ArrayList<>(Arrays.asList(arr))`.
 ```java
 import java.util.*;
 
@@ -4543,7 +4520,7 @@ list => [mango, banana, kiwi]
 arr => [watermelon, banana, kiwi]
 ```
 
-Beware of the following code. It won’t compile because of incompatible types. `Arrays.asList` doesn’t do unboxing, so it return like `List<int[]>`, but we need `List<Integer>`. 
+Beware of the following code. It won’t compile because of incompatible types. `Arrays.asList` doesn’t do unboxing, so it returns like `List<int[]>`, but we need `List<Integer>`. 
 ```java
 int[] arr = {1,2,3};
 List<Integer> list = Arrays.asList(arr); // won't compile:
@@ -4605,7 +4582,7 @@ public class App {
 ```
 
 ###### Map
-`HashMap` and `HashTable` are not iteration-determenistic. So in 2 iterations, you can get different order. If you need to preserve order use:
+`HashMap` and `HashTable` are not iteration-deterministic. So in 2 iterations, you can get different order. If you need to preserve order use:
 * `LinkedHashMap` - ordered, use order in which elements where inserted 
 * `TreeMap` - ordered and sorted, sort elements on insert
 `Set` - unordered collection, but `List` - ordered.
@@ -4614,7 +4591,7 @@ Constructor of `HashMap/LinkedHashMap` can have 2 and 3 params:
 * loadFactor - when to resize map. if .75 resize when size above 3/4 of it's capacity
     * so if you have 16 elements, once you inserted 12, it would resize
     * once map size is increased, rehashing happens to equally distribute items across the map
-    * usually we set values 0-1, yet if you set 2, that would means once we reach 200% elements, resize & rehashing happen (we insert twice many elements as capacity)
+    * usually we set values 0-1, yet if you set 2, that would mean once we reach 200% elements, resize & rehashing happen (we insert twice many elements as capacity)
 * accessOrder (only for LinkedHashMap cause we have order here):
     * by default false - you access your elements in the order they were inserted (re-insert doesn't affect the order)
     * true - now you have access-ordered map, so each time you call get/put, internally map is reordered, and they called last during iteration
@@ -4641,7 +4618,7 @@ public class App{
 {1=a, 2=b, 3=c, 4=d}
 {3=c, 4=d, 1=x, 2=b}
 ```
-As you can see, since we accessed elemtned with indexed 1/2, they moved to bottom
+As you can see, since we accessed elements with indexed 1 and 2, they moved to bottom
 Giving these 3 params you can easily create your own LRU cache.
 How HashMap works:
 * inside there is list of buckets (backed by array of `HashMap.Node`)
@@ -4680,13 +4657,13 @@ class Person{
 Although hashcode are same, yet we still have 2 objects
 * if you have poorly written `hashcode`, then bucket would use `TreeMap` otherwise `LinkedList`
 How ConcurrentHashMap works:
-* null are not allowed as key/value. Cause in concurrent implementation when `get` return null is not clear if object mapped to null or object doesn't exists
+* null are not allowed as key/value. Cause in concurrent implementation when `get` return null is not clear if object mapped to null or object doesn't exist
 In simple map we can call `containsKey` to check if key exists, but in concurrent the value can be modified in between this call
 * it provides functionality of `HashTable` but with speed comparable with `HashMap`
 * `HashTable` is slow, cause it locks whole map to perform update/delete/read/create
 * `concurrencyLevel` - third param to constructor (first two `capacity` & `loadFactor` same as for `HashMap`) - estimated number of concurrently updating threads (by default 16)
 * so all buckets divided into 16 (or more) lock zones and only specific zone is blocked during create/update (reads are not blocked). So 16 threads can modify map given they work on different buckets
-* `HashMap` is fail fast, but `ConcurrentHashMap` is fail safe
+* `HashMap` is fail-fast, but `ConcurrentHashMap` is fail-safe
 ```java
 import java.util.HashMap;
 import java.util.Iterator;
@@ -4899,7 +4876,7 @@ oldMap => {a=5, b=6}
 newMap => {a=1, b=2}
 ```
 
-`Map.merge` very versatile method. With it we can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
+`Map.merge` very versatile method. We can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
 ```java
 import java.util.*;
 import java.util.stream.Collectors;
@@ -4908,9 +4885,7 @@ public class App {
     public static void main(String[] args) {
         List<String> names = new ArrayList<>(List.of("Jack", "Bob", "Janet", "Melanie", "Bob", "Melanie", "Bob", "Jack", "Melanie", "Bob"));
         Map<String, Integer> map = new HashMap<>();
-        names.forEach(name -> {
-            map.merge(name, 1, (prev, curr) -> prev + curr);
-        });
+        names.forEach(name -> map.merge(name, 1, (prev, curr) -> prev + curr));
         System.out.println("map => " + map);
         Map<String, Integer> collectorMap = names
                 .stream()
@@ -4977,7 +4952,7 @@ collectorMap => {1=30, 2=20, 3=10}
 ```
 
 ###### binarySearch
-`Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It return  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside. So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4. e can pass `Comparator` into both `sort` and `binarySearch` - and it should be the same comparator, otherwise - unpredictable result. And objects inside list or array should implement `Comparable` or you should pass `Comparator` (if you pass null as comparator, natural sort would be used, no NPE) otherwise `ClassCastException`.
+`Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It returns  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside. So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4. e can pass `Comparator` into both `sort` and `binarySearch` - and it should be the same comparator, otherwise - unpredictable result. And objects inside list or array should implement `Comparable` or you should pass `Comparator` (if you pass null as comparator, natural sort would be used, no NPE) otherwise `ClassCastException`.
 ```java
 import java.util.*;
 
@@ -5015,10 +4990,10 @@ bb => -3
 b => 1
 bb => -3
 ```
-If bb was inside array, it position would be 2, right after b and before d. But since it’s not in array index returned is -(2+1) => -3
+If bb was inside array, its position would be 2, right after b and before c. But since it’s not in array index returned is -(2+1) => -3
 Although `Object` doesn't implement `Comparable` directly, when you pass list of objects to sort, if all objects of same type, this type would be used.
 So if you have list of objects, where all integers, sort would work fine and use comparable from integer. 
-But in case you have different types (for example Integer and String) you will get `ClassCastException`, Integer can't be casterd to String.
+But in case you have different types (for example Integer and String) you will get `ClassCastException`, Integer can't be cast to String.
 ```java
 import java.util.*;
 
@@ -5039,7 +5014,7 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 ```
 
 ###### Order and duplicates
- `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. `List` is a type of ordered collection that maintains the elements in insertion order while `Set` is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.  All elements inside set are unique. Internally set using map, and use it's keys as values.
+ `Array` and `ArrayList` are an ordered collection (also known as a sequence) that allows duplicates. `List` is a type of ordered collection that maintains the elements in insertion order while `Set` is a type of unordered collection so elements are not maintained any order. If you need to preserve order of insertion for set use `LinkedHashSet`.  All elements inside set are unique. Internally set using map, and use its keys as values.
 ```java
 import java.util.*;
 
@@ -5059,7 +5034,7 @@ hashSet => [1, 2, 3]
 treeSet => [1, 2, 3]
 linkedHashSet => [3, 2, 1]
 ```
-Also `TreeSet` and all started from `Tree` doesn't allowed null values. You can put into `TreeSet` as values and `TreeMap` as keys only objects that implement `Comparable<T>` or to pass `Comparator<T>` directly into constructor. If neither of this, `ClassCastException` is thrown. This is also the case for `PriorityQueue`
+Also `TreeSet` and all started from `Tree` doesn't allow null values. You can put into `TreeSet` as values and `TreeMap` as keys only objects that implement `Comparable<T>` or to pass `Comparator<T>` directly into constructor. If neither of this, `ClassCastException` is thrown. This is also the case for `PriorityQueue`
 ```java
 import java.util.*;
 
@@ -5108,7 +5083,7 @@ How sets work:
 * CopyOnWriteArraySet (use internally `CopyOnWriteArrayList`) - uniqueness is guaranteed by `equals` method. CopyOnWriteArrayList (thread-safe implementation of `ArrayList`):
     * use volatile array as internal structure
     * all write methods `add/set/remove` are `synchronized`, inside they add/remove new value and then replace array
-    * get is not synchronized, it just return element from array. Since array is volatile, once write operation is done, it would be replaced, and volatile guarantee happened-before, so read would always read latest value
+    * get is not synchronized, it just returns element from array. Since array is volatile, once write operation is done, it would be replaced, and volatile guarantee happened-before, so read would always read the latest value
     * since under-the-hood implementation is based on array, `contains` takes O(n) time
     * if you want `contains` to run O(1) you have to use `ConcurrentHashMap.newKeySet` or combine `AtomicReference` with `HashSet` and replace set on each modification (atomic use volatile inside, so on replace it would guarantee happened-before)
     Don't confuse:
@@ -5209,10 +5184,11 @@ Exception in thread "main" java.lang.IllegalArgumentException: key out of range
 Don't confuse (see [javadoc for queue](https://docs.oracle.com/javase/6/docs/api/java/util/Queue.html))
 * head - start of the queue, from where you read & remove elements
 * tail - end of the queue, where you add new elements.
+Same applied to maps and sets. Head is the beginning, and tail where newly-added elements appends.
 how to remember: What people in the United States commonly call a line, as in the thing you stand in at the post office, people in other English speaking countries call a queue. So, it's easier for Americans to keep the terminology straight if you substitute "line" for "queue." In other words, when you are in the head, or front, of the line, you are the next to be called.
 So if we have a queue[1,2,3], 1 - is head, 3 - tail. If we add 4, it would be added to tail, after 3
 If you want to implement queue(FIFO) - use `Queue` interface or `Deque`, if you want to implement stack(LIFO) - use `Deque` interface. `Deque` is child of `Queue` it extends it to work from both ends.
-All methods divides on 2 types. Some throws exception, others just return null/false
+All methods divide on 2 types. Some throws exception, others just return null/false
 6 basic method of `Queue` interface (actually there are 3 and they duplicated with one which throws exception):
 * boolean add(IllegalStateException)/offer(false) - add to the tail
 * T remove(NoSuchElementException)/poll(null)     - remove from the head
@@ -5304,9 +5280,7 @@ stack =>
 1
 ```
 
-`ArrayDeque` is generally consider a faster implementation then `LinkedList`. Be careful using `PriorityQueue`. It sorts elements based on some internal sorting or on passed comparator.
-LinkedList is good for stack/queue data structures (so that's why it implements `Deque` interface). So if you want to store some history (of web pages visited), linked list is good choice.
-Yet `LinkedHashMap/LinkedHashSet` just extends `HashMap/HashSet` and guarantee order of processing - it stores internally double linked list and maintain order on iteration using this list.
+`ArrayDeque` is generally consider a faster implementation then `LinkedList`. Be careful using `PriorityQueue`. It sorts elements based on some internal sorting or on passed comparator. LinkedList is good for stack/queue data structures (so that's why it implements `Deque` interface). So if you want to store some history (of web pages visited), linked list is good choice. Yet `LinkedHashMap/LinkedHashSet` just extends `HashMap/HashSet` and guarantee order of processing - it stores internally double linked list and maintain order on iteration using this list.
 ```java
 import java.util.*;
 
@@ -5352,10 +5326,10 @@ public class App {
 8642097531
 ```
 
-RingBuffer - is special type of queue with limited size, when you add element and it’s full it add it and remove first.
-```
+RingBuffer - is special type of queue with limited size, when you add element, and it’s full it add it and remove first.
+```java
 public class App {
-    pjavaublic static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         RingBuffer<String> ringBuffer = new MyRingBuffer<>(4);
         ringBuffer.add("A");
         ringBuffer.add("B");
@@ -5463,10 +5437,7 @@ false
 3
 5
 ```
-This is unlimited queue, with array increasing in size, once we reach full capacity
-Queue should act as ring buffer, and only when there is no space (tail==head), we should grow it
-Almost same implementation is used by `ArrayDeque`, they have more checks, but idea is the same,
-since I was writing it first, then take a look at java queue implementation, I assume this is the most standard way to implement this.
+This is unlimited queue, with array increasing in size, once we reach full capacity. Queue should act as ring buffer, and only when there is no space (tail==head), we should grow it. Almost same implementation is used by `ArrayDeque`, they have more checks, but idea is the same, since I was writing it first, then take a look at java queue implementation, I assume this is the most standard way to implement this.
 You can try to build many-to-many concurrent queue:
 * many writers - no problem, same as multithreaded single writer, just make head/tail volatile
 * many readers - a bit difficult, cause now each reader should have their own offset, we also should set elements to null after all readers have read
@@ -5561,8 +5532,7 @@ class ArraySimpleQueue<T> implements SimpleQueue<T>{
 
 #### Functional Programming and Stream API
 ###### Functional interfaces
-Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block).
-Instance & static variables shouldn't be effectively final in order to be used inside lambda.
+Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block). Instance & static variables shouldn't be effectively final in order to be used inside lambda.
 ```java
 class Scope{
     int global = 1; // instance variable
@@ -5755,7 +5725,7 @@ public class App {
 hello world
 My name is Jack, my age is 24
 ```
-**Pay attention, that types of arguments for lambda should match arguments of functional interface. In case functional interface doesn't directly state it's type, lambda params should be Object
+**Pay attention, that types of arguments for lambda should match arguments of functional interface. In case functional interface doesn't directly state its type, lambda params should be Object
 ```java
 import java.util.*;
 import java.util.function.Consumer;
@@ -5871,8 +5841,8 @@ toIntFunction => 5
 toIntBiFunction(hello, world) => 10
 ```
 
- `addThen` and `compose` are equivalent. In other words: x.andThen(y) is the same as y.compose(x).
-For `BiFuncion` we also have `addThen` only, which combine bifuncion & function, and return bifunction
+ `addThen` and `compose` are equivalent. In other words: `x.andThen(y)` is the same as `y.compose(x)`.
+For `BiFunction` we also have `addThen` only, which combine BiFunction & Function, and return BiFunction
 ```java
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -5936,10 +5906,7 @@ class My{
     }
 }
 ```
-Method reference works a little bit different from lambda.
-It creates reference of the current object (if we change object, method would be called for old value)
-lambda - just wrap(delay) object invocation (so if we change object, method would be called on new object)
-Notice that since str is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda)
+Method reference works a little bit different from lambda. It creates reference of the current object (if we change object, method would be called for old value). Lambda - just wrap(delay) object invocation (so if we change object, method would be called on new object). Notice that since `str` is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda)
 ```java
 import java.util.function.Supplier;
 
@@ -5959,8 +5926,7 @@ public class App {
 HELLO
 WORLD
 ```
-Here is nice example where method reference useful to write neat code. `ValidatorFactory.getValidator` - return single validator,
-but in reality it return all validators with `validate` method, that run it on all validators
+Here is nice example where method reference useful to write neat code. `ValidatorFactory.getValidator` - return single validator, but in reality it returns all validators with `validate` method, that run it on all validators
 ```java
 import java.util.ArrayList;
 import java.util.List;
