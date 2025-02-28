@@ -14222,6 +14222,166 @@ Here we would show all new cool features of LTS (long term support) java version
 
 ###### Java 17
 Java 17 is LTS version that was released in September 2021, and would be supported until September 2029
+Here is a list of feature that were added
+1. class `Record` - added in java 14. You often need to work with immutable classes and to make object immutable you have to add:
+* private final to each field
+* getter to each field
+* public constructor where you set value for each final field
+* override equals and hashCode and toString
+This adds a lot of boilerplate code.
+```java
+public class App{
+    public static void main(String[] args) {
+        Person person = new Person("John", 30);
+        System.out.println("person => "+person);
+    }
+}
+
+record Person (String name, int age) {}
+```
+As you can see now all the boilerplate code is generated inside automatically, we just have nice clean class creation with one line
+```
+person => Person[name=John, age=30]
+```
+But you can extend this class by adding custom constructor, static variables and so on
+
+2. Pattern matching with `instanceof` - now you can apply pattern matching on the fly. Check the old way we have to call `instanceof` and then cast. Now you can do it with single line. See how code became nicer and cleaner.
+```java
+public class App{
+  public static void main(String[] args) {
+    Dog dog = new Dog();
+
+    // old way
+    if (dog instanceof Animal){
+      Animal animal = (Animal) dog;
+      if (animal.weight() > 100){
+        // do something
+      }
+    }
+
+    // new way
+    if (dog instanceof Animal animal && animal.weight() > 100){
+      // do something
+    }
+  }
+}
+
+class Animal{
+  public int weight(){
+    return 0;
+  }
+}
+class Dog extends Animal{}
+```
+
+3. Pattern matching for `switch` statement - now this statement is simplified and you can do pattern matching inside the code. Look at the below code how we can simplify java code and remove all the boilerplate
+```java
+public class App{
+    public static void main(String[] args) {
+        Object obj;
+        obj = Integer.valueOf("50");
+        System.out.println(obj + " => " + formatString(obj));
+        obj = Integer.valueOf("150");
+        System.out.println(obj + " => " + formatString(obj));
+        obj = Long.valueOf("50");
+        System.out.println(obj + " => " + formatString(obj));
+        obj = Double.valueOf("50");
+        System.out.println(obj + " => " + formatString(obj));
+        obj = null;
+        System.out.println(obj + " => " + formatString(obj));
+    }
+    public static String formatString(Object obj){
+        return switch (obj){
+            case Integer i when (i > 1 && i < 100) -> "i between 1 and 100";
+            case Integer i -> "just integer";
+            case Long l -> "just long";
+            case Double d -> "just double";
+            case null -> "oops";
+            default -> "ok";
+        };
+    }
+}
+```
+```
+50 => i between 1 and 100
+150 => just integer
+50 => just long
+50.0 => just double
+null => oops
+```
+
+4. Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using "final"). It also works for interfaces.Sealed classes/interfaces are a way to create a tagged union. Tagged unions are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week like this:
+There are several rules when you create sealed class/interface:
+* classes in `permits` section should be already defined, otherwise it won't compile
+```java
+// this code won't compile with error: can't resolve symbol SportCar
+sealed interface Car permits SportCar{
+    int getSpeed();
+}
+```
+* child classes should be clearly defined as either `sealed` or `no-sealed` - if you try to create subclass without explicitly stating this, you will get compilation error 
+```java
+sealed interface Car permits SportCar, SuvCar, SuperCar{
+    int getSpeed();
+}
+non-sealed interface SportCar extends Car{}
+// compile error: sealed class must have subclasses
+sealed interface SuvCar extends Car{}
+// compile error: modifier sealed or non-sealed is expected
+interface SuperCar extends Car{}
+```
+* you are not able to extend class until it explicitly in `permits` section
+```java
+sealed interface Car permits SportCar{
+    int getSpeed();
+}
+non-sealed interface SportCar extends Car{}
+// compile error: add SuvCar to permits list of sealed class Car
+non-sealed interface SuvCar extends Car{}
+```
+* you can either extend or implements any class in `permits` section. Below example where we have sealed interface with 2 classes inside `permits` section, yet we define one as interface and another as class. Interface should be either `sealed` or `non-sealed`. But class can also be defined as `final`.
+```java
+sealed interface Car permits SportCar, SuvCar, SuperCar{
+  int getSpeed();
+}
+non-sealed interface SportCar extends Car{}
+non-sealed class SuvCar implements Car{
+  @Override
+  public int getSpeed() {
+    return 0;
+  }
+}
+// final also works for class
+final class SuperCar implements Car{
+  @Override
+  public int getSpeed() {
+    return 0;
+  }
+}
+```
+* The sealed class and its permitted subclasses must belong to the same module, and, if declared in an unnamed module, to the same package. Otherwise you can get compilation error: Class is not allowed to extend sealed class from another package.
+* Sealed classes useful with combination of `switch` pattern matching. If you have several subclasses of `sealed` class, and in `switch` statement omit any of subclasses - you will get compilation error. So you have to explicitly either use all permitted subclasses or use `default` statement inside `switch`
+```java
+public class App{
+    public static void main(String[] args) {
+        
+    }
+    // compile error: switch expression doesn't cover all possible values
+    public static String getCode(Car car){
+        return switch (car){
+            case SportCar s -> "SportCar";
+            case SuvCar s -> "SuvCar";
+        };
+    }
+}
+
+sealed interface Car permits SportCar, SuvCar, SuperCar{}
+final class SportCar implements Car{}
+final class SuvCar implements Car{}
+final class SuperCar implements Car{}
+```
+
+5. Access code from outside the JVM and manage memory out of the heap (from java 17, [JEP 412](https://openjdk.org/jeps/412)). 
 
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
