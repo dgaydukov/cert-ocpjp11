@@ -14401,6 +14401,33 @@ New API is created:
 
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
+1. Pattern matching for Record (JEP 440) - now you can pass into `instanceof` record with list of fields, and use such fields immediately. And same true for `switch` statement
+```java
+public class App{
+  public static void main(String[] args) {
+    Object obj = new Point(1,1);
+
+    if (obj instanceof Point(int x, int y)){
+      System.out.println("x="+x+", y="+y);
+    }
+
+    switch (obj){
+      case Point(int x, int y) -> System.out.println("x="+x+", y="+y);
+      default -> System.out.println("default");
+    }
+  }
+}
+
+record Point(int x, int y){}
+```
+
+2. Virtual Threads (JEP 444) - normal threads (platform thread) are thin wrappers around OS threads and when they run they capture such OS thread and cause performance issues. But Virtual threads - runs code on specific OS thread, but doesn't capture it for lifetime, so many virtual threads can share OS threads. You can call it from executors `Executors.newVirtualThreadPerTaskExecutor()`
+
+3. Sequenced collections - elements inside have defined encounter order:
+* interface SequencedCollection<E> extends Collection<E>
+* SequencedSet<E> extends SequencedCollection<E>
+* interface SequencedMap<K, V> extends Map<K, V>
+Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections
 
 ###### Java 25
 Java 25 is LTS version that was released in September 2025, and would be supported until September 2033
