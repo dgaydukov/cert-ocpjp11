@@ -14218,11 +14218,13 @@ aeron cluster:
 
 
 #### New Java Versions
-Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since than several LTS version were released so we would take a closer look.
+Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
 
 ###### Java 17
 Java 17 is LTS version that was released in September 2021, and would be supported until September 2029
+
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
+
 ###### Java 25
 Java 25 is LTS version that was released in September 2025, and would be supported until September 2033
