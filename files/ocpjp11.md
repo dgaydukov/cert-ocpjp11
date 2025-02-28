@@ -14421,13 +14421,16 @@ public class App{
 record Point(int x, int y){}
 ```
 
-2. Virtual Threads (JEP 444) - normal threads (platform thread) are thin wrappers around OS threads and when they run they capture such OS thread and cause performance issues. But Virtual threads - runs code on specific OS thread, but doesn't capture it for lifetime, so many virtual threads can share OS threads. You can call it from executors `Executors.newVirtualThreadPerTaskExecutor()`
+2. Virtual Threads (JEP 444) - normal threads (platform thread) are thin wrappers around OS threads and when they run they capture such OS thread and cause performance issues. But Virtual threads - runs code on specific OS thread, but doesn't capture it for lifetime, so many virtual threads can share OS threads. You can call it from executors `Executors.newVirtualThreadPerTaskExecutor()`.
+Compare to standard threads, you can create millions of virtual threads. `Thread.startVirtualThread(Runnable)` - start thread in virtual mode.
 
 3. Sequenced collections - elements inside have defined encounter order:
 * interface SequencedCollection<E> extends Collection<E>
 * SequencedSet<E> extends SequencedCollection<E>
 * interface SequencedMap<K, V> extends Map<K, V>
 Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections
+
+4. Into ZGC (from java 15) - generation support added, now you can use flag and run `java -XX:+UseZGC -XX:+ZGenerational ...`
 
 ###### Java 25
 Java 25 is LTS version that was released in September 2025, and would be supported until September 2033
