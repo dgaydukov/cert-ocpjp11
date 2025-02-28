@@ -14382,6 +14382,22 @@ final class SuperCar implements Car{}
 ```
 
 5. Access code from outside the JVM and manage memory out of the heap (from java 17, [JEP 412](https://openjdk.org/jeps/412)). 
+Off-heap memory - stored outside java runtime, compare to on-heap where GC is running, there is no GC in off-heap. You can create off-heap memory, but you have to manually manage object placement and removal from it. Currently there are 3 ways to work with off-heap memory:
+* direct byte buffer - max size is 2GB and deallocation is slow. Originally designed for producer/consumer data exchange, that's why it's overall is slow.
+* `sun.misc.Unsafe` - very fast but unreliable, can cause exception. Fast - memory access operations are defined as HotSpot JVM intrinsics and optimized by the JIT compiler. Dangerous - it allows access to any memory location, so java can crash JVM by accesing already freed memory. You can use this code to fetch off-heap memory
+```java
+MemorySegment offHeap  = MemorySegment.allocateNative(
+                             MemoryLayout.ofSequence(javaStrings.length,
+                                                     CLinker.C_POINTER), ...);
+```
+A memory segment is an abstraction that models a contiguous region of memory, inside calls `malloc` or `mmap`.
+New API is created:
+* memory allocation: MemorySegment, MemoryAddress, SegmentAllocator
+* memory management: MemoryLayout, MemoryHandles, MemoryAccess
+* resource life cycle: ResourceScope
+* call external functions: SymbolLookup, CLinker
+
+
 
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
