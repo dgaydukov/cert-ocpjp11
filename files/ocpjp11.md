@@ -12721,9 +12721,7 @@ sudo update-alternatives --config javac
 # switch java version in intelliJ
 File => Project Structure => Project SDK (chose either 8 or 11)
 ```
-why ms windows shows disk size less then they are 100gb = 93gb
-answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units)
-yet we have jedec where each increasing on 1024, take a look at this table
+why ms windows shows disk size less then they are 100gb = 93gb. Answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units), yet we have jedec where each increasing on 1024, take a look at this table
 ```
         si        jedec
 kilo    10**3     2**10
@@ -12738,8 +12736,8 @@ so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9
 there are 3 types of memory:
 * memory - main memory of PC called RAM
 * registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size, since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit. For pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bi, for pc that works with numbers word-addressable memory is better, cause integer is 4byte
-* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has it's own built-in memory). So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
-* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache). With cpu cache we have following problem: how we can store memory location from which we read single byte. if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address. This is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes, useful cache size - size of only data without memory unit address, most cpu caches shows only this number, so if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes. When cpu need data it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache. Cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory, using different algos like LRU (least recently used).
+* cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has its own built-in memory). So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
+* cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache). With cpu cache we have the following problem: how we can store memory location from which we read single byte. if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address. This is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes, useful cache size - size of only data without memory unit address, most cpu caches shows only this number, so if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes. When cpu needs data, it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache. Cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory, using different algos like LRU (least recently used).
 There are 2 types of architecture of cpu:
 * instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
     instruction sets can be of different architectural complexity:
@@ -12865,8 +12863,7 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values. Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores.
-Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier.
-Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
+Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier. Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
 There are 4 types of memory barrier:
 * LoadLoad - all loads before barrier, happens before loads after barrier
 * LoadStore - all loads before barrier, happens before stores after barrier
@@ -12875,41 +12872,32 @@ There are 4 types of memory barrier:
 Memory basics:
 proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc. So byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
 Don't confuse:
-* physical address - real memory address unit represented as integer. system software or os request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program need not to care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory
-we need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
+* physical address - real memory address unit represented as integer. system software or OS request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
+* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program doesn't care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory. We need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
 VM (virtual memory) guarantee:
 * one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
-* more then one virtual address can refer to same physical address
-* virtual memory space can be larger then physical one, by using VM paging - also called swapping
+* more than one virtual address can refer to same physical address
+* virtual memory space can be larger than physical one, by using VM paging - also called swapping
 MMU (memory management unit):
 * called also PMMU (paged memory management unit) - cause works based on pages
 * perform transition of virtual memory addresses into physical addresses
 * divides virtual memory into pages each is power 2 (usually in KB)
 * paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
 if you work with c/c++ and use pointers then 2 cases are possible:
-* if you running your program in os like windows/linux - for sure you are using virtual memory address space
-* if you run your program without os or you are writing os kernel - then you would access physical memory directly
+* if you run your program in OS like windows/linux - for sure you are using virtual memory address space
+* if you run your program without OS or you are writing OS kernel - then you would access physical memory directly
 There are 2 types of memory address resolution:
-1. byte-addressable - each byte has it's own address. data larger then byte stored in sequence of consecutive addresses
-   most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable
-   this is due to historical reason, since computer works mostly with text and single byte should store single character
-   since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit
-   also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
-  * byte - you just read it and modify
-  * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
-2. word-addressable - minimal memory address size is processor word
-   cpu word can be of size 16/24/32/64 bit, has its own memory address
-   so for example for 32bit cpu - each 32 bits or 4 bytes would have single address
-   for 64 - each 64 bits or 8 bytes would have separate address
-   there were a few decimal-addressable machines, but they not used nowadays
+1. byte-addressable - each byte has its own address. Data larger than byte stored in sequence of consecutive addresses. Most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable. This is due to historical reason, since computer works mostly with text and single byte should store single character, since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit. Also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
+* byte - you just read it and modify
+* word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
+2. word-addressable - minimal memory address size is processor word. CPU word can be of size 16/24/32/64 bit, has its own memory address. For example for 32bit cpu - each 32 bits or 4 bytes would have single address. For 64 - each 64 bits or 8 bytes would have separate address. There were a few decimal-addressable machines, but they not used nowadays
 Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
 JMM - describes how threads share memory. This make sense for multithreading programming.
 If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
 * how memory is shared between multiple threads
-    * each thread runs in separate cpu which has it's own cache - copy of memory
+    * each thread runs in separate cpu which has its own cache - copy of memory
     * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
     * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
 * order of execution:
@@ -12924,7 +12912,7 @@ Cache Coherence:
     * shared - cpu can read, but can't write into it
     * exclusive - cpu can write, once any cpu moved cache line into this state, other cpu mark their lines as invalid
     * modified - once we write data into cache line, it state changes from exclusive to modified.
-Once cpu wants to write data into it cache, it mark cache line as exclusive, wait until all other cpu mark their cache line into invalid, and only then modify it's own cache line - as you see cache inconsistency is impossible.
+Once cpu wants to write data into it cache, it mark cache line as exclusive, wait until all other cpu mark their cache line into invalid, and only then modify its own cache line - as you see cache inconsistency is impossible.
 Take a look at following example:
 ```java
 int x = 1;
@@ -12936,13 +12924,13 @@ Don't confuse:
 * parallel code running in multiple threads - multithreading programming
 * parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
 JVM:
-* each thread has it's own stack where local variables stored:
+* each thread has its own stack where local variables stored:
     * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
     * complex types - reference to object stored in stack, object itself stored in heap
 * heap - contains all objects created by java app
 On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
 Rules:
-* if 2 or more thread sharing an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+* if 2 or more thread reading an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
 * if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other. if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
 So to summarize you can say:
 * `volatile` - single write + multiple reads
@@ -13026,10 +13014,7 @@ So G1 in this regard is more advanced one. Cause after some time (days, weeks, m
 * `-XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC` - no-op gc, so it doesn't perform any gc, just run until heap is full, then terminate java app
 This can be useful if you have low-latency app with huge memory or for performance testing
 * `-XX:+UseShenanodoahGC` - 
-SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running
-so if we don't do this, while we run, app may change reference and we can accidentally remove used object
-example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking
-When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
+SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running. So if we don't do this, while we run, app may change reference and we can accidentally remove used object. Example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking. When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
 we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
 Don't confuse:
 * serial GC - use one thread to run gc
@@ -13056,7 +13041,7 @@ Metaspace:
 * replaced the older PermGen memory space starting form JDK 8
 * grows automatically by default
 * GC triggers cleaning of dead classes, once class metadata usage reaches max metaspace size
-Memory leak in metaspace - if you have a bug in your classloader, and it keep loading classes, or you have big classes that are not unloading
+Memory leak in metaspace - if you have a bug in your classloader, and it keeps loading classes, or you have big classes that are not unloading
 cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
 Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
 this quite complex and done by copying collector and require gc to update address, 
@@ -13092,7 +13077,7 @@ Error: A fatal exception has occurred. Program will exit.
 ```
     * java11 `-Xlog:gc*=debug:file=logs.txt`
 * download & run gcviewer to check gc logs
-    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it not supported since 2008
+    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it is not supported since 2008
     * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
     * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
     * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
@@ -13110,10 +13095,7 @@ Try to avoid:
 ###### Encoding
 Don't confuse(endianess - the way we store bytes in memory):
 * big endian - big end stored first, if you read left-to-right this make sense, it's also called forward
-* little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus
-keep in mind that only bytes change order, bits inside single byte stay as they are
-in big-endian you have to move all digits right. But with little-endian you just add digits
-In the old days little-endian has advantage, cause you can read 32 bit variable as 8 or 16bit variable.
+* little endian - store bytes right-to-left, reasoning - as you increase numbers, you need to add digits to the left, thus keep in mind that only bytes change order, bits inside single byte stay as they are. In big-endian you have to move all digits right. But with little-endian you just add digits. In the old days little-endian has advantage, cause you can read 32 bit variable as 8 or 16bit variable.
 Endianess:
 * for cpu is not an issue anymore, cause developers use high-level programming language.
 * for network transfer - can be a problem, but only if you use binary representation, since most protocol these days use XML/JSON, no issue with text protocols, yet for SBE, and any binary representation, endianess still an issue, so pay attention to it. 
@@ -13299,7 +13281,7 @@ there are a few ways you can circumvent it;
 `sun.misc` - special package for 2 low-level classes:
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
 * Signal - low level system signals handling
-**Note that you shouldn't use these 2 classes in your code, otherwise your code would be too os-dependant.
+**Note that you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant.
 Fatal error - technically it's impossible to get fatal error with java, cause it designed in such a way to handle this. Yet if you use `Unsafe` directly you can get it
 ```java
 import java.lang.reflect.Field;
@@ -13532,7 +13514,7 @@ Thread 4 running
 Thread 4 releasing lock...
 Thread 4 released
 ```
-As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock and execute, white others wait.
+As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock execute, white others wait.
 
 ###### Linked lists
 Linked list disadvantages compared to array:
@@ -13638,7 +13620,7 @@ The whole idea is that we use some non-blocking queue, so the executing threads 
 * [async log4j2](https://logging.apache.org/log4j/2.x/manual/async.html) - use lmax disruptor under the hood
 
 ###### Low latency collections
-We have following collections in java:
+We have the following collections in java:
 * trove
 * koloboke
 * chronicle (build by including cool features from koloboke)
