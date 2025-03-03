@@ -108,10 +108,12 @@
 * 12.8 [Linked lists](#linked-lists)
 * 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
+* 12.11 [Java 17 JEP-412](#java-17-jep-412)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 17](#java-17)
 * 13.2 [Java 21](#java-21)
 * 13.3 [Java 25](#java-25)
+
 
 #### Basics
 ###### Variable Declarations
@@ -14198,6 +14200,16 @@ aeron cluster:
 * you write your code (like matching engine) and add cluster interface `ClusteredService` which provides all lifecycle events which your app should handle
 * you have clustered app out of the box, where aeron cluster take care of mainating state, storing snapshot, send/receive messages
 
+###### Java 17 JEP-412
+Java17 introduced [JEP-412](https://openjdk.org/jeps/412) new API to work with memory, it includes:
+Yet in java 17 it was in package `jdk.incubator.foreign` but later moved to `java.lang.foreign` and signature also changes. For example before you could create off-heap memory with `MemorySegment.allocateNative`, but later `allocateNative` was removed, and not available in java 21. Only `ofArray` was available. Original ways to create memory from jdk17:
+```java
+MemorySegment nativeSegment = MemorySegment.allocateNative(100, ResourceScope.newImplicitScope());
+MemorySegment mappedSegment = MemorySegment.mapFile( Path.of("memory.file"), 0, 200, READ_WRITE, newImplicitScope() );
+MemorySegment arraySegment = MemorySegment.ofArray(new int[100]);
+MemorySegment bufferSegment = MemorySegment.ofByteBuffer(ByteBuffer.allocateDirect(100));
+```
+You can read directly on `MemorySegment` in jdk21 docs, there are a lot of useful info, and how you can use it. Basically you can create a chunk of off-heap memory and use `get/set` operations put data into into it and read this data.
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
