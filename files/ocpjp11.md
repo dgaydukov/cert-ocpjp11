@@ -10847,16 +10847,34 @@ This approach is best when working with strings, cause it abstracts away from wo
 
 ###### DirectByteBuffer vs HeapByteBuffer
 Array is an object, and stores all data in the heap, even array of int, would be stored in the heap.
-Buffer - contiguous block of memory of some type, yet compare to array it has following methods: `capacity,limit,position,mark`.
+Buffer - contiguous block of memory of some type, yet compare to array it has the following methods: `capacity,limit,position,mark`.
 ByteBuffer provides view into some (undefined) underlying storage of bytes. There are 2 abstract classes: `ByteBuffer extends Buffer` and `MappedByteBuffer extends ByteBuffer` (same as `mmap`), and 2 concrete implementation:
-* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes and uses `Unsafe` under-the-hood for memory allocation, so it not subject to the GC. constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is stored in heap.
+* `DirectByteBuffer extends MappedByteBuffer` (same as `malloc`, created `ByteBuffer.allocateDirect`) - off-heap memory, backed by array of bytes and uses `Unsafe` under-the-hood for memory allocation, so it is not subject to the GC. constructor of `java.nio.DirectByteBuffer` register `Runnable` of type `java.nio.DirectByteBuffer.Deallocator` which clean off-heap memory when GC clean DirectByteBuffer object itself. Under-the-hood it uses `Unsafe` with directly memory manipulation of off-heap memory, so it kind of zero-GC, except the Buffer object itself, which is stored in heap.
 * `HeapByteBuffer extends ByteBuffer` (created `ByteBuffer.allocate`) - in-heap memory, backed by array of bytes `byte[]` which in the end resides in heap memory, since the name contains heap word.
 Notice that both classes declared as package-private so you can't call them outside `java.nio` package. So you always work with `ByteBuffer` class. Conclusion, if you are fine with on-heap memory, you can just use simple array of bytes, no need to use any buffer, but if you want off-heap memory, use `DirectByteBuffer`, this leads me to conclusion, that it should be faster and more useful then `HeapByteBuffer`. Yet both implement same base class, so they can be used interchangeably.
+Nice example how you can manipulate bytes directly with ByteBuffer. Since `long` is 8 bytes, we should set index correctly, to avoid overwriting.
+```java
+import java.nio.ByteBuffer;
+
+public class App {
+    public static void main(String[] args) {
+        // create off-heap byte buffer
+        ByteBuffer direct = ByteBuffer.allocateDirect(100);
+        // long value takes 8 bytes
+        for (int i = 0; i < 10; i++){
+            direct.putLong(i * 8, (long)i);
+        }
+        for(int i = 0; i < 100 - 8; i = i + 8){
+            System.out.println(i + " => " + direct.getLong(i));
+        }
+    }
+}
+```
 Don't confuse:
 * multithreading lock - lock based on thread
 * file lock - lock based on process (so multiple thread can access same file, no locking here)
     * exclusive lock - write lock, prevent all other operations including read
-    * shared lock - read lock, more then one process can read, yet while reading no writes are possible
+    * shared lock - read lock, more than one process can read, yet while reading no writes are possible
 Don't confuse:
 * array of bytes `byte[] arr = new byte[100];` - just simple array of bytes
 * byte buffer `ByteBuffer buf = ByteBuffer.allocate(10);` - have more methods to manipulate with bytes. You can also wrap array of bytes: `ByteBuffer buf = ByteBuffer.wrap(new byte[100]);`
