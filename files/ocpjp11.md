@@ -1673,6 +1673,60 @@ public class Main {
     }
 }
 ```
+Use of volatile can decrease performance, and in case of lazy Singleton you need it only once, and in 99% cases your object would be already created and just used. To write more performant code you can introduce local variable. Look at `localRef`, it seems redundant, but since init happens only once, and in most cases it won't be `null`, and we return it, rather than `instance`, perfromance significatnly improved.
+```java
+class Singleton{
+    private Singleton(){}
+
+    private static volatile Singleton instance;
+    public static Singleton getInstance() {
+        Singleton localRef = instance;
+        if (localRef == null) {
+            synchronized (Singleton.class) {
+                localRef = instance;
+                if (localRef == null) {
+                    instance = localRef = new Singleton();
+                }
+            }
+        }
+        return localRef;
+    }
+}
+```
+Similar to this logic we can use `VarHandle` to create interface
+```java
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
+class Singleton{
+    private Singleton(){}
+
+    private static volatile Singleton instance;
+    private static final VarHandle VALUE;
+    static {
+        try {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            VALUE = lookup.findVarHandle(Singleton.class, "instance", Singleton.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    public static Singleton getInstance() {
+        Singleton localRef = (Singleton) VALUE.getAcquire(instance);
+        if (localRef == null) {
+            synchronized (Singleton.class) {
+                localRef = (Singleton) VALUE.getAcquire(instance);
+                if (localRef == null) {
+                    localRef = new Singleton();
+                    VALUE.setRelease(instance, localRef); // release
+                }
+            }
+        }
+        return localRef;
+    }
+}
+```
 
 If we have:
 * final static field - it should be initialized in all static{} blocks
