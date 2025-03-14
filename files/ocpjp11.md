@@ -14289,6 +14289,31 @@ public boolean compareAndSet(V expectedValue, V newValue) {
   return VALUE.compareAndSet(this, expectedValue, newValue);
 }
 ```
+You can also use `VarHandle` to change variable behavior as it was `volatile`. For example if you have non-volatile variable, you can wrap `VarHandle` around it and change it with  `getVolatile/setVolatile`, and variable would behave as it was volatile. But it would only behave as `volatile` if accessed through `VarHandle` wrapper, if you access it directly it would behave as normal variable, and no memory barriers would be enacted.
+```java
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
+public class App {
+  public int x;
+  private static final VarHandle VALUE;
+  static {
+    try {
+      MethodHandles.Lookup l = MethodHandles.lookup();
+      VALUE = l.findVarHandle(App.class, "x", int.class);
+    } catch (ReflectiveOperationException e) {
+      throw new Error(e);
+    }
+  }
+  public static void main(String[] args) {
+    App app = new App();
+
+    VALUE.setVolatile(app, 10);
+    int x = (int) VALUE.getVolatile(app);
+    System.out.println(x);
+  }
+}
+```
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
