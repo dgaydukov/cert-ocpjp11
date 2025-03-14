@@ -14232,8 +14232,6 @@ You can read directly on `MemorySegment` in jdk21 docs, there are a lot of usefu
 
 ###### VarHandle and MethodHandle
 MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster then Reflection API, cause there is direct support in JVM.
-VarHandle (java 9) - designed to replace `Unsafe` with safer API. You can look into `AtomicReference` use of it. There we have value which is `volatile` field. And then we use `VarHandle` to wrap around this value and do some changes to it atomically.
-
 ```java
 public class App {
   public static void main(String[] args) throws Throwable {
@@ -14257,9 +14255,8 @@ class Person {
 ```
 John Doe, 30
 ```
-As we see, very similar to Reflection API.
-
-Before `VarHandle` you have to use `Unsafe` to change values
+VarHandle (java 9) - wrapper for a field to perform atomic operations on that field. It's very similar to `Unsafe`. And before to achieve this you have to use this class to atomically change values (look into `AtomicInteger` under-the-hood it uses `Unsafe` to atomically modify value), but now you can use `VarHandl` to achieve same results (look into `AtomicReference`, it uses `VarHandle` under-the-hood). You can achieve `volatile` features, even if field is not declared as volatile.
+Below is example how before you have to use `Unsafe` and now you can use `VarHandle` for same operation. But before with `Unsafe` you have to use `offset` which is error-prone.
 ```java
 public void lazySet(V newValue) {
     unsafe.putOrderedObject(this, valueOffset, newValue);
