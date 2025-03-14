@@ -109,6 +109,7 @@
 * 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
 * 12.11 [Java 17 JEP-412](#java-17-jep-412)
+* 12.12 [VarHandle and MethodHandle](#varhandle-and-methodhandle)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 17](#java-17)
 * 13.2 [Java 21](#java-21)
@@ -12951,7 +12952,7 @@ JVM:
 On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
 Rules:
 * if 2 or more thread reading an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
-* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other. if 2 threads increment value by 1, then value=3, but since each will flush it's own copy, final value in memory would be 2
+* if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other. if 2 threads increment value by 1, then value=3, but since each will flush its own copy, final value in memory would be 2
 So to summarize you can say:
 * `volatile` - single write + multiple reads
     * happens before - also it prevent code re-ordering
@@ -14228,6 +14229,66 @@ MemorySegment arraySegment = MemorySegment.ofArray(new int[100]);
 MemorySegment bufferSegment = MemorySegment.ofByteBuffer(ByteBuffer.allocateDirect(100));
 ```
 You can read directly on `MemorySegment` in jdk21 docs, there are a lot of useful info, and how you can use it. Basically you can create a chunk of off-heap memory and use `get/set` operations put data into into it and read this data.
+
+###### VarHandle and MethodHandle
+MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster then Reflection API, cause there is direct support in JVM.
+VarHandle (java 9) - designed to replace `Unsafe` with safer API. You can look into `AtomicReference` use of it. There we have value which is `volatile` field. And then we use `VarHandle` to wrap around this value and do some changes to it atomically.
+
+```java
+public class App {
+  public static void main(String[] args) throws Throwable {
+    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    MethodType methodType = MethodType.methodType(String.class, int.class);
+    MethodHandle getName = lookup.findVirtual(Person.class, "getName", methodType);
+
+    Person person = new Person();
+    String name = (String) getName.invokeWithArguments(person, 30);
+    System.out.println(name);
+
+  }
+}
+
+class Person {
+  public String getName(int age) {
+    return "John Doe, " + age;
+  }
+}
+```
+```
+John Doe, 30
+```
+As we see, very similar to Reflection API.
+
+Before `VarHandle` you have to use `Unsafe` to change values
+```java
+public void lazySet(V newValue) {
+    unsafe.putOrderedObject(this, valueOffset, newValue);
+}
+
+public boolean compareAndSet(V expect, V update) {
+    return unsafe.compareAndSwapObject(this, valueOffset, expect, update);
+}
+```
+Now you can achieve this with `VarHandle` and don't need `offset` anymore, which was error-prone
+```java
+private static final VarHandle VALUE;
+static {
+    try {
+        MethodHandles.Lookup l = MethodHandles.lookup();
+        VALUE = l.findVarHandle(AtomicReference.class, "value", Object.class);
+    } catch (ReflectiveOperationException e) {
+        throw new Error(e);
+    }
+}
+
+public void lazySet(V newValue) {
+  VALUE.setRelease(this, newValue);
+}
+
+public boolean compareAndSet(V expectedValue, V newValue) {
+  return VALUE.compareAndSet(this, expectedValue, newValue);
+}
+```
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
