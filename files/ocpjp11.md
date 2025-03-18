@@ -13018,6 +13018,10 @@ So to summarize you can say:
 JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
 
 ###### Garbage collection
+Zero GC - practice where we write code in such a way, that we don't generate objects in the heap, that would be destroyed. There are multiple ways:
+* use off-heap memory
+* use object pooling - where you pre-allocate required objects on the start and then just reuse them
+You can check your gc by adding to your java (or to VM options in IntelliJ IDE) following line `-verbose:gc` and see how GC is working.
 * in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 JVM:
 * heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
