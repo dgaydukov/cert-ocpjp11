@@ -828,6 +828,13 @@ class App {
 }
 ```
 
+Array index can be int/short/byte/char, you can't use long as integer. Such code won't compile. And this is clear, since array store data in the heap, you can't get unlimited chunk of data with long, cause it's too big number. If you need such a big array you can use `Unsafe` - but this is advanced java. As of now, just remember that long index won't compile
+```java
+long index = 5;
+int[] arr = new int[index]; // this line won't compile
+int[] arr2 = new int[(int)index]; // here we cast to int, so it would compile norally
+```
+
 Array.clone - copy only array itself (shallow copy), not objects inside.
 ```java
 public class Main {
