@@ -1388,6 +1388,12 @@ class B extends A{
     }
 }
 ```
+There are 2 types of polymorphism:
+* compile-time polymorphism - this is method overloading, when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, such meethod overloading we can count as compile-time polymorphism.
+* runtime polymorphism - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, becasue we can change it dynamically during execution. 
+That's why we can say that java supports both:
+* compile-time polymorphism - when we overload methods
+* runtime polymorphism - when we extend/implement and pass reference
 
 We can cast to parent without parenthesis (without explicit casting)
 ```java
@@ -14403,8 +14409,7 @@ As you can see now all the boilerplate code is generated inside automatically, w
 ```
 person => Person[name=John, age=30]
 ```
-But you can extend this class by adding custom constructor, static variables and so on
-Records act as normal classes, so you can add constuctors, static methods
+But you can extend this class by adding custom constructor, static variables, static and virtual methods:
 ```java
 public class App {
   public static void main(String[] args) {
@@ -14587,7 +14592,7 @@ New API is created:
 
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
-1. Pattern matching for Record (JEP 440) - now you can pass into `instanceof` record with list of fields, and use such fields immediately. And same true for `switch` statement
+1. Pattern matching for Record (JEP 440) - now you can pass into `instanceof` record with list of fields, and use such fields immediately. And same true for `switch` statement (before you can do pattern matching for whole type, now you can also extract record fields immediately inside pattern matching expression):
 ```java
 public class App{
   public static void main(String[] args) {
