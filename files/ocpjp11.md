@@ -14404,6 +14404,32 @@ As you can see now all the boilerplate code is generated inside automatically, w
 person => Person[name=John, age=30]
 ```
 But you can extend this class by adding custom constructor, static variables and so on
+Records act as normal classes, so you can add constuctors, static methods
+```java
+public class App {
+  public static void main(String[] args) {
+    Person p1 = new Person("John", "Doe", 0, 0);
+    p1.print();
+    System.out.println("p1 => "+p1);
+  }
+}
+
+record Person(String firstName, String lastName, int age, int weight){
+  public Person{
+    if ("John".equals(firstName)){
+      age = 30;
+      weight = 80;
+    }
+  }
+  public void print(){
+    System.out.println("Hello " + firstName);
+  }
+}
+```
+```
+Hello John
+p1 => Person[firstName=John, lastName=Doe, age=30, weight=80]
+```
 
 2. Pattern matching with `instanceof` - now you can apply pattern matching on the fly. Check the old way we have to call `instanceof` and then cast. Now you can do it with single line. See how code became nicer and cleaner.
 ```java
