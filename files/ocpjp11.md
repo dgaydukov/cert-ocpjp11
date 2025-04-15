@@ -4724,7 +4724,7 @@ Although hashcode are same, yet we still have 2 objects
 * if you have poorly written `hashcode`, then bucket would use `TreeMap` otherwise `LinkedList`
 How ConcurrentHashMap works:
 * null are not allowed as key/value. Cause in concurrent implementation when `get` return null is not clear if object mapped to null or object doesn't exist
-In simple map we can call `containsKey` to check if key exists, but in concurrent the value can be modified in between this call
+* in simple map we can call `containsKey` to check if key exists, but in concurrent the value can be modified in between this call
 * it provides functionality of `HashTable` but with speed comparable with `HashMap`
 * `HashTable` is slow, cause it locks whole map to perform update/delete/read/create
 * `concurrencyLevel` - third param to constructor (first two `capacity` & `loadFactor` same as for `HashMap`) - estimated number of concurrently updating threads (by default 16)
@@ -14588,9 +14588,10 @@ Compare to standard threads, you can create millions of virtual threads. `Thread
 * interface SequencedCollection<E> extends Collection<E>
 * SequencedSet<E> extends SequencedCollection<E>
 * interface SequencedMap<K, V> extends Map<K, V>
-Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections
+Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections. Now with this collections you get access to first/last element, by adding/removing either first/last element. And traversal order is guaranteed.
 
 4. Into ZGC (from java 15) - generation support added, now you can use flag and run `java -XX:+UseZGC -XX:+ZGenerational ...`
+5. `Vector API` - new API under `jdk.incubator.vector` for quick calculation on vectors if CPU supports it. Some CPU natively supports such compilation, so we can use it for fast compilation. You can achieve same results with scalars. For example if you want to add 2 int arrays and store resulsts in third array, you can do normal loop and create new array. So if CPU supports `SIMD`, then addition of 2 arrays may happen during one CPU cycle.
 
 ###### Java 25
 Java 25 is LTS version that was released in September 2025, and would be supported until September 2033
