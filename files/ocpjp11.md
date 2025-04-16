@@ -111,9 +111,10 @@
 * 12.11 [Java 17 JEP-412](#java-17-jep-412)
 * 12.12 [VarHandle and MethodHandle](#varhandle-and-methodhandle)
 13. [New Java Versions](#new-java-versions)
-* 13.1 [Java 17](#java-17)
-* 13.2 [Java 21](#java-21)
-* 13.3 [Java 25](#java-25)
+* 13.1 [Java 16](#java-16)
+* 13.2 [Java 17](#java-17)
+* 13.3 [Java 21](#java-21)
+* 13.4 [Java 25](#java-25)
 
 
 #### Basics
@@ -1389,7 +1390,7 @@ class B extends A{
 }
 ```
 There are 2 types of polymorphism:
-* compile-time polymorphism - this is method overloading, when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, such meethod overloading we can count as compile-time polymorphism.
+* compile-time polymorphism - this is method overloading, when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, such method overloading we can count as compile-time polymorphism.
 * runtime polymorphism - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, becasue we can change it dynamically during execution. 
 That's why we can say that java supports both:
 * compile-time polymorphism - when we overload methods
@@ -3055,27 +3056,28 @@ class Outer{
     {
         // following 3 lines are equivalent, all compiles because we have intrinsic instance of Outer as this
         A a1 = new A();
-        A a3 = new Outer.A();
-        A a2 = new Outer().new A();
+        A a2 = new Outer.A();
+        A a3 = new Outer().new A();
 
         B b1 = new B();
-        B b3 = new Outer.B();
-        B b2 = new Outer().new B(); // wont' compile
+        B b2 = new Outer.B();
+        B b3 = new Outer().new B(); // wont' compile
     }
     public static void m2()
     {
         A a1 = new A();   // won't compile, need instance of Outer
-        A a3 = new Outer.A();  // won't compile, need instance of Outer
-        A a2 = new Outer().new A();
+        A a2 = new Outer.A();  // won't compile, need instance of Outer
+        A a3 = new Outer().new A();
 
         B b1 = new B();
-        B b3 = new Outer.B();
-        B b2 = new Outer().new B(); // wont' compile
+        B b2 = new Outer.B();
+        B b3 = new Outer().new B(); // wont' compile
     }
 }
 ```
 
-Nested non-static class can’t have static members, except `final static` methods. Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. Since we can have many instances of outer class and each has its own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
+Nested non-static class can’t have static members, except `final static` methods. (this rule is relevant to up to java 16, because in java 16 `Record` was added and this rule was relaxed. Started from java 16 you can have static members for non-static class. Look into [Java 16](#java-16))
+Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. Since we can have many instances of outer class and each has its own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
 ```java
 class A {
     private int i1=1;
@@ -14385,6 +14387,34 @@ public class App {
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
+
+###### Java 16
+1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP, you will find this statement
+```
+Static members of inner classes
+
+It is currently specified to be a compile-time error if an inner class declares a member that is explicitly or implicitly static, unless the member is a constant variable. This means that, for example, an inner class cannot declare a record class member, since nested record classes are implicitly static.
+
+We relax this restriction in order to allow an inner class to declare members that are either explicitly or implicitly static. In particular, this allows an inner class to declare a static member that is a record class
+```
+Take a look at the following code, and keep in mind that it won't compile under java 11, but will compile and work fine from java 16
+```java
+public class App {
+    public static void main(String[] args) {
+
+    }
+
+    class A{
+        int x = 5;
+        void print(){}
+        class A1{}
+        // 3 lines won't compile in java 11, but would compile in java 16
+        public static int y = 5;
+        static void run(){}
+        static class B{}
+    }
+}
+```
 
 ###### Java 17
 Java 17 is LTS version that was released in September 2021, and would be supported until September 2029
