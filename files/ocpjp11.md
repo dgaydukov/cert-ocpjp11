@@ -14424,7 +14424,7 @@ public class App {
   }
 }
 ```
-As you can see, although it's static fields, each non-static nested class, will have their own version of static members. This may be confusing a bit, because you would expect that `a1 & a2`, would share same value for `x`. But not, they different.
+As you can see, although it's static fields, each non-static nested class, will have their own version of static members. This may be confusing a bit, because you would expect that `a1 & a2`, would share same value for `x`. But not, they different. This is why prior to java 16, nested non-static classes couldn have static members. Cause you would expect that `a1 & a2` should share variable `x`, because they both have same parent, but it's not, `static` for nested non-static class behave same way as non-static. So to avoid this confusion, it was compile-time error. But to add `record` support, they removed this rule.
 ```
 a1.x=5, a2.x=5, a3.x=5
 a1.x=10, a2.x=20, a3.x=30
