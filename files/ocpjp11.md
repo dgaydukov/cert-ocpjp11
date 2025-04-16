@@ -14400,20 +14400,34 @@ We relax this restriction in order to allow an inner class to declare members th
 Take a look at the following code, and keep in mind that it won't compile under java 11, but will compile and work fine from java 16
 ```java
 public class App {
-    public static void main(String[] args) {
+  public static void main(String[] args) {
+    App app1 = new App();
+    App app2 = new App();
+    App.A a1 = app1.new A();
+    App.A a2 = app1.new A();
+    App.A a3 = app2.new A();
+    System.out.println("a1.x=" + a1.x + ", a2.x=" + a2.x + ", a3.x="+a3.x);
+    a1.x = 10;
+    a2.x = 20;
+    a3.x = 30;
+    System.out.println("a1.x=" + a1.x + ", a2.x=" + a2.x + ", a3.x="+a3.x);
+  }
 
-    }
-
-    class A{
-        int x = 5;
-        void print(){}
-        class A1{}
-        // 3 lines won't compile in java 11, but would compile in java 16
-        public static int y = 5;
-        static void run(){}
-        static class B{}
-    }
+  class A{
+    int x = 5;
+    void print(){}
+    class A1{}
+    // 3 lines won't compile in java 11, but would compile in java 16
+    public static int y = 5;
+    static void run(){}
+    static class B{}
+  }
 }
+```
+As you can see, although it's static fields, each non-static nested class, will have their own version of static members. This may be confusing a bit, because you would expect that `a1 & a2`, would share same value for `x`. But not, they different.
+```
+a1.x=5, a2.x=5, a3.x=5
+a1.x=10, a2.x=20, a3.x=30
 ```
 
 ###### Java 17
