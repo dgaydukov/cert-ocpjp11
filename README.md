@@ -26,3 +26,9 @@ Below is mock exams of good quality and cheap price:
 By passing certification you will get 3 things
 * [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
 * [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
+
+### OCPJP 21
+* [book](https://enthuware.com/books/295-java-21-certification-fundamentals)
+* [mock exam](https://enthuware.com/java-certification-mock-exams/oracle-certified-professional/ocp-java-21-exam-1z0-830)
+Exam
+* [Java SE 21 Developer Professional (1Z0-830)](https://mylearn.oracle.com/ou/exam/java-se-21-developer-professional-1z0-830/105037/139080/220555)
