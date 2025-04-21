@@ -13033,6 +13033,15 @@ So to summarize you can say:
 JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
 
 ###### Garbage collection
+Viewing GC logs (using GCViewer tool):
+* you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -XX:+PrintGCDetails -Xlog:gc*::time `
+* `-verbose:gc` - display verbose logs (by default into stdout)
+* `-Xlog:gc:gc.log` - send logs to file where `gc.log` - filename, you can specify other path to file
+* `-XX:+PrintGCDetails` - add gc details like: size of young and old before each gc
+* `-Xlog:gc*::time` - add timestamp to gc logs
+* you can use https://github.com/chewiebug/GCViewer tools to visualize GC `java -jar gcviewer-1.36.jar`
+You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
+
 Zero GC - practice where we write code in such a way, that we don't generate objects in the heap, that would be destroyed. There are multiple ways:
 * use off-heap memory
 * use object pooling - where you pre-allocate required objects on the start and then just reuse them
@@ -13179,9 +13188,9 @@ Error: A fatal exception has occurred. Program will exit.
     * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
     * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
     * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
-* use memory analizer like:
-    * eclipse MAT - analyze heapdump from file - standalone product or plugin to eclipse IDE
-    * jVisualVM - analyze heapdump realtime on running app
+* use memory analyzer like:
+    * eclipse MAT - analyze HeapDump from file - standalone product or plugin to eclipse IDE
+    * jVisualVM - analyze HeapDump realtime on running app
 Try to avoid:
 * heavy code in finalize(), cause gc should wait until it executed
 * resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
