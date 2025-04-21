@@ -27,9 +27,9 @@ Below is mock exams of good quality and cheap price:
 
 ##### Exam
 I've to pass 2 exams. This is because I didn't hold java 8 cert. So if I had I could only pass 1, but because I didn't I have to pass 2. Alternative could be pass java8 first, then java 11, but it would be the same. To become certified and get eCertificate you have to pass both of them.  This guide covers more than you need to pass exam, because I've added more info evan after I've passed the exam. But this can be even better, cause with this you will understand java deeper.
-According to [exam prep guide](https://enthuware.com/resources/java-certification-faq/250-new-java-11-certification-exam-1z0-819) - Originally there were 2 exams for java 11 `OCP Java 11 part 1 (1Z0-815) and OCP Java 11 part 2 (1Z0-816)`, but from October 2020, it was replaced with single exam [OCP Java 11 (1Z0-819](https://mylearn.oracle.com/ou/exam/java-se-11-developer-1z0-819/40805/110627/170353). But I took exams in late 2019, early 2020, so I have to pass both to earn my badge.
-* [Java SE 11 Programmer I | 1Z0-815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815)
-* [Java SE 11 Programmer II | 1Z0-816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816)
+According to [exam prep guide](https://enthuware.com/resources/java-certification-faq/250-new-java-11-certification-exam-1z0-819) - Originally there were 2 exams for java 11 `OCP Java 11 part 1 (1Z0-815) and OCP Java 11 part 2 (1Z0-816)`, but from October 2020, it was replaced with single exam [OCP Java 11 (1Z0-819)](https://mylearn.oracle.com/ou/exam/java-se-11-developer-1z0-819/40805/110627/170353). But I took exams in late 2019, early 2020, so I have to pass both to earn my badge.
+* [Java SE 11 Programmer I | 1Z0-815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815) - link not available on website, cause exam was retired in October 2020
+* [Java SE 11 Programmer II | 1Z0-816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816) - link not available on website, cause exam was retired in October 2020
 
 
 ##### Results
