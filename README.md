@@ -3,16 +3,22 @@
 ### Content
 * [Java 11](#java-11)
   * [Description](#description)
-* [Java 21](#java-21)
+  * [Preparation](#preparation)
+  * [Exam](#exam)
+  * [Results](#results)
+* [Java 21](#java-21)  
   * [Description](#description-1)
+  * [Preparation](#preparation-1)
+  * [Exam](#exam-1)
+  * [Results](#results-1)
 
 ### Java 11
 ##### Description
 OCPJP11 (Oracle Certified Professional: Java SE 11 Developer)
 There are 2 main reasons to get it.
-1. During preparation you will learn a lot of new stuff
+1. During preparation, you will learn a lot of new stuff
 2. It may help your career
-* [Java Tips](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/ocpjp11.md)
+* [Java 11 Tips](/files/ocpjp11.md)
 
 ##### Preparation
 Below is mock exams of good quality and cheap price:
@@ -20,10 +26,10 @@ Below is mock exams of good quality and cheap price:
 * [Mock exam programmer II](https://enthuware.com/java-certification-mock-exams/oracle-certified-professional/ocp-java-11-exam-ii-1z0-816)
 
 ##### Exam
-Here is my experience for taking 2 exams
+I've to pass 2 exams. This is because I didn't hold java 8 cert. So if I had I could only pass 1, but because I didn't I have to pass 2. Alternative could be pass java8 first, then java 11, but it would be the same.
 * [Java SE 11 Programmer I | 1Z0-815](https://education.oracle.com/java-se-11-programmer-i/pexam_1Z0-815)
 * [Java SE 11 Programmer II | 1Z0-816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816)
-To become certified and get eCertificate you have to pass both of them.  This guide covers more than you need to pass exam, cause I've added more info evan after I've passed the exam. But this can be even better, cause with this you will understand java more deeper.
+To become certified and get eCertificate you have to pass both of them.  This guide covers more than you need to pass exam, because I've added more info evan after I've passed the exam. But this can be even better, cause with this you will understand java deeper.
 
 ##### Results
 By passing certification you will get 3 things
@@ -32,7 +38,17 @@ By passing certification you will get 3 things
 
 ### Java 21
 ##### Description
+* [Java 21 Tips](/files/ocpjp21.md)
+OCPJP21 (Oracle Certified Professional: Java SE 21 Developer Professional)
+If you look into [Java version history](https://en.wikipedia.org/wiki/Java_version_history) you will notice that java 11 was released on September 2018, and java 21 on September 2023, so 5 years has padded and 2 LTS (java 17 and java 21 both LTS versions). So I've decided to review my java knowledge and pass new certification to keep up with java.
+
+##### Preparation
+I've used the same website for preps, that I've used during java 11 cert preparations:
 * [book](https://enthuware.com/books/295-java-21-certification-fundamentals)
 * [mock exam](https://enthuware.com/java-certification-mock-exams/oracle-certified-professional/ocp-java-21-exam-1z0-830)
-Exam
+
+##### Exam
 * [Java SE 21 Developer Professional (1Z0-830)](https://mylearn.oracle.com/ou/exam/java-se-21-developer-professional-1z0-830/105037/139080/220555)
+
+##### Results
+* To be filled...
