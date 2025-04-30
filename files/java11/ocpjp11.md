@@ -1390,8 +1390,8 @@ class B extends A{
 }
 ```
 There are 2 types of polymorphism:
-* compile-time polymorphism - this is method overloading, when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, such method overloading we can count as compile-time polymorphism.
-* runtime polymorphism - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, becasue we can change it dynamically during execution. 
+* compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, so method overloading we can count as compile-time polymorphism.
+* runtime polymorphism (overriding) - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, because we can change it dynamically during execution. 
 That's why we can say that java supports both:
 * compile-time polymorphism - when we overload methods
 * runtime polymorphism - when we extend/implement and pass reference
@@ -1408,7 +1408,7 @@ class A{}
 class B extends A{}
 ```
 
-If 2 classes extend from same base class, or implement same interface, we can cast them with so-called doublecast
+If 2 classes extend from same base class, or implement same interface, we can cast them with so-called "double cast"
 ```java
 class A{}
 interface X{}
@@ -1929,22 +1929,71 @@ init App
 4
 ```
 Liskov substitution principle for java inheritance:
-1. method argument types - overridden method argument should be identical or wider. But in java we support only identical, neither X, not Z would work in below example. As you see java not fully supported this rule
+1. method argument types - overridden method argument should be identical or wider. But in java we support only identical. As you see java not fully supported this rule. Using subtype is overloading, that's why in Java only identical method can be used for overriding.
 ```java
-class X{}
-class Y extends X{}
-class Z extends Y{}
+interface Printer{
+  void print(A a);
+}
 
-class A{
-    public void print(Y x){}
+class ConsolePrinter implements Printer{
+  @Override
+  public void print(B a) {} // compile-time error
 }
-class B extends A{
-    @Override
-    public void print(Y y){}
-}
+
+class A{}
+class B extends A{}
 ```
 2. return type should be identical or subtype - called covariance in java
 3. execption - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
+
+If you necessarily have to use overriding with subtype param, you can use generics
+```java
+public class App {
+    public static void main(String[] args) {
+        Printer<A> printer = new PrinterA();
+        printer.print(new A());
+        Printer<B> printer2 = new PrinterB();
+        printer2.print(new B());
+    }
+}
+
+interface Printer<T extends A>{
+    void print(T t);
+}
+class PrinterA implements Printer<A>{
+    @Override
+    public void print(A a) {}
+}
+class PrinterB implements Printer<B>{
+    @Override
+    public void print(B b) {}
+}
+```
+This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2 were we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
+```java
+public class App {
+    public static void main(String[] args) {
+        Child child = new Child();
+        child.print(new A());
+        child.print(new B());
+    }
+}
+
+class Parent{
+    public void print(A a){
+        System.out.println("parent");
+    }
+}
+
+class Child extends Parent{
+    public void print(B b){
+        System.out.println("child");
+    }
+}
+
+class A{}
+class B extends A{}
+```
 
 ###### Interfaces
 All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
