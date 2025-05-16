@@ -633,14 +633,14 @@ String s4 = new String("hello");
 System.out.println("s3 == s4 => " + (s3 == s4));
 
 String s5 = s3.intern();
-System.out.println("s5 == s1 => " + (s5 == s1)); // string interning
+System.out.println("s5 == s1 => " + (s5 == s1)); // string interning, returns true
 ```
 ```
 s1 == s2 => true
 s3 == s4 => false
 s5 == s1 => true
 ```
-First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2.
+First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we're interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2. Internally java uses hash table to store all strings and understand if such string already exists or not. You can rewrite this behavior by using `ConcurrentHashMap`.
 
 `trim` vs. `strip`
 `trim` - old method to trim a string, strip - is java11, the difference is working with unicode. 
@@ -11510,7 +11510,7 @@ Caused by: java.lang.RuntimeException: Assertions must be enabled
 ```
 
 ###### Object interning
-In case you want to guarantee that class is immutable and you won't create new objects for the same data you can make constructor private (will ensure nobody can extend the class) and add static method and intern similar objects there.
+In case you want to guarantee that class is immutable, and you won't create new objects for the same data you can make constructor private (will ensure nobody can extend the class) and add static method and intern similar objects there.
 ```java
 import java.util.*;
 
