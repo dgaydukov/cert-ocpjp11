@@ -94,9 +94,8 @@
 * 11.14 [Java Servlet WebApp](#java-servlet-webapp)
 * 11.15 [Java Virtual Methods](#java-virtual-methods)
 * 11.16 [Class Diagram](#class-diagram)
-* 11.17 [Java17 new features](#java17-new-features)
-* 11.18 [Remote debugging](#remote-debugging)
-* 11.19 [Junit Testing](#junit-testing)
+* 11.17 [Remote debugging](#remote-debugging)
+* 11.18 [Junit Testing](#junit-testing)
 12. [Low latency](#low-latency)
 * 12.1 [CPU and Cache](#cpu-and-cache)
 * 12.2 [Compiler Design](#compiler-design)
@@ -108,7 +107,6 @@
 * 12.8 [Linked lists](#linked-lists)
 * 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
-* 12.11 [Java 17 JEP-412](#java-17-jep-412)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 16](#java-16)
 * 13.2 [Java 17](#java-17)
@@ -3939,8 +3937,64 @@ String x = (String) list.get(0);
 ```
 
 ###### PECS (producer extends consumer super)
-Because a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child. 
-The exception if overriding method has `List<anything>` but overridden just `List`.
+In a nutshell, three easy rules to remember PECS:
+* use covariance `<? extends T>` wildcard if you need to retrieve object of type T from a collection (producer - returns values)
+* use Contravariance `<? super T>` wildcard if you need to put objects of type T in a collection (consumer - add values)
+* use Invariance/non-variance `T` if you need to satisfy both
+Generic subtyping rule:
+* This code won't compile `List<Number> numbers = new ArrayList<Integer>();` to avoid potential problem, when you can assign to `List<Number>` a list of integers, and then you would be able to add double, because `Double` is subtype of `Number`, but adding double to list of integers is wrong. So with generic special rules applied.
+* Because of this rule, you can't put generic subtype into main type.
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List<Number> numbers = new ArrayList<>();
+        List<Integer> integers = new ArrayList<>();
+        consume(numbers);
+        consume(integers); // compile error
+    }
+    
+    static void consume(List<Number> list){
+        
+    }
+}
+```
+* So if we need to pass sybtype generic into parent we have to use PECS rules. Now this code compiles well
+```java
+public class App {
+    public static void main(String[] args) {
+        List<Number> numbers = new ArrayList<>();
+        List<Integer> integers = new ArrayList<>();
+        consume(numbers);
+        consume(integers);
+    }
+    
+    static void consume(List<? extends Number> list){
+        
+    }
+}
+```
+* Using `super`
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List<Number> numbers = new ArrayList<>();
+        List<Integer> integers = new ArrayList<>();
+        consume(numbers, 1);
+        consume(integers, 1);
+    }
+
+    static void consume(List<? super Integer> list, int n){
+        list.add(n);
+    }
+}
+```
+
 ```java
 import java.util.*;
 
@@ -4026,6 +4080,8 @@ class A1<T extends A1<T>> implements Comparable<T>{
 class B1 extends A1<B1>{}
 class C1 extends A1<C1>{}
 ```
+Because a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child.
+The exception if overriding method has `List<anything>` but overridden just `List`.
 
 Be careful with new generic variable. Here in method m2 we declare new generic variable, but name it the same as main one T. So inside this method T is different generic than outside.
 ```java
@@ -4134,10 +4190,12 @@ class B extends A{
     public void m1() {} // overriding method
 }
 ```
-For one method to correctly override another they should have the same signature (method name + params) and covariant return type. Covariant return (let's use <=) - return of the same type, or it's subtype. For example `B` <= `A`, and `ArrayList<String>` <= `List<String>`.
-Generic covariant return: 
-`List<B> <= List<? extends B> <= List<? extends A>`
-`List<A> <= List<? super A> <= List<? super B>`
+For one method to correctly override another they should have the same signature (method name + params) and covariant return type. Covariant return (let's use <=) - return of the same type, or it's subtype.
+Covariant return:
+* `B` <= `A`
+* `ArrayList<String>` <= `List<String>`
+* `List<B> <= List<? extends B> <= List<? extends A>`
+* `List<A> <= List<? super A> <= List<? super B>`
 Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
 Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a placeholder for whatever type is actually used while invoking the method. For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
 T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
@@ -12737,43 +12795,6 @@ class B extends A{
 
 * ![concurrent collection classes](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/images/concurrent-collection-classes.png)
 
-###### Java17 new features
-There are several new features avaialble in java 17:
-* multi-line string
-```
-string str = """
-a
-b
-c""";
-```
-* short switch (multiple values + no need for break keyword)
-```
-int x = switch(str) {
-case "a", "b" -> x=1;
-case "c" -> {
-// do some logic
-yield 2; // new keyworkd to use inside switch
-};
-case "d" -> x = 3;
-};
-```
-* direct casting
-```
-Object obj;
-if (obj instanceof String str && !str.isEmpty()){
-    str.trim();
-}
-```
-* records => create final class with final variables, yet you can declare constructor
-you can substitute custom classes like Pair/Tuple
-```
-public record Point(int x, int y){}
-```
-* sealed class (only these 4 classes can be extended from class X)
-```
-sealed class X permits A, B, C, D{}
-```
-
 ###### Remote debugging
 How debugging works:
 * when you compile java code you can use option `javac -g`, which would include debug information
@@ -13541,7 +13562,7 @@ class OffHeapByteArray implements AutoCloseable{
     }
 }
 ```
-You can create multi-threading locking using `AtomicInteger.compareAndSet` function, which return boolean and change value only if initial value is same as first argument
+You can create multi-threading locking using `AtomicInteger.compareAndSet` function, which return boolean and change value only if initial value is same as first argument. Here we use CAS to imitate locking, because CAS is faster than java thread locking:
 ```java
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14227,15 +14248,13 @@ Comparison between chronicle & in-memory db (according to chronicle developer):
 Event sourcing vs 2PC (two phase commit):
 * previously in enterprise we used 2PC to ensure that we read from one system & write to another, yet this approach incur a lot of latency
 * now we use messaging system with unique ID per message to ensure data integrity
-so if our app is broken, we restart and retrieve last message we processed, and then go to broker and ask give me next message after this
-by this logic all modern brokers work like: kafka, chronicle-queue, aeron, lmax disruptor
+so if our app is broken, we restart and retrieve last message we processed, and then go to broker and ask give me next message after this, by this logic all modern brokers work like: kafka, chronicle-queue, aeron, lmax disruptor
 Thread affinity:
 * locking is generally bad for latency, use lock-free & CAS
 * yet locking and jumping between threads is even worse
     * jumping between threads 100s µs
     * staying on same core - 10s µs
-    So if you have to use locking, make sure your threads stay on same core
-    use java thread affinity libraries to ensure it (java doesn't have this feature out-of-the-box)
+    So if you have to use locking, make sure your threads stay on same core - use java thread affinity libraries to ensure it (java doesn't have this feature out-of-the-box)
 * java thread - normal OS thread, so first get thread ID, then use `taskset` to link thread to specific core, yet this core can be taken by OS to run other threads, but we can use `isolcpus` to remove core from linux thread planner and this core will be used by our thread only. Once you configure this java spinlocks `Thread.onSpinWait()` doesn't give huge effect, cause sole purpose of this command is to keep burning spu cycles, so OS won't take away this core from your thread, yet if you configures linux and link thread to core, there is
 no point in this java instruction.
 Thread interleaving:
@@ -14327,7 +14346,7 @@ class MyEvent{
     }
 }
 ```
-It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it open, and it github.
+It's very similar to [CoralSequencer](https://www.coralblocks.com/index.php/state-of-the-art-distributed-systems-with-coralmq), but it is open, and it on Github.
 While CoralSequencer is private and mostly used in banks (there is no way to see it code, yet you can read overall architecture on it's website).
 [aeron](https://aeroncookbook.com/aeron/overview/)
 ```java
@@ -14392,15 +14411,6 @@ aeron cluster:
 * you have clustered app out of the box, where aeron cluster take care of mainating state, storing snapshot, send/receive messages
 
 ###### Java 17 JEP-412
-Java17 introduced [JEP-412](https://openjdk.org/jeps/412) new API to work with memory, it includes:
-Yet in java 17 it was in package `jdk.incubator.foreign` but later moved to `java.lang.foreign` and signature also changes. For example before you could create off-heap memory with `MemorySegment.allocateNative`, but later `allocateNative` was removed, and not available in java 21. Only `ofArray` was available. Original ways to create memory from jdk17:
-```java
-MemorySegment nativeSegment = MemorySegment.allocateNative(100, ResourceScope.newImplicitScope());
-MemorySegment mappedSegment = MemorySegment.mapFile( Path.of("memory.file"), 0, 200, READ_WRITE, newImplicitScope() );
-MemorySegment arraySegment = MemorySegment.ofArray(new int[100]);
-MemorySegment bufferSegment = MemorySegment.ofByteBuffer(ByteBuffer.allocateDirect(100));
-```
-You can read directly on `MemorySegment` in jdk21 docs, there are a lot of useful info, and how you can use it. Basically you can create a chunk of off-heap memory and use `get/set` operations put data into into it and read this data.
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
@@ -14648,8 +14658,6 @@ New API is created:
 * memory management: MemoryLayout, MemoryHandles, MemoryAccess
 * resource life cycle: ResourceScope
 * call external functions: SymbolLookup, CLinker
-
-
 
 ###### Java 21
 Java 21 is LTS version that was released in September 2023, and would be supported until September 2031
