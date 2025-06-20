@@ -101,7 +101,7 @@
 * 12.1 [CPU and Cache](#cpu-and-cache)
 * 12.2 [Compiler Design](#compiler-design)
 * 12.3 [Java memory model](#java-memory-model)
-* 12.4 [Garbage collection](#garbage-collection)
+* 12.4 [Garbage collector](#garbage-collector)
 * 12.5 [Encoding](#encoding)
 * 12.6 [Floating Point Number](#floating-point-numbers)
 * 12.7 [sun.misc.Unsafe](#sunmiscunsafe)
@@ -11568,7 +11568,7 @@ addr1.equals(addr2) => true
 ```
 
 ###### Garbage collector and Weak References
-GC - happens, when no links points to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
+GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
 gc compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
 ```java
 public class App {
@@ -13081,7 +13081,7 @@ So to summarize you can say:
 * `synchronized`  - multiple writes + multiple reads 
 JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
 
-###### Garbage collection
+###### Garbage collector
 Viewing GC logs (using GCViewer tool):
 * you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -XX:+PrintGCDetails -Xlog:gc*::time `
 * `-verbose:gc` - display verbose logs (by default into stdout)
@@ -13089,8 +13089,12 @@ Viewing GC logs (using GCViewer tool):
 * `-XX:+PrintGCDetails` - add gc details like: size of young and old before each gc
 * `-Xlog:gc*::time` - add timestamp to gc logs
 * you can use https://github.com/chewiebug/GCViewer tools to visualize GC `java -jar gcviewer-1.36.jar`
+* you can use this tool https://visualvm.github.io/features.html
 You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
-
+GC throughput:
+* the percentage of app running vs. gc running (for example 98% GC GC throughput means that app code running 98% of time and GC running 2% of total time)
+* to calculate such throughput you need determine the time spent in garbage collection versus the time spent running the application
+* You should use `jstat` utility to calculate throughput
 Zero GC - practice where we write code in such a way, that we don't generate objects in the heap, that would be destroyed. There are multiple ways:
 * use off-heap memory
 * use object pooling - where you pre-allocate required objects on the start and then just reuse them
@@ -13222,11 +13226,11 @@ public class App{
 * always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
     * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
         * most commands were removed in java11, if you try to run above command in java11 you will get 
-```
-Unrecognized VM option 'PrintGCTimeStamps'
-Error: Could not create the Java Virtual Machine.
-Error: A fatal exception has occurred. Program will exit.
-```
+            ```
+            Unrecognized VM option 'PrintGCTimeStamps'
+            Error: Could not create the Java Virtual Machine.
+            Error: A fatal exception has occurred. Program will exit.
+            ```
     * java11 `-Xlog:gc*=debug:file=logs.txt`
 * download & run gcviewer to check gc logs
     * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it is not supported since 2008
@@ -13240,9 +13244,12 @@ Error: A fatal exception has occurred. Program will exit.
 * use memory analyzer like:
     * eclipse MAT - analyze HeapDump from file - standalone product or plugin to eclipse IDE
     * jVisualVM - analyze HeapDump realtime on running app
+GC logging is mostly fast because it happens during "safe points" when GC is taking full stop, so you lose this time anyway, but only during this window gc logs are added. So we can conclude that gc logs doesn't add additional latency. There is still some latency added mostly because writing to disk (A big part of the GC log tasks is saving the data to a log file). "A big part of the GC log tasks is saving the data to a log file,” notes Deepak Sreedhar, principal software engineer at Azul. “The type of I/O used to store these files can impact the logging performance, not directly the application itself. So, some of the problems that may occur are not related to the performance of the GC logging but to the speed of the I/O. If the logs can’t be saved fast enough in real time, OpenJDK has the option to use asynchronous unified logging with Xlog:async.”
+Although garbage collection logs can introduce minimal performance costs, the trade-off is usually worthwhile, as the logs are often invaluable when tuning garbage collection and diagnosing memory issues. Without GC logs enabled, you can lose insights into how the JVM manages memory dynamically at runtime. This information is very useful for monitoring the performance of a Java application, diagnosing memory leaks and tuning the JVM’s garbage collection configuration
 Try to avoid:
 * heavy code in finalize(), cause gc should wait until it executed
 * resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
+
 
 ###### Encoding
 Don't confuse(endianess - the way we store bytes in memory):
