@@ -104,12 +104,11 @@
 * 12.4 [Garbage collector](#garbage-collector)
 * 12.5 [Encoding](#encoding)
 * 12.6 [Floating Point Number](#floating-point-numbers)
-* 12.7 [sun.misc.Unsafe](#sunmiscunsafe)
+* 12.7 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
 * 12.8 [Linked lists](#linked-lists)
 * 12.9 [Low latency logging](#low-latency-logging)
 * 12.10 [Low latency collections](#low-latency-collections)
 * 12.11 [Java 17 JEP-412](#java-17-jep-412)
-* 12.12 [VarHandle and MethodHandle](#varhandle-and-methodhandle)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 16](#java-16)
 * 13.2 [Java 17](#java-17)
@@ -643,7 +642,7 @@ s5 == s1 => true
 First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we're interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2. Internally java uses hash table to store all strings and understand if such string already exists or not. You can rewrite this behavior by using `ConcurrentHashMap`.
 
 `trim` vs. `strip`
-`trim` - old method to trim a string, strip - is java11, the difference is working with unicode. 
+`trim` - old method to trim a string, strip - is java11, the difference is working with Unicode. 
 ```java
 Character c = '\u2000';
 String s = c + "abc" + c;
@@ -657,7 +656,7 @@ System.out.println(s.strip());
 abc
 ```
 
-As you see, `trim` doesn’t remove whitespaces, cause this unicode whitespace is not considered whitespace by `trim`.  Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently.  Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
+As you see, `trim` doesn’t remove whitespaces, cause this Unicode whitespace is not considered whitespace by `trim`.  Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently.  Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
 ```java
 public class App {
     public static void main(String[] args){
@@ -1944,7 +1943,7 @@ class A{}
 class B extends A{}
 ```
 2. return type should be identical or subtype - called covariance in java
-3. execption - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
+3. exception - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
 
 If you necessarily have to use overriding with subtype param, you can use generics
 ```java
@@ -1968,6 +1967,9 @@ class PrinterB implements Printer<B>{
     @Override
     public void print(B b) {}
 }
+
+class A{}
+class B extends A{}
 ```
 This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2 were we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
 ```java
@@ -12849,7 +12851,7 @@ class SportCar implements Car {
 
 #### Low latency
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
-change java version:
+change java version for Linux:
 * first install several java versions, so you can switch between them
 * you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
 ```
@@ -12860,16 +12862,15 @@ sudo update-alternatives --config javac
 # switch java version in intelliJ
 File => Project Structure => Project SDK (chose either 8 or 11)
 ```
-why ms windows shows disk size less then they are 100gb = 93gb. Answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units), yet we have jedec where each increasing on 1024, take a look at this table
+why MS Windows shows disk size less than they are 100gb = 93gb. Answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units), yet we have JEDEC (Joint Electron Device Engineering Council)  where each increasing on 1024, take a look at this table
 ```
-        si        jedec
+        SI        JEDEC
 kilo    10**3     2**10
 mega    10**6     2**20
 giga    10**7     2**30
 tera    10**12    2**40
-...
 ```
-so windows just flip system of unit, 100gb in si became 93gb in jedec `100*10**9/2**30=93.13`
+so windows just flip system of unit, 100gb in si became 93gb in JEDEC `100*10**9/2**30=93.13`
 
 ###### CPU and Cache
 there are 3 types of memory:
@@ -12887,7 +12888,7 @@ There are 2 types of architecture of cpu:
         * atomic test-and-set
         * SIMD (single instruction multiple data) instructions
     * RISC (reduced instruction set computer) - only frequently used instructions implemented, less common instructions implemented as subroutines
-    * VLIW (very long instruction word) - use ILP (instruction-level parallelism) with less hardware than cisc/risc, compiler responsible for instruction issue and scheduling
+    * VLIW (very long instruction word) - use ILP (instruction-level parallelism) with less hardware than CISC/RISC, compiler responsible for instruction issue and scheduling
         * EPIC (explicitly parallel instruction computing)
         good satire why itanium failed
         [How the Itanium Killed the Computer Industry](https://www.pcmag.com/archive/how-the-itanium-killed-the-computer-industry-236394)
@@ -12907,12 +12908,11 @@ There are 2 types of architecture of cpu:
         complexity but with greater compiler complexity
     * MISC (minimal instruction set computer) - used in educational purposes
         * OISC (one instruction set computer)
-* microarchitecture - internal design of cpu. Processors with different microarchitecture can have common instruction set, like intel and AMD, although have different internal design, yet share same set of instructions/registers.
-it represented as connection of machine elements which can be anything from registers to complete ALU (arithmetic logic unit)
-Concept of distinct microarchitecture as compare to instruction set was developed by IBM.
+* microarchitecture - internal design of cpu. Processors with different microarchitecture can have common instruction set, like Intel and AMD, although they have different internal design, yet share same set of instructions/registers.
+it represented as connection of machine elements which can be anything from registers to complete ALU (arithmetic logic unit). Concept of distinct microarchitecture as compare to instruction set was developed by IBM.
 Instruction may specify:
 * opcode - instruction to be performed:
-    * * add/subtract/multiply/bitwise
+    * add/subtract/multiply/bitwise
 * register (defined as register name)
     * set register to constant value
     * copy data from memory/register to memory/register
@@ -12929,8 +12929,7 @@ There are 2 main compilers:
     * frontend - parsing part, read source code from programming language (gcc for C, g++ for C++, gccgo for Go, gcj for Java)
     and transform it into AST (abstract syntax tree). Compiler optimization and static code analysis applied on this stage.
     and finally turn the tree into IR called RTL (register transfer language) - intermediate language independent on the cpu architecture
-    * backend - generate machine code for specific cpu architecture (like RISC or VLIW) from RTL.
-    it also include link-time optimization.
+    * backend - generate machine code for specific cpu architecture (like RISC or VLIW) from RTL, also include link-time optimization.
 * llvm - originally Low Level Virtual Machine, yet this name was removed, cause now it's umbrella project for compilers to many languages
     written in c++, set of tech which can be used to develop frontend for any programming language and backend for any cpu architecture.
     it can accept RTL from gcc, do optimization and generate machine code
@@ -12971,7 +12970,7 @@ Don't confuse 2 types of compilers:
 hotspot - compiler of jvm:
 * OSR (On Stack Replacement) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
   while it was running. if function use loop - such optimization may be useful. when it occur, jvm is paused and stack frame is replaced
-  by compiled frame. By default each function is interpreted until certain point when it became hot and then it compiled to machine code.
+  by compiled frame. By default, each function is interpreted until certain point when it became hot and then it compiled to machine code.
 * biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast,  if different thread try to acquire lock, then bias should be removed
 * deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
 ```java
@@ -12983,8 +12982,7 @@ public int getValue(int i){
 }
 ```
 compiler may think that this `if` condition may never happen and compile without it, but at some point we may come to this, so hotspot would deoptimize, basically remove compiled code and start interpreting code. you can see it by enable `-XX:+TraceDeoptimization`
-x86 assemble - family of backward-compatible languages based on intel8088 cpu from 1972, based on short commands for register names.
-Many compilers produce assemble as intermediate language before turning it into machine code
+x86 assemble - family of backward-compatible languages based on intel8088 cpu from 1972, based on short commands for register names. Many compilers produce assemble as intermediate language before turning it into machine code
 There are 2 main syntax types:
 * AT&T - dominant in unix, since it was created by AT&T Bells lab. used by GAS, yet this assembler supports also intel syntax.
 * intel - common in DOS/Windows used by NASM/MASM/FASM/TASM
@@ -13002,46 +13000,14 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values. Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores.
-Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier. Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
-There are 4 types of memory barrier:
-* LoadLoad - all loads before barrier, happens before loads after barrier
-* LoadStore - all loads before barrier, happens before stores after barrier
-* StoreStore - all stores before barrier, happens before stores after barrier
-* StoreLoad - all loads before barrier, happens before stores after barrier
-Memory basics:
-proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc. So byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
-Don't confuse:
-* physical address - real memory address unit represented as integer. system software or OS request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
-* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program doesn't care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory. We need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error
-VM (virtual memory) guarantee:
-* one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
-* more than one virtual address can refer to same physical address
-* virtual memory space can be larger than physical one, by using VM paging - also called swapping
-MMU (memory management unit):
-* called also PMMU (paged memory management unit) - cause works based on pages
-* perform transition of virtual memory addresses into physical addresses
-* divides virtual memory into pages each is power 2 (usually in KB)
-* paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
-if you work with c/c++ and use pointers then 2 cases are possible:
-* if you run your program in OS like windows/linux - for sure you are using virtual memory address space
-* if you run your program without OS or you are writing OS kernel - then you would access physical memory directly
-There are 2 types of memory address resolution:
-1. byte-addressable - each byte has its own address. Data larger than byte stored in sequence of consecutive addresses. Most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable. This is due to historical reason, since computer works mostly with text and single byte should store single character, since back then ascii was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit. Also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
-* byte - you just read it and modify
-* word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
-2. word-addressable - minimal memory address size is processor word. CPU word can be of size 16/24/32/64 bit, has its own memory address. For example for 32bit cpu - each 32 bits or 4 bytes would have single address. For 64 - each 64 bits or 8 bytes would have separate address. There were a few decimal-addressable machines, but they not used nowadays
-Don't confuse:
-* address size - size of memory unit, mostly 8 bits in byte-addressable system
-* word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture only 4gb ram supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation  
-JMM - describes how threads share memory. This make sense for multithreading programming.
-If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
+JMM - describes how threads share memory. This make sense for multithreading programming. If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
 * how memory is shared between multiple threads
     * each thread runs in separate cpu which has its own cache - copy of memory
     * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
     * cpu cache & memory use cache coherence protocols to replicate changes between cache & memory
 * order of execution:
     * compiler may re-order execution of code as part of optimization
-    thread1 => x=1;y=2; If thread2 reads y and it's value is 2, x can still be 0, cause compiler re-order lines of code
+    thread1 => `x=1;y=2;` If thread2 reads `y` and it's value is 2, x can still be 0, cause compiler re-order lines of code
 * within thread `as-if-serial` semantics should be observed
 compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
 Cache Coherence:
@@ -13051,7 +13017,7 @@ Cache Coherence:
     * shared - cpu can read, but can't write into it
     * exclusive - cpu can write, once any cpu moved cache line into this state, other cpu mark their lines as invalid
     * modified - once we write data into cache line, it state changes from exclusive to modified.
-Once cpu wants to write data into it cache, it mark cache line as exclusive, wait until all other cpu mark their cache line into invalid, and only then modify its own cache line - as you see cache inconsistency is impossible.
+Once cpu wants to write data into it cache, it marks cache line as exclusive, wait until all other cpu mark their cache line into invalid, and only then modify its own cache line - as you see cache inconsistency is impossible.
 Take a look at following example:
 ```java
 int x = 1;
@@ -13074,14 +13040,46 @@ Rules:
 So to summarize you can say:
 * `volatile` - single write + multiple reads
     * happens before - also it prevent code re-ordering
-    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't reordered to be after volatile) and would be flushed to main memory too
+    * all local variables declared before volatile can be re-ordered but all would be executed before volatile (so they can't be reordered and put after volatile) and would be flushed to main memory too
     * so if you have 2 fields and the order should be preserved, only 1 should be volatile. for other variables order would be preserved
     * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
     * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
 * `synchronized`  - multiple writes + multiple reads 
 JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
+Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier. Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
+  There are 4 types of memory barrier:
+* LoadLoad - all loads before barrier, happens before loads after barrier
+* LoadStore - all loads before barrier, happens before stores after barrier
+* StoreStore - all stores before barrier, happens before stores after barrier
+* StoreLoad - all loads before barrier, happens before stores after barrier
+  Memory basics:
+  proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc. So byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
+  Don't confuse:
+* physical address - real memory address unit represented as integer. system software or OS request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
+* logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program doesn't care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory. We need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error.
+  VM (virtual memory) guarantee:
+* one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
+* more than one virtual address can refer to same physical address
+* virtual memory space can be larger than physical one, by using VM paging - also called swapping
+  MMU (memory management unit):
+* called also PMMU (paged memory management unit) - cause works based on pages
+* perform transition of virtual memory addresses into physical addresses
+* divides virtual memory into pages each is power 2 (usually in KB)
+* paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
+  if you work with c/c++ and use pointers then 2 cases are possible:
+* if you run your program in OS like windows/linux - for sure you are using virtual memory address space
+* if you run your program without OS or you are writing OS kernel - then you would access physical memory directly
+  There are 2 types of memory address resolution:
+1. byte-addressable - each byte has its own address. Data larger than byte stored in sequence of consecutive addresses. Most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable. This is due to historical reason, since computer works mostly with text and single byte should store single character, since back then ASCII was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit. Also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
+  * byte - you just read it and modify
+  * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
+2. word-addressable - minimal memory address size is processor word. CPU word can be of size 16/24/32/64 bit, has its own memory address. For example for 32bit cpu - each 32 bits or 4 bytes would have single address. For 64 - each 64 bits or 8 bytes would have separate address. There were a few decimal-addressable machines, but they are not used nowadays
+   Don't confuse:
+* address size - size of memory unit, mostly 8 bits in byte-addressable system
+* word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
 
 ###### Garbage collector
+in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 Viewing GC logs (using GCViewer tool):
 * you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -XX:+PrintGCDetails -Xlog:gc*::time `
 * `-verbose:gc` - display verbose logs (by default into stdout)
@@ -13092,36 +13090,32 @@ Viewing GC logs (using GCViewer tool):
 * you can use this tool https://visualvm.github.io/features.html
 You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
 GC throughput:
-* the percentage of app running vs. gc running (for example 98% GC GC throughput means that app code running 98% of time and GC running 2% of total time)
+* the percentage of app running vs. gc running (for example 98% GC throughput means that app code running 98% of time and GC running 2% of total time)
 * to calculate such throughput you need determine the time spent in garbage collection versus the time spent running the application
 * You should use `jstat` utility to calculate throughput
+* run `jstat -gcutil -t <jvm-pid> 1000 1` and get `GCT` column
+* use this simple formula `1 - (GCT / uptime)` and get your percentage value
 Zero GC - practice where we write code in such a way, that we don't generate objects in the heap, that would be destroyed. There are multiple ways:
 * use off-heap memory
 * use object pooling - where you pre-allocate required objects on the start and then just reuse them
-You can check your gc by adding to your java (or to VM options in IntelliJ IDE) following line `-verbose:gc` and see how GC is working.
-* in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 JVM:
-* heap - stores all objects. Size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
+* heap - stores all objects, size increases/decreases during execution (you can set `-Xms` - initial size, `-Xmx` - max size):
     * YoungGen - young generation - stores newly allocated objects. Contain 3 parts:
-        * eden - all newly-created objects goes here
-        When eden is full `minor GC` runs, and all survivor objects moved into one survivor space
-        it also checks survivor space and moves all survived objects into one space, so one is always free
-        Objects that survived for several times moved into OldGen
+        * eden - all newly-created objects goes here. When eden is full `minor GC` runs, and all survivor objects moved into one survivor space. it also checks survivor space and moves all survived objects into one space, so one is always free. Objects that survived for several times moved into OldGen
         * survivor memory space 1
         * survivor memory space 2
-    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`
-    When OldGen is full, `major GC` is run to clean up - this take longer time
+    * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`. When OldGen is full, `major GC` is run to clean up - this take longer time
 * non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
     * stores fields & methods names, code for methods, constants
     * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
 * cache - stored compiled code
 * stack - unique per thread, stored local variables and code execution
-GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`. since simple checking of all objects one-by-one is not effective, several algos exist to run GC. Mark & Sweep model - default implementation in java GC:
+GC (garbage collections) - goes through `heap` and destroy all unreferenced objects. it runs as `daemon thread`. Since simple checking of all objects one-by-one is not effective, several algos exist to run GC. Mark & Sweep model - default implementation in java GC:
 * mark - identify & mark all object references starting from GC root, the rest is garbage
     * GC root - local/static variables, active threads
     * before destroying object, GC called `finalize` method exactly once
 * sweep - search the heap and find all unoccupied space between objects for future object allocation
-All jvm gc can be divided into 4 types:
+There are several types of GC:
 * serial - use single thread
 * parallel (we can specify number of threads and max pause time) - use multiple threads 
 * low pause (like CMS) - use multiple threads and initiate `stop the world` in 2 cases:
@@ -13130,7 +13124,7 @@ All jvm gc can be divided into 4 types:
 * G1 - use multiple threads scan heap by dividing in into many regions and scan regions with most garbage first. yet do STW to run compact. so it concurrent mark + STW compact.
 * Z (java11 - experimental for linux only, java14 - ZGC for linux/windows):
     * partition the heap like G1, yet heap chunks can have different size
-    * stop the world - no more then 10ms
+    * stop the world - no more than 10ms
     * run in java prior to java15 `-XX:+UnlockExperimentalVMOptions -XX:+UseZGC`
 Z & shenandoah insert load barrier into the code if you load object:
     zgc:
@@ -13147,19 +13141,14 @@ Yet for CMS, G1, ZGC we still has small pauses to:
 * take snapshot
 This needs to be done atomically, so nothing happens in between, that's why we have tiny STW    
 JVM support following gc types:
---these 2 operate on YoungGen
-* `-XX:+UseSerialGC` - standard serial mark & sweep algo
-* `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
-it will stop all threads and run gc
---these 2 operate on OldGen
-* `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
-* `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
-card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor gc only do gc for youngGen. 
-But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table
-One downside of CMS is that it doesn't run compaction. So use if you don't need compaction or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defrarment your heap memory
-So your memory would be like swiss cheese with many holes, if you combine it, looks like you have lots of memory, yet if you try to allocate big array you may fail with OutOfMemory error.
-So G1 in this regard is more advanced one. Cause after some time (days, weeks, months) you will hit a case when all your memory riddled.
---this one doesn't split heap into new/old-gen
+* these 2 operate on YoungGen:
+  * `-XX:+UseSerialGC` - standard serial mark & sweep algo
+  * `-XX:+UseParallelGC` - parallel version of mark & sweep for minor GC (so only for YoungGen)
+* these 2 operate on OldGen (it will stop all threads and run gc):
+  * `-XX:+UseParallelOldGC` - parallel version of mark & sweep but for both minor/major gc
+  * `-XX:+UseConcMarkSweepGC` (removed in java14) (CMS - concurrent mark and sweep) (default in java8) - minimize gc pause by doing major gc concurrently
+Card table - map with reference from old gen into youngGen. The reason since most objects die young, so minor GC only do GC for YoungGen. But how can we know if some oldGen has reference into youngGen. So for this we use special map - card table. One downside of CMS is that it doesn't run compaction. So use if you don't need compaction, or you are fine to run once in a while major GC, in this case CMS will rebuild objects and defragment your heap memory. So your memory would be like swiss cheese with many holes, if you combine it, looks like you have lots of memory, yet if you try to allocate big array you may fail with OutOfMemory error. So G1 in this regard is more advanced one. Cause after some time (days, weeks, months) you will hit a case when all your memory riddled.
+This one doesn't split heap into new/old-gen
 * `-XX:+UseG1GC` (default since java9) - garbage first approach, divide heap into many equal-sized regions, first check regions with less live objects
     * string deduplication - g1  can find duplicate strings and point all of them into single object
 * `-XX:+UseZGC` - has several steps:
@@ -13171,20 +13160,20 @@ So G1 in this regard is more advanced one. Cause after some time (days, weeks, m
 This can be useful if you have low-latency app with huge memory or for performance testing
 * `-XX:+UseShenanodoahGC` - 
 SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running. So if we don't do this, while we run, app may change reference and we can accidentally remove used object. Example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking. When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
-we have write/read barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
+we have read/write barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
 Don't confuse:
-* serial GC - use one thread to run gc
-* parallel GC - use multiple threads to run gc
-Yet both of them cause `stop-the-world` pause to run gc, parallel pause would be a bit shorter
-* concurrent gc - run at the same time as your app running, so don't cause `stop the world`
+* serial GC - use one thread to run GC
+* parallel GC - use multiple threads to run GC
+Yet both of them cause `stop-the-world` pause to run GC, parallel pause would be a bit shorter
+* concurrent GC - run at the same time as your app running, so don't cause `stop the world`
 So you can be concurrent & parallel at the same time. or concurrent serial - if it uses single thread
 Pros to know how gc works - you can better handle:
-* memory leaks - if objects keep referenced, although you don't need them in code, gc can't delete, so your heap would grow until you get `OutOfMemoryError`
+* memory leaks - if objects keep referenced, although you don't need them in code, GC can't delete, so your heap would grow until you get `OutOfMemoryError`
 * constant `stop the world` - gc stop all app thread to run itself, so if you have low latency app. constant stops can have performance issue, this is big problem with memory leak, cause if memory leak occur you have less memory, and gc runs 
 * cpu usage - constant `stop the world` cause a lot of cpu consumption
 gc tuning:
 * adjust heap size
-* reduce rate of object creation - use pools instead
+* reduce rate of object creation - use object pooling instead
 * create collections with predefined size - most collections array based and resize can take some time + gc need take care of older array
 * use streams instead of copy into memory byte arrays
 Don't confuse (permGen was replaced by MetaSpace since java8):
@@ -13196,13 +13185,9 @@ PermGen:
 Metaspace:
 * replaced the older PermGen memory space starting form JDK 8
 * grows automatically by default
-* GC triggers cleaning of dead classes, once class metadata usage reaches max metaspace size
-Memory leak in metaspace - if you have a bug in your classloader, and it keeps loading classes, or you have big classes that are not unloading
-cause objects are alive, you may have memory leak in metaspace, which will affect heap. Cause once metaspace is expanding it will call full GC
-Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
-this quite complex and done by copying collector and require gc to update address, 
-cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
-Conclusion: there is no universal gc, you should choose:
+* GC triggers cleaning of dead classes, once class metadata usage reaches max metaspace size. Compaction - memory defragmentation, when you arbitrary move objects into available space (space from where unreferenced objects where removed)
+this quite complex and done by copying collector and require gc to update address, cause after moving your object would reside in new address, yet it helps to utilize memory more efficient
+Conclusion: there is no universal GC, you should choose:
 * low pause, large overhead - shenandoah
 * average pause, average overhead - G1/CMS
 * long pause, low overhead - parallel GC
@@ -13223,27 +13208,6 @@ public class App{
     }
 }
 ```
-* always turn on gc logging - there is no overhead for your app, only issue is log size (you can configure it also)
-    * java8 `-XX:+PrintGC -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:logs.txt`
-        * most commands were removed in java11, if you try to run above command in java11 you will get 
-            ```
-            Unrecognized VM option 'PrintGCTimeStamps'
-            Error: Could not create the Java Virtual Machine.
-            Error: A fatal exception has occurred. Program will exit.
-            ```
-    * java11 `-Xlog:gc*=debug:file=logs.txt`
-* download & run gcviewer to check gc logs
-    * original project [here](https://www.tagtraum.com/gcviewer-download.html) but it is not supported since 2008
-    * [this guy](https://github.com/chewiebug/GCViewer) supporting latest versions now
-    * run `git clone` && `mvn clean install`, this will generate `target` folder with jar
-    * run gcviewer `java -jar target/gcviewer-1.37-SNAPSHOT.jar` and open your gc file
-* analyze java heap dump of app
-    * use jmap to take heap dump of running app by processID `jmap histo:live {PID} > logs.txt`
-    * use jcmd `jcmd {PID} GC.heap_dump logs.txt`
-    * create heap dump on memory crash `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs.txt`
-* use memory analyzer like:
-    * eclipse MAT - analyze HeapDump from file - standalone product or plugin to eclipse IDE
-    * jVisualVM - analyze HeapDump realtime on running app
 GC logging is mostly fast because it happens during "safe points" when GC is taking full stop, so you lose this time anyway, but only during this window gc logs are added. So we can conclude that gc logs doesn't add additional latency. There is still some latency added mostly because writing to disk (A big part of the GC log tasks is saving the data to a log file). "A big part of the GC log tasks is saving the data to a log file,” notes Deepak Sreedhar, principal software engineer at Azul. “The type of I/O used to store these files can impact the logging performance, not directly the application itself. So, some of the problems that may occur are not related to the performance of the GC logging but to the speed of the I/O. If the logs can’t be saved fast enough in real time, OpenJDK has the option to use asynchronous unified logging with Xlog:async.”
 Although garbage collection logs can introduce minimal performance costs, the trade-off is usually worthwhile, as the logs are often invaluable when tuning garbage collection and diagnosing memory issues. Without GC logs enabled, you can lose insights into how the JVM manages memory dynamically at runtime. This information is very useful for monitoring the performance of a Java application, diagnosing memory leaks and tuning the JVM’s garbage collection configuration
 Try to avoid:
@@ -13265,28 +13229,25 @@ There are several character encoding:
 * ASCII (American Standard Code for Information Interchange)
     * defines 128 characters (0-127)
     * first 32 - non-printable control characters like return or new line
-    * nowadays it's a subset of many other encoding
-    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits
-    so we ended up with many computers that treat upper 128 bits differently and depend on your OS, upper bits could be resolved quite differently and this led to ANSI
+    * nowadays, it's a subset of many other encoding
+    * since byte - 8 bits, or 256, but ASCII needs only 128, there were a lot of different implementation to add another 128 bits - so we ended up with many computers that treat upper 128 bits differently and depend on your OS, upper bits could be resolved quite differently and this led to ANSI
 * ANSI (American National Standards Institute)
     * general agreement what to do with upper 128 bits
     * first 128 bits would always be ASCII for all computers
     * different systems called code pages (for Hebrew - was one code page, for greek another)
     * 2 problems arise
         * it was impossible to have both Hebrew and Greek on the same computer
-        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough
-        this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2 and you have to use
-        windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
+        * for asian alphabets (Japan/China) who had thousands of characters, these 128 upper bits were not enough - this was solved by DBCS (double byte character set) where some chars were 1 byte, but some 2, and you have to use windows AnsiNext/AnsiPrev to correctly handle encoding (you couldn't use s++/s--)
 * Unicode
     * first attempt to create character set for all possible writing systems including artificial ones like Klingon (invented language from Star Trek)
     * no limit on bits, min size - 2 bytes, even for english
-    * there is misconception that each char in unicode is 16 bits (so totally 65536), yet it's wrong, in unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
-    * `code point` - magic number assigned to each letter in each alphabet by unicode (english A => `U+0041`, number after `U+` is hex)
-    * there is no real limits for `code point`, and unicode goes far beyond 65536, so not each unicode letter is 2 byte
+    * there is misconception that each char in Unicode is 16 bits (so totally 65536), yet it's wrong, in Unicode each letter maps to logical concept called `code point`, but can be stored in physical memory quite different
+    * `code point` - magic number assigned to each letter in each alphabet by Unicode (english A => `U+0041`, number after `U+` is hex)
+    * there is no real limits for `code point`, and Unicode goes far beyond 65536, so not each Unicode letter is 2 byte
     * standard still alive, in latest version-13 - there are 143k characters
     * 2 problems arise
       * for english which can use ascii - you still need 2 bytes for each character, so it's a lot of waste of memory
-      * since big/little-endian store bytes in different order, different cpu architecture display unicode differently - this problem was non-existent in ascii, cause it used single byte onl
+      * since big/little-endian store bytes in different order, different cpu architecture display Unicode differently - this problem was non-existent in ascii, cause it used single byte onl
     * so to resolve these 2 issues - encodings where created to answer main question how to store code points in memory?
         first encoding support high/low-endian was usc-2 - universal code character set - 
         2 bytes called bom-byte (Unicode Byte Order Mark) on the begging on each string were added to determine high/low bytes
@@ -13294,9 +13255,9 @@ There are several character encoding:
         Yet developers complain about all these zeros so utf-8 was born
 * UTF-8 (Unicode Transformation Format 8-bit)
     * each char in 0-127 stored as 1 byte, but from 128 2,3 and up to 6 bytes were used to store char
-    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in unicode each english char would be encoded with 2 bytes)
+    * side effect is that english in UTF-8 is looks exact as in ASCII (each char encoded with 1 byte only, but in Unicode each english char would be encoded with 2 bytes)
     * so `hello => U+0048 U+0065 U+006C U+006C U+006F => 48 65 6C 6C 6F`
-    * physical memory - we have following rule:
+    * physical memory - we have the following rule:
       1 byte  -> 0xxxxxxx (size 7 bit) - single byte - store it just as byte
       2 bytes -> 110xxxxx 10xxxxx => (size 8-11 bit), so 110_10 - is a mark of 2 bytes, others used to store chars
       3 bytes -> 1110xxxx 10xxxxx 10xxxxx => (size 12-16 bit), so 1110_10_10  - mark of 3 bytes, others used to store chars
@@ -13307,9 +13268,9 @@ There are several character encoding:
       big endian - read first few bits and check; 0 - 1 byte, 110-2bytes, 1110-3bytes, 11110-4bytes. so based on few bits we can easily determine if it 1/2/3/4 byte character
       little endian - if we read 0 - 1byte, 10-can be 2/3/4 byte, so go further until you meat a mask like 110/1110/11110
 Don't confuse:
-* UTF-8 - use least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
+* UTF-8 - use the least possible byte number: 1,2,3,4. Since it's uses 1 byte when it can - it's compatible with ASCII
 * UTF-16 - use byte on order 2, like 2 or 4. Since it uses at minimum 2 bytes it's not compatible with ASCII.
-  yet it faster then utf-8 which try to determine if it character size, so most programming languages like java using UTF-16, yet it take more memory to store it compare to utf-8
+  yet it faster than utf-8 which try to determine if it character size, so most programming languages like java using UTF-16, yet it take more memory to store it compare to utf-8
   since string is byte array, and java use UTF-16, each string symbol in java takes either 2 or 4 bytes
   in C strings are mutable and it store end of each string, but to get string length is heavy operation. in java string are fixed-lengths
   that's why java choose immutable strings, so each time you modify a string, new string is created
@@ -13319,7 +13280,7 @@ so numbers 8/16/32 - denote min size of single char. this means all 3 can store 
 Don't confuse:
 * character set - list of characters where each char is mapped to numeric value called `code point`.
 * encoding - how we encode/map characters into memory (how numeric values `code points` are mapped into bytes)
-  so unicode - is character set only, ucs-2 was encoding designed to it, ascii is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
+  so Unicode - is character set only, UCS-2 was encoding designed to it, ASCII is both character set and encoding, and UTF-8/UTF-16/UTF-32 encoding
 Java example how to convert string to bits
 ```java
 public class App{
@@ -13397,18 +13358,17 @@ convert 1/5 to binary
 0.2 * 2 = 0 + 0.4
 0.4 * 2 = 0 + 0.8
 0.8 * 2 = 1 + 0.6
-0.6 * 2 = 1 + 0.2 as you see again we got 0.2
-so 0.2 = 0.1100(1100)
+0.6 * 2 = 1 + 0.2 => as you see again we got 0.2
+so 0.2 = 0.(1100)
 ```
 so you can see that we have rational number like:
 * 1/8=0.125 that can be represented as finite in both decimal and binary
 * 1/5=0.2 that can be represented as finite in decimal but not in binary
 * `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
-simple rule is denominator:
+Simple rule is denominator:
 * if 10 can be divided without leftover, like 2/5/10, - no problems
 * if it's power 2, then it can be represented as finite binary
-as you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it
-but once we do this, we encounter rounding problem;
+As you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it - but once we do this, we encounter rounding problem:
 * stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
 * floating-point representation - most widely used representation of real numbers in PC. it has base=b, and precision=p.
 there are 3 way to store floating point:
@@ -13429,18 +13389,14 @@ based on this rule you can see that for 32bit we can store max 10**128 - very la
 we can convert it back
 -1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
 ```
-so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others
-yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989... 
-and this is limitation of binary math, not of processors or programming language
-there are a few ways you can circumvent it;
+so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others. Yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989...  And this is limitation of binary math, not of processors or programming language. There are a few ways you can circumvent it:
 * don't use fractional numbers, use integers
 * use BigDecimal/BigInteger
 
-###### sun.misc.Unsafe
-`sun.misc` - special package for 2 low-level classes:
+###### Unsafe, VarHandle, MethodHandle
+`sun.misc` - special package for 2 low-level classes (you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant):
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
 * Signal - low level system signals handling
-**Note that you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant.
 Fatal error - technically it's impossible to get fatal error with java, cause it designed in such a way to handle this. Yet if you use `Unsafe` directly you can get it
 ```java
 import java.lang.reflect.Field;
@@ -13480,12 +13436,9 @@ Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
 ```
 There are several examples where you can use `Unsafe`:
 * allocateInstance - allocate memory but doesn't call constructor
-* change private fields (by the way reflection use `Unsafe` under-the-hood)
-But if you use `Unsafe` for this you can modify any object, even if you don't have direct reference to it. For example you have Object A1 with reference and next to it object A2 in memory.
-So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 123);` - this would modify next object in memory (32 - size of object in memory)
+* change private fields (by the way reflection use `Unsafe` under-the-hood). But if you use `Unsafe` for this you can modify any object, even if you don't have direct reference to it. For example, you have Object A1 with reference and next to it object A2 in memory. So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 123);` - this would modify next object in memory (32 - size of object in memory)
 * throw any exception (java compiler doesn't validate Unsafe same way as other code, so you can throw any checked exception)
-* use off-heap memory (this memory is not managed by java, so GC is not called to clean it, so you just clean it manually)
-Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuffer` under-the-hood, which in turn use `Unsafe` to handle memory
+* use off-heap memory (this memory is not managed by java, so GC is not called to clean it, so you just clean it manually). Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuffer` under-the-hood, which in turn use `Unsafe` to handle memory
 * CAS (compare-and-swap, should be supported by CPU cause it's executed on CPU level) - all classes from `java.util.concurrent.atomic` like `AtomicInteger` using one of 3 `Unsafe` implementation of this algorithm:
     * compareAndSwapInt
     * compareAndSwapLong
@@ -13493,6 +13446,7 @@ Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuf
 * wait with `park/unpark` methods - similar to `Object.wait` but use native OS implementation
 * create function sizeOf to get size of objects
 * remove strings from memory
+* treat variable as volatile without `volatile` keyword using `getXXXVolatile/putXXXVolatile`
 Basic example with class instantiation & throwing checked exception
 ```java
 import java.lang.reflect.Field;
@@ -13533,8 +13487,7 @@ class Person{
 0
 Exception in thread "main" java.lang.Exception: oops
 ```
-As you see class was created, but constructor not called.
-Below is example of off-heap byte array (again use `ByteBuffer.allocate` instead).
+As you see class was created, but constructor not called. Below is example of off-heap byte array (again use `ByteBuffer.allocate` instead).
 ```java
 import java.lang.reflect.Field;
 import sun.misc.Unsafe;
@@ -13624,12 +13577,12 @@ class MyWorker implements Runnable{
 
     public void acquireLock(){
         while (!sharedValue.compareAndSet(0, threadId)){
-
+            // spin CPU
         }
     }
     public void releaseLock(){
         while (!sharedValue.compareAndSet(threadId, 0)){
-
+          // spin CPU
         }
     }
 }
@@ -13675,6 +13628,88 @@ Thread 4 released
 ```
 As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock execute, white others wait.
 
+MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster than Reflection API, cause there is direct support in JVM.
+```java
+public class App {
+  public static void main(String[] args) throws Throwable {
+    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    MethodType methodType = MethodType.methodType(String.class, int.class);
+    MethodHandle getName = lookup.findVirtual(Person.class, "getName", methodType);
+
+    Person person = new Person();
+    String name = (String) getName.invokeWithArguments(person, 30);
+    System.out.println(name);
+
+  }
+}
+
+class Person {
+  public String getName(int age) {
+    return "John Doe, " + age;
+  }
+}
+```
+```
+John Doe, 30
+```
+
+`VarHandle` (java 9) - wrapper for a field to perform atomic operations on that field. It's very similar to `Unsafe`. And before to achieve this you have to use this class to atomically change values (look into `AtomicInteger` under-the-hood it uses `Unsafe` to atomically modify value), but now you can use `VarHandle` to achieve same results (look into `AtomicReference`, it uses `VarHandle` under-the-hood). You can achieve `volatile` features, even if field is not declared as volatile.
+Below is example how before you have to use `Unsafe` and now you can use `VarHandle` for same operation. But before with `Unsafe` you have to use `offset` which is error-prone.
+```java
+public void lazySet(V newValue) {
+    unsafe.putOrderedObject(this, valueOffset, newValue);
+}
+
+public boolean compareAndSet(V expect, V update) {
+    return unsafe.compareAndSwapObject(this, valueOffset, expect, update);
+}
+```
+Now you can achieve this with `VarHandle` and don't need `offset` anymore, which was error-prone
+```java
+private static final VarHandle VALUE;
+static {
+    try {
+        MethodHandles.Lookup l = MethodHandles.lookup();
+        VALUE = l.findVarHandle(AtomicReference.class, "value", Object.class);
+    } catch (ReflectiveOperationException e) {
+        throw new Error(e);
+    }
+}
+
+public void lazySet(V newValue) {
+  VALUE.setRelease(this, newValue);
+}
+
+public boolean compareAndSet(V expectedValue, V newValue) {
+  return VALUE.compareAndSet(this, expectedValue, newValue);
+}
+```
+You can also use `VarHandle` to change variable behavior as it was `volatile`. For example if you have non-volatile variable, you can wrap `VarHandle` around it and change it with  `getVolatile/setVolatile`, and variable would behave as it was volatile. But it would only behave as `volatile` if accessed through `VarHandle` wrapper, if you access it directly it would behave as normal variable, and no memory barriers would be enacted.
+```java
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
+public class App {
+  public int x;
+  private static final VarHandle VALUE;
+  static {
+    try {
+      MethodHandles.Lookup l = MethodHandles.lookup();
+      VALUE = l.findVarHandle(App.class, "x", int.class);
+    } catch (ReflectiveOperationException e) {
+      throw new Error(e);
+    }
+  }
+  public static void main(String[] args) {
+    App app = new App();
+
+    VALUE.setVolatile(app, 10);
+    int x = (int) VALUE.getVolatile(app);
+    System.out.println(x);
+  }
+}
+```
+
 ###### Linked lists
 Linked list disadvantages compared to array:
 CPU cache does 2 things: cache frequently used memory & predict which memory would be used next. It uses simple algo - just get nearest memory. But in case of linked list - next element can be in completely different memory chunk. 
@@ -13685,8 +13720,8 @@ There are 3 types of linked list (all of them are linear structure represented a
     * one-direction (only forward)
 * Doubly linked list:
     * called just linked list, java implementation of `LinkedList` using doubly linked list under-the-hood
-    * each node store 3 values: value + next node address + prev node address (here name of doubly). Since it store 3 fields, it takes more memory then singly linked list
-    * bi-directional (both backward & forward)
+    * each node store 3 values: value + next node address + prev node address (here name of doubly). Since it store 3 fields, it takes more memory than singly linked list
+    * bidirectional (both backward & forward)
     * remove is O(1) and 2 lines of code
 ```
 public void remove(Node node){
@@ -13753,8 +13788,7 @@ class SinglyLinkedList{
 ```
 [0,1,2]
 ```
-We have method `List.set(index, value)` where you can set value for every index, for array-based lists (like `ArrayList`) it's easy, you just change index of underlying array
-yet in `LinkedList`, you iterate whole list until you reach desired position, then you change it. So here complexity is O(n), yet in array-based lists it O(1).
+We have method `List.set(index, value)` where you can set value for every index, for array-based lists (like `ArrayList`) it's easy, you just change index of underlying array, yet in `LinkedList`, you iterate whole list until you reach desired position, then you change it. So here complexity is O(n), yet in array-based lists it O(1).
 ```java
 import java.util.LinkedList;
 import java.util.List;
@@ -13787,13 +13821,13 @@ We have the following collections in java:
 * lmax disruptor
 * aeron
 [Trove](https://bitbucket.org/trove4j/trove/src/master/) - one of the first low latency collections:
-* started as primitive collections (in jdk you have to use wrappers)
+* started as primitive collections (in JDK you have to use wrappers)
 * use open addressing for maps
-    *  in jdk we use linked list if 2 or more elements have same hashcode, since java8 we use balanced tree (red-black tree) to store collisions
+    * in JDK for maps, we use linked list if 2 or more elements have same hashcode, since java8 we use balanced tree (red-black tree) to store collisions
     * closed addressing (used by JDK) - when you have hash collision you create list for single bucket, when you lookup you go through the list and compare keys
     * here we don't use any list, instead we always put elements into underlying array, in case of hash collision, we put key into another bucket, when we lookup, we found starting array slot, and then go down one-by-one (for linear) comparing keys, until we either found our key or empty spot
 - here we use linear resolution where if hashcode already exist, we just put it into next field
-* you can add your cusom hashing strategy by implementing `TObjectHashingStrategy`
+* you can add your custom hashing strategy by implementing `TObjectHashingStrategy`
 * currently supported by [palantir](https://github.com/palantir/trove)
 * doesn't implement java interfaces like `List, Map` so you are stuck with trove concrete implementations
 * doesn't support multi-threading, it's just single thread for primitives
@@ -14152,27 +14186,27 @@ public class App{
 Comparison between chronicle software & real logic:
 * chronicle-queue/map, chronicle wire/values (same as SBE for aeron)
 * aeron, agrona, SBE
-Under the hood these 2 use good old `Unsafe` class for raw bytes manipulation:
+Under the hood these 2 use good old `Unsafe` class for raw bytes' manipulation:
 * chronicle lacking collection library like `agrona`
 * SBE - simple binary encoding, we can achieve same in chronicle using one of 2 libraries
     * chronicle-values - turn your objects into off-heap array of bytes and manipulate it
     * chronicle-wire - more generic library for serialization
-* chronicle use memory mapped file, kind of IPC queue, while aeron works on UDP/IPC, yet client talk to media-driver via shared memory (since media-driver can be another process or thread - main advantage that when your main process has GC pause, if you media-driver is another process it can go on with it's own busyness, while if it just a thread it would have to wait, so best way to talk between 2 process is memory-mapped files ). As you see in essense we can say that both chronicle & aeron use concept of memory-mapped files.
-Aeron has it's own transport that operates above UDP (there is no TCP for aeron, aothough you can implement it above TCP), yet although UDP is not reliable as TCP, aeron transport takes care of it, and ensure that you would receive ALL the messages in exactry the same ORDER they were originally sent.
+* chronicle use memory mapped file, kind of IPC queue, while aeron works on UDP/IPC, yet client talk to media-driver via shared memory (since media-driver can be another process or thread - main advantage that when your main process has GC pause, if you media-driver is another process it can go on with its own business, while if it just a thread it would have to wait, so best way to talk between 2 process is memory-mapped files ). As you see in essence we can say that both chronicle & aeron use concept of memory-mapped files.
+Aeron has its own transport that operates above UDP (there is no TCP for aeron, although you can implement it above TCP), yet although UDP is not reliable as TCP, aeron transport takes care of it, and ensure that you would receive ALL the messages in exactly the same ORDER they were originally sent.
 Aeron archive (using `aeron-spy:udp` channel) - record/replay/replicate messages.
 Don't confuse - aeron uses:
 * shared memory - to connect client and media driver, so it better to use `/dev/shm/aeronDirName` - as directory param, cause it's unix default implementation of shared memory
-* UDP/ICP - to connect 2 separate clients (or better say to connect 2 media drivers)
+* UDP/IPC - to connect 2 separate clients (or better say to connect 2 media drivers)
     * UDP - uses UDP protocol for data transfer
     * IPC - again using same shared memory inside single PC for data transfer between publisher & subscriber (media driver kind of remove itself and leave pub & sub to asynchonously exchange messages through shared memory)
-top aeron (and generally any low-latency sensitive) principle:
+Top aeron (and generally any low-latency sensitive) principle:
 * garbage free
 * lock-free algos
 * non-blocking IO (don't wait OS comeback for any request for IO)
-* keep cpu pipeline hot & avoid cpu stall
+* keep CPU pipeline hot & avoid CPU stall
 * single writer principle - if you write concurrent code, try if you can to make your data structure to be single writer, this would greatly simplify implementation
 * pass messages between thread rather then share state
-* avoid unnecesary data copies
+* avoid unnecessary data copies
 Comparison between chronicle & in-memory db (according to chronicle developer):
 * redis/memcached work based on loopback/socket principle
 * you can't access database memory directly from java, you have to go through some system interfaces
@@ -14186,9 +14220,9 @@ Comparison between chronicle & in-memory db (according to chronicle developer):
     each such request would require some system call (os kernel operation)
     * copy data between java process & db process (again all copy happens in kernel calls) which add up latency
 * on average in best case scenario you can get 1-10 µs. latency using in-memory db
-* with chronicle you can get 1µs, due to direct access to shared memory, without any system calls
+* with chronicle, you can get 1µs, due to direct access to shared memory, without any system calls
 * there are 2 ways to work with shared memory
-    * using JNI interface - jni calls add some latency anyway (around 50ns), not best solution for latency-critical apps
+    * using JNI interface - jni calls add some latency anyway (around 50ns), not the best solution for latency-critical apps
     * directly manipulate shared memory with `java.misc.Unsafe` - this approach used by chronicle
 Event sourcing vs 2PC (two phase commit):
 * previously in enterprise we used 2PC to ensure that we read from one system & write to another, yet this approach incur a lot of latency
@@ -14367,88 +14401,6 @@ MemorySegment arraySegment = MemorySegment.ofArray(new int[100]);
 MemorySegment bufferSegment = MemorySegment.ofByteBuffer(ByteBuffer.allocateDirect(100));
 ```
 You can read directly on `MemorySegment` in jdk21 docs, there are a lot of useful info, and how you can use it. Basically you can create a chunk of off-heap memory and use `get/set` operations put data into into it and read this data.
-
-###### VarHandle and MethodHandle
-MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster then Reflection API, cause there is direct support in JVM.
-```java
-public class App {
-  public static void main(String[] args) throws Throwable {
-    MethodHandles.Lookup lookup = MethodHandles.lookup();
-    MethodType methodType = MethodType.methodType(String.class, int.class);
-    MethodHandle getName = lookup.findVirtual(Person.class, "getName", methodType);
-
-    Person person = new Person();
-    String name = (String) getName.invokeWithArguments(person, 30);
-    System.out.println(name);
-
-  }
-}
-
-class Person {
-  public String getName(int age) {
-    return "John Doe, " + age;
-  }
-}
-```
-```
-John Doe, 30
-```
-VarHandle (java 9) - wrapper for a field to perform atomic operations on that field. It's very similar to `Unsafe`. And before to achieve this you have to use this class to atomically change values (look into `AtomicInteger` under-the-hood it uses `Unsafe` to atomically modify value), but now you can use `VarHandl` to achieve same results (look into `AtomicReference`, it uses `VarHandle` under-the-hood). You can achieve `volatile` features, even if field is not declared as volatile.
-Below is example how before you have to use `Unsafe` and now you can use `VarHandle` for same operation. But before with `Unsafe` you have to use `offset` which is error-prone.
-```java
-public void lazySet(V newValue) {
-    unsafe.putOrderedObject(this, valueOffset, newValue);
-}
-
-public boolean compareAndSet(V expect, V update) {
-    return unsafe.compareAndSwapObject(this, valueOffset, expect, update);
-}
-```
-Now you can achieve this with `VarHandle` and don't need `offset` anymore, which was error-prone
-```java
-private static final VarHandle VALUE;
-static {
-    try {
-        MethodHandles.Lookup l = MethodHandles.lookup();
-        VALUE = l.findVarHandle(AtomicReference.class, "value", Object.class);
-    } catch (ReflectiveOperationException e) {
-        throw new Error(e);
-    }
-}
-
-public void lazySet(V newValue) {
-  VALUE.setRelease(this, newValue);
-}
-
-public boolean compareAndSet(V expectedValue, V newValue) {
-  return VALUE.compareAndSet(this, expectedValue, newValue);
-}
-```
-You can also use `VarHandle` to change variable behavior as it was `volatile`. For example if you have non-volatile variable, you can wrap `VarHandle` around it and change it with  `getVolatile/setVolatile`, and variable would behave as it was volatile. But it would only behave as `volatile` if accessed through `VarHandle` wrapper, if you access it directly it would behave as normal variable, and no memory barriers would be enacted.
-```java
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-
-public class App {
-  public int x;
-  private static final VarHandle VALUE;
-  static {
-    try {
-      MethodHandles.Lookup l = MethodHandles.lookup();
-      VALUE = l.findVarHandle(App.class, "x", int.class);
-    } catch (ReflectiveOperationException e) {
-      throw new Error(e);
-    }
-  }
-  public static void main(String[] args) {
-    App app = new App();
-
-    VALUE.setVolatile(app, 10);
-    int x = (int) VALUE.getVolatile(app);
-    System.out.println(x);
-  }
-}
-```
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
