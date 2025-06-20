@@ -4196,7 +4196,7 @@ Covariant return:
 * `ArrayList<String>` <= `List<String>`
 * `List<B> <= List<? extends B> <= List<? extends A>`
 * `List<A> <= List<? super A> <= List<? super B>`
-Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from jvm it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
+Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from JVM it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
 Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a placeholder for whatever type is actually used while invoking the method. For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
 T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
 ```java
@@ -4257,8 +4257,7 @@ List<C>
 ```
 param inside `B.getList can` be only of type A, otherwise it’s not overriding, but overloading.
 
-`List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. 
-For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
+`List<Integer>` is not subtype of `List<Number>`. So we should use `List<? extends Number>`. For `getNumberListWithParams` we can’t use this trick, params should match exactly. But if you want pass list of integers you can set param as `List<? extends Number>`, in both parent and child, and in this way you can pass list of integers.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -4287,6 +4286,7 @@ class B extends A{
     public List<Integer> getNumberList(){
         return null;
     }
+    // return type can be covariant, but params should match exactly
     @Override
     public List<Integer> getNumberListWithParams(List<? extends Number> list){
         return null;
