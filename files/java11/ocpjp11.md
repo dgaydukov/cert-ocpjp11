@@ -13460,6 +13460,11 @@ There are several examples where you can use `Unsafe`:
 * change private fields (by the way reflection use `Unsafe` under-the-hood). But if you use `Unsafe` for this you can modify any object, even if you don't have direct reference to it. For example, you have Object A1 with reference and next to it object A2 in memory. So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 123);` - this would modify next object in memory (32 - size of object in memory)
 * throw any exception (java compiler doesn't validate Unsafe same way as other code, so you can throw any checked exception)
 * use off-heap memory (this memory is not managed by java, so GC is not called to clean it, so you just clean it manually). Again it's better to use `ByteBuffer.allocate(100)` which would use `HeapByteBuffer` under-the-hood, which in turn use `Unsafe` to handle memory
+* create array bigger than Integer.MAX_VALUE:
+  * in java by default you can create array with size up to `Integer.MAX_VALUE` (2**31-1), but with `Unsafe` you can create array bigger than this
+  * make sure you have enough RAM, otherwise you will get `OutOfMemoryError`
+  * keep in  mind that this off-heap memory won't be garbage collected, so you have to clean it manually `unsafe.freeMemory(startIndex)`
+  * directly allocated memory is not initialized with a certain value. In general, you will find garbage from old usages of this memory area such that you have to explicitly initialize your allocated memory if you require a default value `unsafe.setMemory(startIndex, size, (byte) 0)`. When you use off-heap to create array, java runtime takes care of initialization, but if you use `Unsafe.allocateMemory` you have to do it manually
 * CAS (compare-and-swap, should be supported by CPU cause it's executed on CPU level) - all classes from `java.util.concurrent.atomic` like `AtomicInteger` using one of 3 `Unsafe` implementation of this algorithm:
     * compareAndSwapInt
     * compareAndSwapLong
@@ -13468,6 +13473,7 @@ There are several examples where you can use `Unsafe`:
 * create function sizeOf to get size of objects
 * remove strings from memory
 * treat variable as volatile without `volatile` keyword using `getXXXVolatile/putXXXVolatile`
+* pause thread using `park/unpark` methods - similar to `Object.wait`, but use native OS implementation
 Basic example with class instantiation & throwing checked exception
 ```java
 import java.lang.reflect.Field;
