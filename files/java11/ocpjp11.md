@@ -4846,6 +4846,7 @@ How ConcurrentHashMap works:
 * `HashTable` is slow, cause it locks whole map to perform update/delete/read/create
 * `concurrencyLevel` - third param to constructor (first two `capacity` & `loadFactor` same as for `HashMap`) - estimated number of concurrently updating threads (by default 16)
 * so all buckets divided into 16 (or more) lock zones and only specific zone is blocked during create/update (reads are not blocked). So 16 threads can modify map given they work on different buckets
+* under-the-hood it uses a combination of `synchronized` for writing (put/remove/clear) and `Unsafe` for reading(get) to ensure data consistency. Using of `Unsafe` for get, allows to read data without any locking. For `Unsafe` 3 methods are used `getReferenceAcquire/putReferenceRelease/compareAndSetReference`
 * `HashMap` is fail-fast, but `ConcurrentHashMap` is fail-safe
 ```java
 import java.util.HashMap;
