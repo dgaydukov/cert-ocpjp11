@@ -107,6 +107,7 @@
 * 12.9 [Linked lists](#linked-lists)
 * 12.10 [Low latency logging](#low-latency-logging)
 * 12.11 [Low latency collections](#low-latency-collections)
+* 12.12 [Java Agent](#java-agent)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 16](#java-16)
 * 13.2 [Java 17](#java-17)
@@ -7721,9 +7722,9 @@ As you can see `fork/jon` framework always divide task on 2, and start to run fi
 Don't confuse:
 * `Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
 * `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
-* `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
-* `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you countdown, and then all threads are released
-you don't need to wait until threads reach some point, you can countdown on any algo, but once you countdown to 0, all your threads proceed further
+* `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken, and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
+* `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you count down, and then all threads are released
+you don't need to wait until threads reach some point, you can count down on any algo, but once you count down to 0, all your threads proceed further
 ```java
 import java.util.concurrent.*;
 
@@ -8550,20 +8551,12 @@ class BankAccount {
 Don't confuse:
 * java stream API - working with data as sequence of events, using functional interfaces
 * java reactive streams - way of communication between producer & consumer, where consumer request data, and producer push data to consumer based on such request
-There are 2 reactive implementations: RxJava & Akka, yet starting from java9, jdk provides reactive interfaces `Flow`
-And one implementation of concurrent publisher `SubmissionPublisher`.
-There are 2 ways for producer-consumer problem:
+There are 2 reactive implementations: RxJava & Akka, yet starting from java9, jdk provides reactive interfaces `Flow`. And one implementation of concurrent publisher `SubmissionPublisher`. There are 2 ways for producer-consumer problem:
 * pull (no backpressure) - when consumer polls producer, upside - consumer controls speed, downside - waste of resources for polling
 * push (backpressure on consumer) - when producer pushes to consumer, upside - no waste of resources, downside - if consumer slower than producer, we may have data loss
 * push-on-request (backpressure on producer) - when producers pushed to consumer based on consumer request, so we combine upsides from both pull/push approach
-To summarize reactive is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle
-multiple consumers, based on their speed.
-Notice that java9 is very open, for `Publisher` there is only 1 method to implement `subscribe`, the actual `publish` implementation
-is up to you, in case of `SubmissionPublisher` it called `submit`.
-It's under `java.util.concurrent` package, cause handle multiple consumers based on their speed, required some concurrency/buffering handling.
-For transformation, we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
-transform inside, and then publish to another consumer.
-Backpressure handling - 2 ways to handle this:
+To summarize reactive is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle multiple consumers, based on their speed. Notice that java9 is very open, for `Publisher` there is only 1 method to implement `subscribe`, the actual `publish` implementation. is up to you, in case of `SubmissionPublisher` it called `submit`. It's under `java.util.concurrent` package, cause handle multiple consumers based on their speed, required some concurrency/buffering handling. For transformation, we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
+transform inside, and then publish to another consumer. Backpressure handling - 2 ways to handle this:
 * increase buffer size
 * drop some items
 ```java
@@ -9992,7 +9985,7 @@ hello worldhello worldhello worldhello worldworlhello world
 ```
 
 ###### NIO channels
-Java nio works above io, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
+Java NIO works above IO, channel is like stream but non-blocking (although FileChannel is blocking). We can easily copy content form one file to another.
 ```java
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10003,7 +9996,7 @@ import java.nio.file.StandardOpenOption;
 public class App {
     public static void main(String[] args) {
         try(FileChannel in = FileChannel.open(Paths.get("src/main/java/source"));
-            FileChannel out = FileChannel.open(Paths.get("src/main/java/dest"), StandardOpenOption.WRITE);){
+            FileChannel out = FileChannel.open(Paths.get("src/main/java/dest"), StandardOpenOption.WRITE)){
             ByteBuffer buf = ByteBuffer.allocate(10);
             while (in.read(buf) != -1) {
                 System.out.println(new String(buf.array(), 0, buf.position()));
@@ -14418,7 +14411,41 @@ aeron cluster:
 * you write your code (like matching engine) and add cluster interface `ClusteredService` which provides all lifecycle events which your app should handle
 * you have clustered app out of the box, where aeron cluster take care of mainating state, storing snapshot, send/receive messages
 
-###### Java 17 JEP-412
+###### Java Agent
+Brief introduction:
+* agent is jar file specifically designed to modify original app code
+* it uses `Instrumentation` API to achieve its goals
+* you can use it if you don't/can't modify original code, so you add this agent code to modify your original code on byte code level
+* aeron logs using this tool for logging - in order to avoid scattered log statement all around the code, they decided to use java agent instead
+* logic is similar to javassist, where you weave agent code into your own, and kind of enhancing the functionality of your code without actually modifing it (again kind of Reflection)
+There are 2 types of loading:
+* static (use of `premain` method) - calling it as separate jar in java command: `java -javaagent:agent.jar -jar app.jar`
+  * you need to add `Premain-Class : com.java.test.JavaAgent` entry to manifest
+* dynamic (use of `agentmain` method) - use java API to integrate call into the code: use `VirtualMachine` java class
+```java
+VirtualMachine vm = VirtualMachine.attach(PID);
+try {
+    vm.loadAgent(agentJar);
+} finally {
+    vm.detach();
+}
+```
+All profilers like `JProfiler` use this technology, they just run as java agents, on top of your app, and collect all requiring info about your app performance. They also modify some bytecode to add logic on top of your app to calculate different performance-related metrics. But they use this param `-agentpath:` to pass their library. This command line argument loads agent library must implement the JVM tool interface (JVMTI). This is special interface that allows program to inspect the state of execution and provides API for programs like debuggers and profilers. This interface was designed by JSR-163.
+Jprofiler (use it as example, just to get better idea how profilers work):
+* The "JVM tool interface" (JVMTI) is a native interface that a profiler uses to gain access to information and add hooks for inserting its own instrumentation.
+* Once loaded, the profiling agent asks the JVMTI to be notified of all kinds of events, such as thread creation or class loading. 
+* `-agentpath` is a generic VM parameter provided by the JVM for loading any kind of native library that uses the JVMTI interface.
+* Java agents, on the other hand, are loaded with the `-javaagent` VM parameter and only have access to a limited set of capabilities.
+* After `-agentpath:`, the full path name to the native library is appended. There is an equivalent parameter `-agentlib:` where you only specify the platform-specific library name, but then you have to make sure that the library is contained in the library path. After the path to the library, you can add an equals sign and pass options to the agent, separated by commas
+With the attach functionality in JProfiler, you can select a running JVM and load the profiling agent on the fly. While attach mode is convenient, it has a couple of drawbacks that you should be aware of
+* Some features in JProfiler are not available in attach mode. This is mostly because some capabilities of the JVMTI can only be switched on when the JVM is being initialized and are not available in later phases of the JVM's lifecycle
+* The VM parameters `-XX:+PerfDisableSharedMem` and `-XX:+DisableAttachMechanism` must not be specified for the JVM
+* The SSH connection enables JProfiler to upload the agent package and execute the contained command line tools on the remote machine. You don't need SSH to be set up on your local machine, JProfiler ships with its own implementation. In the most straightforward setup you just define host, username and authentication.
+* memory analysis that requires references, such as solving a memory leak, is done in the heap walker. The heap walker takes a snapshot of the entire heap and analyzes it. This is an invasive operation that pauses the JVM - potentially for a long time - and requires a large amount of memory.
+* if you run `-XX:+HeapDumpOnOutOfMemoryError`, when JVM catch `OutOfMemoryError`, it would create file *.hprof file which you can open with Jprofiler and analyze
+* JFR (JDK Flight Recorder) is an event recorder built into the OpenJDK. It can be thought of as the software equivalent of a Data Flight Recorder (Black Box) in a commercial aircraft. It captures information about the JVM itself, and the application running in the JVM. There is a wide variety of data captured, for example method profiling, allocation profiling and garbage collection related events
+* The garbage collector probe has different views than the other probes and also uses a different data source. It does not obtain its data from the profiling interface of the JVM but uses JFR streaming to analyze GC-related events from the JDK flight recorder. Because of the dependency on JFR event streaming, the GC probe is only available when you profile Java 17 or higher on a Hotspot JVM
+* you can run it directly on prod and collec data, there are many comments in the internet where ppl used jprofiler for some time in prod and all is good
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
@@ -14654,7 +14681,7 @@ final class SuperCar implements Car{}
 5. Access code from outside the JVM and manage memory out of the heap (from java 17, [JEP 412](https://openjdk.org/jeps/412)). 
 Off-heap memory - stored outside java runtime, compare to on-heap where GC is running, there is no GC in off-heap. You can create off-heap memory, but you have to manually manage object placement and removal from it. Currently there are 3 ways to work with off-heap memory:
 * direct byte buffer - max size is 2GB and deallocation is slow. Originally designed for producer/consumer data exchange, that's why it's overall is slow.
-* `sun.misc.Unsafe` - very fast but unreliable, can cause exception. Fast - memory access operations are defined as HotSpot JVM intrinsics and optimized by the JIT compiler. Dangerous - it allows access to any memory location, so java can crash JVM by accesing already freed memory. You can use this code to fetch off-heap memory
+* `sun.misc.Unsafe` - very fast but unreliable, can cause exception. Fast - memory access operations are defined as HotSpot JVM intrinsics and optimized by the JIT compiler. Dangerous - it allows access to any memory location, so java can crash JVM by accessing already freed memory. You can use this code to fetch off-heap memory
 ```java
 MemorySegment offHeap  = MemorySegment.allocateNative(
                              MemoryLayout.ofSequence(javaStrings.length,
