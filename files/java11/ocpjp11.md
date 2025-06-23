@@ -4847,6 +4847,7 @@ How ConcurrentHashMap works:
 * `concurrencyLevel` - third param to constructor (first two `capacity` & `loadFactor` same as for `HashMap`) - estimated number of concurrently updating threads (by default 16)
 * so all buckets divided into 16 (or more) lock zones and only specific zone is blocked during create/update (reads are not blocked). So 16 threads can modify map given they work on different buckets
 * under-the-hood it uses a combination of `synchronized` for writing (put/remove/clear) and `Unsafe` for reading(get) to ensure data consistency. Using of `Unsafe` for get, allows to read data without any locking. For `Unsafe` 3 methods are used `getReferenceAcquire/putReferenceRelease/compareAndSetReference`
+* so we use `ReentranLock` for writing, but volatile semantic with `Unsafe` for lock-free reading. That's why it may be confusing, why do you need synchronized+volatile, but exactly for this reason. You need `volatile` semantic for lock-free reading, but for correc writing you still use `synchronized`.
 * `HashMap` is fail-fast, but `ConcurrentHashMap` is fail-safe
 ```java
 import java.util.HashMap;
@@ -8558,7 +8559,7 @@ There are 2 ways for producer-consumer problem:
 To summarize reactive is when consumer decide when to handle next item, by signalling it to producer, and it's the job of producer to handle
 multiple consumers, based on their speed.
 Notice that java9 is very open, for `Publisher` there is only 1 method to implement `subscribe`, the actual `publish` implementation
-is up to you, in case of SubmissionPublisher it called `submit`.
+is up to you, in case of `SubmissionPublisher` it called `submit`.
 It's under `java.util.concurrent` package, cause handle multiple consumers based on their speed, required some concurrency/buffering handling.
 For transformation, we have `Processor` interface which is both consumer & producer, and you need to implement both, first to consume items,
 transform inside, and then publish to another consumer.
@@ -11629,8 +11630,8 @@ addr1.equals(addr2) => true
 ```
 
 ###### Garbage collector and Weak References
-GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run gc, but not ensures that it would actually run.
-gc compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
+GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.
+GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
 ```java
 public class App {
     public static void main(String[] args) {
@@ -11707,9 +11708,9 @@ done
 ```
 Java has concept of strong/weak/soft/phantom reference:
 * strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
-* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects
+* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects. This is useful if you don't want to use `finalize`, wih such a reference, you can poll the queue and if it contains object - that means such object was garbage collected, you can add custom finalizing logic
 * weak - becomes null after calling `System.gc()`
-* soft - still holds object after gc called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
+* soft - still holds object after GC called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
 ```java
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -11720,7 +11721,7 @@ public class App {
     public static void main(String[] args) {
         WeakReference<Object> weakReference = new WeakReference<>(new Object());
         SoftReference<Object> softReference = new SoftReference<>(new Object());
-        ReferenceQueue queue = new ReferenceQueue<>();
+        ReferenceQueue<Object> queue = new ReferenceQueue<>();
         PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
         System.out.println("weakReference => " + weakReference.get());
         System.out.println("softReference => " + softReference.get());
