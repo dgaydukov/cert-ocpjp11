@@ -82,31 +82,31 @@
 * 11.3 [Locale and ResourceBundle](#locale-and-resourcebundle)
 * 11.4 [Assertions](#assertions)
 * 11.5 [Object interning](#object-interning)
-* 11.6 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
-* 11.7 [Annotations](#annotations)
-* 11.8 [Reflection API](#reflection-api)
-    * 11.8.1 [Get param names](#get-param-names)
-* 11.9 [Compile Time Annotation Processor](#compile-time-annotation-processor)
-* 11.10 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
-* 11.11 [JMX (java management extension)](#jmx-java-management-extension)
-* 11.12 [Custom ClassLoader](#custom-classloader)
-* 11.13 [Desktop](#desktop)
-* 11.14 [Java Servlet WebApp](#java-servlet-webapp)
-* 11.15 [Java Virtual Methods](#java-virtual-methods)
-* 11.16 [Class Diagram](#class-diagram)
-* 11.17 [Remote debugging](#remote-debugging)
-* 11.18 [Junit Testing](#junit-testing)
+* 11.6 [Annotations](#annotations)
+* 11.7 [Reflection API](#reflection-api)
+    * 11.7.1 [Get param names](#get-param-names)
+* 11.8 [Compile Time Annotation Processor](#compile-time-annotation-processor)
+* 11.9 [JDK Proxy, Cglib, Javassist](#jdk-proxy-cglib-javassist)
+* 11.10 [JMX (java management extension)](#jmx-java-management-extension)
+* 11.11 [Custom ClassLoader](#custom-classloader)
+* 11.12 [Desktop](#desktop)
+* 11.13 [Java Servlet WebApp](#java-servlet-webapp)
+* 11.14 [Java Virtual Methods](#java-virtual-methods)
+* 11.15 [Class Diagram](#class-diagram)
+* 11.16 [Remote debugging](#remote-debugging)
+* 11.17 [Junit Testing](#junit-testing)
 12. [Low latency](#low-latency)
 * 12.1 [CPU and Cache](#cpu-and-cache)
 * 12.2 [Compiler Design](#compiler-design)
 * 12.3 [Java memory model](#java-memory-model)
-* 12.4 [Garbage collector](#garbage-collector)
-* 12.5 [Encoding](#encoding)
-* 12.6 [Floating Point Number](#floating-point-numbers)
-* 12.7 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
-* 12.8 [Linked lists](#linked-lists)
-* 12.9 [Low latency logging](#low-latency-logging)
-* 12.10 [Low latency collections](#low-latency-collections)
+* 11.4 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
+* 12.5 [Garbage collector](#garbage-collector)
+* 12.6 [Encoding](#encoding)
+* 12.7 [Floating Point Number](#floating-point-numbers)
+* 12.8 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
+* 12.9 [Linked lists](#linked-lists)
+* 12.10 [Low latency logging](#low-latency-logging)
+* 12.11 [Low latency collections](#low-latency-collections)
 13. [New Java Versions](#new-java-versions)
 * 13.1 [Java 16](#java-16)
 * 13.2 [Java 17](#java-17)
@@ -11629,145 +11629,6 @@ addr1 == addr2 => true
 addr1.equals(addr2) => true
 ```
 
-###### Garbage collector and Weak References
-GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.
-GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
-```java
-public class App {
-    public static void main(String[] args) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("run when jvm exits");
-        }));
-        My my = new My();
-        my = null;
-        System.gc();
-        sleep(1);
-        System.out.println("done");
-    }
-    public static void sleep(long sec){
-        try {
-            Thread.sleep(sec * 1000);
-        } catch (InterruptedException ex) {
-            System.out.println("ERR: " + ex);
-        }
-    }
-}
-class My{
-    public My(){
-        System.out.println("object of type My has been created");
-    }
-    protected void finalize() throws Throwable {
-        System.out.println("object of type My has been garbage-collected");
-    }
-}
-```
-```
-object of type My has been created
-object of type My has been garbage-collected
-done
-run when jvm exits
-```
-`finalize` - became deprecated since Java9. You should use `Cleaner` instead.
-```java
-public class App {
-    public static void main(String[] args) {
-        Cleaner cleaner = Cleaner.create();
-        My my = new My();
-        cleaner.register(my, ()->{
-            System.out.println("object of type My has been garbage-collected");
-        });
-        my = null;
-        // some memory-intensive allocation
-        for (int i = 1; i <= 10; i++) {
-            int[] a = new int[10_000_000];
-            System.out.println(i);
-        }
-        System.out.println("done");
-    }
-}
-class My{
-    public My(){
-        System.out.println("object of type My has been created");
-    }
-}
-```
-```
-object of type My has been created
-1
-2
-object of type My has been garbage-collected
-3
-4
-5
-6
-7
-8
-9
-10
-done
-```
-Java has concept of strong/weak/soft/phantom reference:
-* strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
-* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects. This is useful if you don't want to use `finalize`, wih such a reference, you can poll the queue and if it contains object - that means such object was garbage collected, you can add custom finalizing logic
-* weak - becomes null after calling `System.gc()`
-* soft - still holds object after GC called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
-```java
-import java.lang.ref.PhantomReference;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
-
-public class App {
-    public static void main(String[] args) {
-        WeakReference<Object> weakReference = new WeakReference<>(new Object());
-        SoftReference<Object> softReference = new SoftReference<>(new Object());
-        ReferenceQueue<Object> queue = new ReferenceQueue<>();
-        PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
-        System.out.println("weakReference => " + weakReference.get());
-        System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
-        System.gc();
-        System.out.println("weakReference => " + weakReference.get());
-        System.out.println("softReference => " + softReference.get());
-        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
-    }
-}
-```
-```
-weakReference => java.lang.Object@1b28cdfa
-softReference => java.lang.Object@eed1f14
-phantomReference => null, queue => null
-weakReference => null
-softReference => java.lang.Object@eed1f14
-phantomReference => null, queue => java.lang.ref.PhantomReference@6acbcfc0
-```
-You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed. So when key is garbage-collected, it removed from hashmap automatically.
-Use it if you want im-memory cache, but want objects to be removed from cache, once they are not used (once they have been garbage collected)
-```java
-import java.util.Map;
-import java.util.WeakHashMap;
-
-public class App {
-    public static void main(String[] args){
-        Map<Object, Integer> map = new WeakHashMap<>();
-        Object obj = new Object();
-        map.put(obj, 1);
-        obj = null;
-        System.gc();
-        // since it's not guarantee that garbage collector would be called immediately, we would iterate for some time
-        for(int i = 0; i < 1_000_000; i++){
-            if(map.isEmpty()){
-                System.out.println("done => " + i);
-                break;
-            }
-        }
-    }
-}
-```
-```
-done => 185
-```
-
 ###### Annotations
 `@Override` can only be used for instance methods. Since we don't override static methods and both instance & static variables (we hide them) you can't use this annotation.
 ```java
@@ -13100,6 +12961,145 @@ Memory barrier or memory fence - special instruction that requires CPU or compil
    Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
+
+###### Garbage collector and Weak References
+GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.
+GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
+```java
+public class App {
+    public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("run when jvm exits");
+        }));
+        My my = new My();
+        my = null;
+        System.gc();
+        sleep(1);
+        System.out.println("done");
+    }
+    public static void sleep(long sec){
+        try {
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException ex) {
+            System.out.println("ERR: " + ex);
+        }
+    }
+}
+class My{
+    public My(){
+        System.out.println("object of type My has been created");
+    }
+    protected void finalize() throws Throwable {
+        System.out.println("object of type My has been garbage-collected");
+    }
+}
+```
+```
+object of type My has been created
+object of type My has been garbage-collected
+done
+run when jvm exits
+```
+`finalize` - became deprecated since Java9. You should use `Cleaner` instead.
+```java
+public class App {
+    public static void main(String[] args) {
+        Cleaner cleaner = Cleaner.create();
+        My my = new My();
+        cleaner.register(my, ()->{
+            System.out.println("object of type My has been garbage-collected");
+        });
+        my = null;
+        // some memory-intensive allocation
+        for (int i = 1; i <= 10; i++) {
+            int[] a = new int[10_000_000];
+            System.out.println(i);
+        }
+        System.out.println("done");
+    }
+}
+class My{
+    public My(){
+        System.out.println("object of type My has been created");
+    }
+}
+```
+```
+object of type My has been created
+1
+2
+object of type My has been garbage-collected
+3
+4
+5
+6
+7
+8
+9
+10
+done
+```
+Java has concept of strong/weak/soft/phantom reference:
+* strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
+* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects. This is useful if you don't want to use `finalize`, wih such a reference, you can poll the queue and if it contains object - that means such object was garbage collected, you can add custom finalizing logic
+* weak - becomes null after calling `System.gc()`
+* soft - still holds object after GC called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
+```java
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+
+public class App {
+    public static void main(String[] args) {
+        WeakReference<Object> weakReference = new WeakReference<>(new Object());
+        SoftReference<Object> softReference = new SoftReference<>(new Object());
+        ReferenceQueue<Object> queue = new ReferenceQueue<>();
+        PhantomReference<Object> phantomReference = new PhantomReference<>(new Object(), queue);
+        System.out.println("weakReference => " + weakReference.get());
+        System.out.println("softReference => " + softReference.get());
+        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
+        System.gc();
+        System.out.println("weakReference => " + weakReference.get());
+        System.out.println("softReference => " + softReference.get());
+        System.out.println("phantomReference => " + phantomReference.get() + ", queue => " + queue.poll());
+    }
+}
+```
+```
+weakReference => java.lang.Object@1b28cdfa
+softReference => java.lang.Object@eed1f14
+phantomReference => null, queue => null
+weakReference => null
+softReference => java.lang.Object@eed1f14
+phantomReference => null, queue => java.lang.ref.PhantomReference@6acbcfc0
+```
+You can use `WeakHashMap` if you want your keys to be garbage collected after their references has been removed. So when key is garbage-collected, it removed from hashmap automatically.
+Use it if you want im-memory cache, but want objects to be removed from cache, once they are not used (once they have been garbage collected)
+```java
+import java.util.Map;
+import java.util.WeakHashMap;
+
+public class App {
+    public static void main(String[] args){
+        Map<Object, Integer> map = new WeakHashMap<>();
+        Object obj = new Object();
+        map.put(obj, 1);
+        obj = null;
+        System.gc();
+        // since it's not guarantee that garbage collector would be called immediately, we would iterate for some time
+        for(int i = 0; i < 1_000_000; i++){
+            if(map.isEmpty()){
+                System.out.println("done => " + i);
+                break;
+            }
+        }
+    }
+}
+```
+```
+done => 185
+```
 
 ###### Garbage collector
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
