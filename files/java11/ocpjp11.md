@@ -7997,7 +7997,7 @@ public class App {
 r1 has acquired o1: pool-1-thread-1
 r2 has acquired o2: pool-1-thread-2
 ```
-As you see r1 => got o1 and trying to get o2. At the same time r2 => got o2 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
+As you see r1 got o1 and trying to get o2. At the same time r2 got o2 and trying to get o1. sleep for 100ms is used to insure that both will get hold of resources.
 Real-world example of deadlock is transfer balance in account. If 2 users decided to transfer money to each other, and it would be processed by 2 different threads you may risk deadlock. That's why in trading systems, we prefer to use single-threaded app to process all balances.
 ```java
 public class App {
@@ -8032,7 +8032,7 @@ class Account {
 }
 ```
 There are 3 ways to get jvm process thread dump. But first we need to get processId.
-We can get it in 2 ways
+We can get it in 2 ways (As you see jvm can help us by showing the problems):
 1. run `jps` - will display all java processes id and names
 ```
 22634 Main
@@ -8072,7 +8072,45 @@ Java stack information for the threads listed above:
 
 Found 1 deadlock.
 ```
-As you see jvm can help us by showing the problems.
+How to resolve deadlock problem:
+* instead of locks - use high-level concurrency objects like `BlockingQueue` or `ConcurrentHashMap`
+* minimize the use of nested locks including `synchronized` keyword - because deadlock only possible in nested locks
+* if you have to use nested locks - establish global order for lock acquisition.
+  * we can refactor our code based on `hashcode` - see example below
+* use `tryLock` or `tryLock(long time, TimeUnit unit)` from the `Lock` interface - this is non-blocking version of `lock`, it returns immediately (or wait for timeout). So you have to add `if/else` condition, but using it would prevent deadlock, because if thread is busy, then it would just return false, and you may proceed forward. This code is non-blocking, so you don't wait.
+* If your app stuck in deadlock - the only way is to restart (assuming you fixed the code, otherwise after restart, the app would be stuck again)
+
+Global order of calling to avoid deadlock
+```java
+public void transfer(Account from, Account to, int amount) {
+    int fromHash = System.identityHashCode(fromAccount);
+    int toHash = System.identityHashCode(toAccount);
+
+    if (fromHash < toHash) {
+        synchronized (fromAccount) {
+            synchronized (toAccount) {
+                // do actual transfer
+            }
+        }
+    } else if (fromHash > toHash) {
+        synchronized (toAccount) {
+            synchronized (fromAccount) {
+              // do actual transfer
+            }
+        }
+    } else {
+        // if hashcode equals, introduce third locking
+        synchronized (sameHashCodeLock) {
+            synchronized (fromAccount) {
+                synchronized (toAccount) {
+                  // do actual transfer
+                }
+            }
+        }
+    }
+}
+```
+
 Livelock - is a special case of deadlock, can occur, when you try to solve deadlock by checking if another lock is unlocked inside `while` loop.
 ```java
 import java.util.concurrent.ExecutorService;
