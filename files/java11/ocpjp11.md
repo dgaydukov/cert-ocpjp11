@@ -13715,6 +13715,33 @@ Thread 4 released
 ```
 As you see originally all 4 thread runs in parallel, but only 1 get into execution, all others are wait, then one-by-one each thread acquire lock execute, white others wait.
 
+ABA problem:
+* common problem for lock-free algo - when you use CAS you try to change value only if previous value hasn't change
+* the edge case is that value is changed twice by other thread, but second change return value to original state - by this first thread see that value still holds original value, and proceed with CAS, but in reality this value is not old but new value after 2 changes.
+* this problem is scenario based, because sometimes we don't care as long as A=A, but sometimes, it's important, cause if value was modified twice and returned to previous value, it's not the same as value wasn't modified at all
+How to resolve:
+* use of GC - when GC run it clean links and modified object may have new address
+* double CAS - where we use 2 variables for CAS, the value itself + its version. In this case version would be increased on 2, and CAS would fail - 2 ways:
+  * `AtomicStampedReference` - have a reference to object and a version, so we can atomically update 2 objects - both our value + int version
+  * `AtomicMarkableReference` - have a reference to object and a boolean, so we can atomically update 2 objects - both our value + boolean flag
+```java
+import java.util.concurrent.atomic.AtomicMarkableReference;
+import java.util.concurrent.atomic.AtomicStampedReference;
+
+public class App {
+  public static void main(String[] args) {
+    int balance = 100;
+    int version = 0;
+    AtomicStampedReference<Integer> account = new AtomicStampedReference<>(balance, version);
+    account.compareAndSet(balance, balance + 100, version, version + 1);
+
+    boolean changed = false;
+    AtomicMarkableReference<Integer> account2 = new AtomicMarkableReference<>(balance, changed);
+    account2.compareAndSet(balance, balance + 100, changed, !changed);
+  }
+}
+```
+
 MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster than Reflection API, cause there is direct support in JVM.
 ```java
 public class App {
