@@ -8111,6 +8111,33 @@ public void transfer(Account from, Account to, int amount) {
 }
 ```
 
+Double-checked locking:
+* design pattern mostly used in lazy initialization (usually for singleton pattern)
+* the idea is that we put not whole method into `synchronized` but only critical part, moreover have double check within this critical part
+* The double-checked pattern is used to avoid obtaining the lock every time the code is executed. If the call are not happening together then the first condition will fail and the code execution will not execute the locking thus saving resources
+* use of local variable `localRef` may offer performance optimization: local variable makes sure we read `volatile` value only once. Because each read of volatile variable call memory barrier, if we rewrite code without local varables, then we would have 3 times call for `volaile` variable. This is not good for performance. So using local variable helps to avoid this and instead call it only once. The basic thing is that accessing the volatile variable is slower, than accessing the local one. When you declare a local variable, you are basically caching the value of a volatile variable inside the method
+```java
+// Works with acquire/release semantics for volatile in Java 1.5 and later
+// Broken under Java 1.4 and earlier semantics for volatile
+class Foo {
+    private volatile Helper helper;
+    public Helper getHelper() {
+        Helper localRef = helper;
+        if (localRef == null) {
+            synchronized (this) {
+                localRef = helper;
+                if (localRef == null) {
+                    helper = localRef = new Helper();
+                }
+            }
+        }
+        return localRef;
+    }
+
+    // other functions and members...
+}
+```
+
 Livelock - is a special case of deadlock, can occur, when you try to solve deadlock by checking if another lock is unlocked inside `while` loop.
 ```java
 import java.util.concurrent.ExecutorService;
