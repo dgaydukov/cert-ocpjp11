@@ -13724,6 +13724,7 @@ How to resolve:
 * double CAS - where we use 2 variables for CAS, the value itself + its version. In this case version would be increased on 2, and CAS would fail - 2 ways:
   * `AtomicStampedReference` - have a reference to object and a version, so we can atomically update 2 objects - both our value + int version
   * `AtomicMarkableReference` - have a reference to object and a boolean, so we can atomically update 2 objects - both our value + boolean flag
+  * under-the-hood both using `VarHandle.compareAndSet` where they store object+int (or object+boolean) as pair, and just CAS single object (but this object is a pair of <V, int> or <V, boolean>)
 ```java
 import java.util.concurrent.atomic.AtomicMarkableReference;
 import java.util.concurrent.atomic.AtomicStampedReference;
