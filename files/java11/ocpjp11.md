@@ -13719,9 +13719,11 @@ ABA problem:
 * common problem for lock-free algo - when you use CAS you try to change value only if previous value hasn't change
 * the edge case is that value is changed twice by other thread, but second change return value to original state - by this first thread see that value still holds original value, and proceed with CAS, but in reality this value is not old but new value after 2 changes.
 * this problem is scenario based, because sometimes we don't care as long as A=A, but sometimes, it's important, cause if value was modified twice and returned to previous value, it's not the same as value wasn't modified at all
+* Imagine a lock-free linked list where nodes are added or removed using CAS operations on pointers. If a node is removed and then a new node is added at the exact same memory address, a thread that had previously read the pointer to the old node might still believe it's referencing the correct, original node when it attempts a CAS operation
+* To conclue this ABA problem is only applicable to kind-of linked list implementations, and in many cases for lock-free it's not a problem (for example balance update)
 How to resolve:
 * use of GC - when GC run it clean links and modified object may have new address
-* double CAS - where we use 2 variables for CAS, the value itself + its version. In this case version would be increased on 2, and CAS would fail - 2 ways:
+* Tagged Pointers or double CAS - where we use 2 variables for CAS, the value itself + its version. In this case version would be increased on 2, and CAS would fail - 2 ways:
   * `AtomicStampedReference` - have a reference to object and a version, so we can atomically update 2 objects - both our value + int version
   * `AtomicMarkableReference` - have a reference to object and a boolean, so we can atomically update 2 objects - both our value + boolean flag
   * under-the-hood both using `VarHandle.compareAndSet` where they store object+int (or object+boolean) as pair, and just CAS single object (but this object is a pair of <V, int> or <V, boolean>)
@@ -13742,6 +13744,23 @@ public class App {
   }
 }
 ```
+
+`ThreadLocal` - special class that allows you to access variable only by local thread. ThreadLocal is a reference to data within a given Thread, you can end up with classloading leaks when using ThreadLocals in application servers using thread pools. The result of following code is always 0, because values set in other threads would only be valid in those other threads
+```java
+public class App {
+    public static void main(String[] args) throws InterruptedException {
+        ThreadLocal<Integer> local = new ThreadLocal<>();
+        local.set(0);
+        for (int i = 1; i <= 10; i++) {
+            final int v = i;
+            new Thread(()->local.set(v)).start();
+        }
+        Thread.sleep(1000);
+        System.out.println(local.get());
+    }
+}
+```
+
 
 MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster than Reflection API, cause there is direct support in JVM.
 ```java
