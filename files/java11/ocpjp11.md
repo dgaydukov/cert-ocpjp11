@@ -51,10 +51,11 @@
 * 7.5 [Synchronizers](#synchronizers)
 * 7.6 [Concurrent collections](#concurrent-collections)
 * 7.7 [Deadlock and Livelock](#deadlock-and-livelock)
-* 7.8 [Synchronized on ID](#synchronized-on-id)
-* 7.9 [Future & CompletableFuture](#future--completablefuture)
-* 7.10 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
-* 7.11 [Reactive Streams](#reactive-streams)
+* 7.8 [Readers–writers problem](#readerswriters-problem)
+* 7.9 [Synchronized on ID](#synchronized-on-id)
+* 7.10 [Future & CompletableFuture](#future--completablefuture)
+* 7.11 [ReentrantLock/ReentrantReadWriteLock/StampedLock](#reentrantlockreentrantreadwritelockstampedlock)
+* 7.12 [Reactive Streams](#reactive-streams)
 8. [JDBC and SQl](#jdbc-and-sql)
 * 8.1 [Connection](#connection)
 * 8.2 [Statement and PreparedStatement](#statement-and-preparedstatement)
@@ -7721,7 +7722,7 @@ As you can see `fork/jon` framework always divide task on 2, and start to run fi
 ###### Synchronizers
 Don't confuse:
 * `Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
-* `Semaphore` - can acquire and release locks. Once all lock acquired all thread waiting to get lock. Once you release some, other waiting threads proceeds. If you release locks they are added. So if you created semaphore with 10 locks, acquired 5, and then released 10 => you have 15 now.
+* `Semaphore` - use it when you want a resource to be shared between n number of threads concurrently. A Semaphore is initialized with a specific number of permits, representing the maximum number of threads that can concurrently access the shared resource. Threads that wish to access the resource must first acquire() a permit. If no permits are available, the thread blocks until a permit is released by another thread.
 * `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken, and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
 * `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you count down, and then all threads are released
 you don't need to wait until threads reach some point, you can count down on any algo, but once you count down to 0, all your threads proceed further
@@ -8357,6 +8358,65 @@ class CustomMRSW<T> implements MultipleReadsSingleWrite<T>{
     @Override
     public int size() {
         return list.size();
+    }
+}
+```
+
+###### Readers–writers problem
+Mutex (mutual exclusion) - logical concept in concurrent programming that allows exclusive access to the section of the code by only 1 thread-at-a-time
+There are several access pattern for concurrent app:
+* single writer - single reader: no problem here, just use `mutex`, only 1 thread can access resource
+* many writers - single reader: no problem, just use `mutex`, only 1 thread can access resource
+* single/many writers - many readers: here we may have a problem - if we have many readers, it doesn't make sense for them to wait each other. Because they only read, they can all access the object at the same time.
+To resave this problem with multiple readers we have come up with 3 solutions. But before we goes deeper, let's set up 2 constraints:
+* writing is exclusive operation - when a thread is writing, nobody can write/read
+* reading is shared with other reading but exclusive to writing - many threads can read at the same time, but if at least one is reading not writes are possible. Important point here is that read-write are exclusive. This is done to avoid partial reading. Imagine a thread writing and another thread reading or vice-versa. In this case reading thread may read partial/incomplete data.
+3 ways to solve readers-writers problem:
+* Reader preference:
+  * if writing thread writes, nobody can read/write
+  * if at least one thread reading, writing thread waiting to acquire the lock
+  * once no thread reading, writing thread may acquire the lock and start writing
+  * this is achieved with 2 locks, one for write another for read, and when we read, we use variable `readCount` to see how many readers currently reading, and if at least one is reading we keep the write lock. Once we see that no readers we release write lock 
+  * this solution gives priority to readers, and may lead to write starvation - writing thread wait long enough to get lock on resource and start writing
+  * java `ReadWriteLock` with Non-fair mode use this design pattern
+* Writer preference:
+  * 
+
+Reader preference solution source code:
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+public class App {
+    public static void main(String[] args) {
+
+    }
+
+    private ReentrantLock writeLock = new ReentrantLock();
+    private ReentrantLock readLock = new ReentrantLock();
+    private int readCount = 0;
+    void criticalSection(){
+
+    }
+
+    void write(){
+        writeLock.lock();
+        criticalSection();
+        writeLock.unlock();
+    }
+
+    void read(){
+        readLock.lock();
+        if (readCount++ == 1){
+            writeLock.lock();
+        }
+        readLock.unlock();
+        criticalSection();
+
+        readLock.lock();
+        if (readCount-- == 0){
+            writeLock.unlock();
+        }
+        readLock.unlock();
     }
 }
 ```
