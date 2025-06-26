@@ -8380,7 +8380,12 @@ To resave this problem with multiple readers we have come up with 3 solutions. B
   * this solution gives priority to readers, and may lead to write starvation - writing thread wait long enough to get lock on resource and start writing
   * java `ReadWriteLock` with Non-fair mode use this design pattern
 * Writer preference:
-  * 
+  * similar concept as first one, but now writes has priority
+  * the code is similar with 4 locks, where all writes write first then readers can read
+  * may lead to reader starvation, because writes always have the priority
+* Fair preference (no thread shall be allowed to starve):
+  * both readers and writes access the resource fair
+  * The code is similar to first one, but we introduce third mutex - fairness, and based on this reader/writer get access to critical section
 
 Reader preference solution source code:
 ```java
