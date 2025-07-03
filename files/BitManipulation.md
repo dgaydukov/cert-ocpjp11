@@ -6,6 +6,7 @@
 * [Utility](#utility)
   * [AND](#and)
   * [XOR](#xor)
+  * [Bit masking](#bit-masking)
 * [Tricks](#tricks)
     * [Odd or even](#odd-or-even)
     * [Power of 2](#power-of-2)
@@ -36,6 +37,18 @@ You can use this code in java `n % flag > 0`
 This operation has several properties that can be reused:
 * `x ^ y = z  => x ^ z = y`
 * `x ^ x = 0`, `x ^ 0 = x`
+
+##### Bit masking
+bit mask - a pattern of bit that we can apply to any binary, usually used for storing flags and "rights". For example for 8bit, you can store up to 8 flags or permissions. And mask is specific permission, for example if second bit is allowed. This is our mask. Using bitwise operations we can apply mask to data to check or set if our data has mask inside.
+* apply mask: `data | mask`
+* clear mask: `data & ~mask`
+* toggle mask: `data ^ mask`
+Let's consider this example. we have 4 bit data=8, and we want to apply mask=4.
+```
+8 => 1000
+4 => 0100
+     1100 => 12 # now our value include bit 4 or third bit from right is set to 0
+```
 
 ### Tricks
 ##### Odd or even
