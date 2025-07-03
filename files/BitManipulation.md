@@ -3,6 +3,9 @@
 ### Content
 
 * [Basics](#basics)
+* [Utility](#utility)
+  * [AND](#and)
+  * [XOR](#xor)
 * [Tricks](#tricks)
     * [Odd or even](#odd-or-even)
     * [Power of 2](#power-of-2)
@@ -19,6 +22,20 @@ There are 6 bit manipulation operators:
 * `>>`  (shifts the bits of the number to the right by n) - equivalent to dividing the number by 2 for each shift
 * `>>>` (shifts the bits to the right, filling the leftmost bits with zeroes)
 
+### Utility
+##### AND
+bitmask is when you pack a ton of boolean values into a single integer and then use a bitwise AND to mask the single bit you are interested in. For example you have 4 flags, you can store them in 4bit number, and max is 16. Now you can use AND operation to immediately see if flag is allowed in your operation or not.
+```
+16 => 1111
+4  => 0100
+      0100 => 4 # so flag 4 is inside 16
+```
+You can use this code in java `n % flag > 0`
+
+##### XOR
+This operation has several properties that can be reused:
+* `x ^ y = z  => x ^ z = y`
+* `x ^ x = 0`, `x ^ 0 = x`
 
 ### Tricks
 ##### Odd or even
@@ -91,7 +108,7 @@ We can reverse bits of number from right to left. For example:
 12 => 1100 => reverse => 0011 => 3
 15 => 1111 => reverse => 1111 => 15
 ```
-This is java example
+Of course, we can convert number to binary, then iterate over it, and construct new binary with reversed bits and then convert back to binary. But we can use binary math to do it simpler.
 ```java
 int reverse(int n){
     int r = 0;
@@ -102,3 +119,33 @@ int reverse(int n){
     return r;
 }
 ```
+
+##### Binary swapping
+The first lesson on programming teaches how to swap 2 numbers. The most common way is to introduce third variable:
+```java
+void swap(){
+  int a = 5, b = 10;
+  int x = a;
+  a = b;
+  b = x;
+}
+```
+We can do the same, using math without third variable
+```java
+void swap(){
+    int a = 5, b = 10;
+    a = a + b;
+    b = a - b;
+    a = a - b;
+}
+```
+And of course we can use bit math ro resolve it without third variable
+```java
+void swap(){
+    int a = 5, b = 10;
+    a = a ^ b;
+    b = a ^ b;
+    a = a ^ b;
+}
+```
+To explain, how it works, we need to keep in mind that `A ^ A = 0`.
