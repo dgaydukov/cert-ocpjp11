@@ -14630,7 +14630,21 @@ With the attach functionality in JProfiler, you can select a running JVM and loa
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
 
 ###### JDK Versions
-If you run this code `System.out.println("java version => " + Runtime.getRuntime().version());` you will just get version number, like `java version => 21.0.5`. But if you want to know about your JDK vendor, you have to run console command `java --version`. In this case you will see both version and JDK build details.
+If you run this code:
+```java
+System.out.println(System.getProperty("java.version"));
+System.out.println(System.getProperty("java.vendor"));
+System.out.println(System.getProperty("java.vm.name"));
+System.out.println(System.getProperty("java.home"));
+```
+And get this output:
+```shell
+21.0.7
+Oracle Corporation
+Java HotSpot(TM) 64-Bit Server VM
+/Library/Java/JavaVirtualMachines/jdk-21.0.7.jdk/Contents/Home
+```
+But if you run console command `java --version`, you can see all the output from console including versions and JDK build.
 Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my macos terminal, I can see this:
 ```shell
 # java 8 (AdoptOpenJDK)
@@ -14663,7 +14677,12 @@ java version "21.0.7" 2025-04-15 LTS
 Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
 Java HotSpot(TM) 64-Bit Server VM (build 21.0.7+8-LTS-245, mixed mode, sharing)
 ```
-As you see here I have OpenJDK from `Homebrew` and from `OpenJDK` and output is way different You can also download and use oracle JDK.
+As you see here I have JDK from `Homebrew` and from `OpenJDK`. You can also download and use many other JDK builds like:
+* Amazon Corretto
+* Azul Zulu
+* GraalVM
+* Eclipse Temurin
+* Microsoft Build of OpenJDK
 
 Don't confuse: OpenJDK vs HotSpot:
 * From Java 11 forward, Oracle JDK builds and OpenJDK builds will be essentially identical
