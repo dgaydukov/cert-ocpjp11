@@ -110,10 +110,11 @@
 * 12.11 [Low latency collections](#low-latency-collections)
 * 12.12 [Java Agent](#java-agent)
 13. [New Java Versions](#new-java-versions)
-* 13.1 [Java 16](#java-16)
-* 13.2 [Java 17](#java-17)
-* 13.3 [Java 21](#java-21)
-* 13.4 [Java 25](#java-25)
+* 13.1 [JDK Versions](#jdk-versions)
+* 13.2 [Java 16](#java-16)
+* 13.3 [Java 17](#java-17)
+* 13.4 [Java 21](#java-21)
+* 13.5 [Java 25](#java-25)
 
 
 #### Basics
@@ -14621,12 +14622,28 @@ With the attach functionality in JProfiler, you can select a running JVM and loa
 * memory analysis that requires references, such as solving a memory leak, is done in the heap walker. The heap walker takes a snapshot of the entire heap and analyzes it. This is an invasive operation that pauses the JVM - potentially for a long time - and requires a large amount of memory.
 * if you run `-XX:+HeapDumpOnOutOfMemoryError`, when JVM catch `OutOfMemoryError`, it would create file *.hprof file which you can open with Jprofiler and analyze
 * JFR (JDK Flight Recorder) is an event recorder built into the OpenJDK. It can be thought of as the software equivalent of a Data Flight Recorder (Black Box) in a commercial aircraft. It captures information about the JVM itself, and the application running in the JVM. There is a wide variety of data captured, for example method profiling, allocation profiling and garbage collection related events
-* The garbage collector probe has different views than the other probes and also uses a different data source. It does not obtain its data from the profiling interface of the JVM but uses JFR streaming to analyze GC-related events from the JDK flight recorder. Because of the dependency on JFR event streaming, the GC probe is only available when you profile Java 17 or higher on a Hotspot JVM
+* The garbage collector probe has different views than the other probes and also uses a different data source. It does not obtain its data from the profiling interface of the JVM, but uses JFR streaming to analyze GC-related events from the JDK flight recorder. Because of the dependency on JFR event streaming, the GC probe is only available when you profile Java 17 or higher on a Hotspot JVM
 * you can run it directly on prod and collect data, there are many comments in the internet where ppl used jprofiler for some time in prod and all is good.
 * IntelliJ has a nice profile, but it available only for ultimate version, it's not available for community edition
 
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
+
+###### JDK Versions
+Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. 
+```shell
+openjdk 21.0.5 2024-10-15
+OpenJDK Runtime Environment Homebrew (build 21.0.5)
+OpenJDK 64-Bit Server VM Homebrew (build 21.0.5, mixed mode, sharing)
+```
+As you see here I have OpenJDK from `Homebrew`. You can also download and use oracle JDK.
+
+Don't confuse: OpenJDK vs HotSpot:
+* From Java 11 forward, Oracle JDK builds and OpenJDK builds will be essentially identical
+* HotSpot is an implementation of the JVM concept. It was originally developed by Sun, and now it is owned by Oracle
+* So it's 2 different concept: HotSpot is a codename for JVM, and OpenJDK is a codename for Oracle JDK, which includes HotSpot
+* There are [many others JVM](https://en.wikipedia.org/wiki/List_of_Java_virtual_machines)
+
 
 ###### Java 16
 1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP, you will find this statement
