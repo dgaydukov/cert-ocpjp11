@@ -14690,6 +14690,26 @@ Don't confuse: OpenJDK vs HotSpot:
 * So it's 2 different concept: HotSpot is a codename for JVM, and OpenJDK is a codename for Oracle JDK, which includes HotSpot
 * There are [many others JVM](https://en.wikipedia.org/wiki/List_of_Java_virtual_machines)
 
+Switch Java versions on MacOS:
+* You can use `jenv` to switch between different java versions
+* see [instruction](https://gist.github.com/gramcha/81dcec3f1e4ce8cffd7f248d3e2a42a7)
+* Then you can download JDK from official oracle website and unzip them into `/Library/Java/JavaVirtualMachines` directory
+* Perform below operations to manage several JDK versions:
+```shell
+# check available JDK installation (get from here /Library/Java/JavaVirtualMachines)
+/usr/libexec/java_home -V
+
+# add JDK to jenv (add all available versions this way)
+jenv add /Library/Java/JavaVirtualMachines/jdk1.8.0_441.jdk/Contents/Home
+# view available JDK versions
+jenv versions
+# switch to specific JDK version
+jenv global 1.8.0.441
+
+# check java and maven version
+java -version
+mvn -version
+```
 
 ###### Java 16
 1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP, you will find this statement
