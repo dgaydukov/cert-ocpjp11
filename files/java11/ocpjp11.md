@@ -14630,13 +14630,40 @@ With the attach functionality in JProfiler, you can select a running JVM and loa
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
 
 ###### JDK Versions
-Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. 
+If you run this code `System.out.println("java version => " + Runtime.getRuntime().version());` you will just get version number, like `java version => 21.0.5`. But if you want to know about your JDK vendor, you have to run console command `java --version`. In this case you will see both version and JDK build details.
+Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my macos terminal, I can see this:
 ```shell
+# java 8 (AdoptOpenJDK)
+openjdk version "1.8.0_292"
+OpenJDK Runtime Environment (AdoptOpenJDK)(build 1.8.0_292-b10)
+OpenJDK 64-Bit Server VM (AdoptOpenJDK)(build 25.292-b10, mixed mode)
+# java 11 (Homebrew)
+openjdk version "11.0.25" 2024-10-15
+OpenJDK Runtime Environment Homebrew (build 11.0.25+0)
+OpenJDK 64-Bit Server VM Homebrew (build 11.0.25+0, mixed mode)
+# java 21 (Homebrew)
 openjdk 21.0.5 2024-10-15
 OpenJDK Runtime Environment Homebrew (build 21.0.5)
 OpenJDK 64-Bit Server VM Homebrew (build 21.0.5, mixed mode, sharing)
+
+# java8 (OpenJDK)
+java version "1.8.0_441"
+Java(TM) SE Runtime Environment (build 1.8.0_441-b07)
+Java HotSpot(TM) 64-Bit Server VM (build 25.441-b07, mixed mode)
+# java11 (OpenJDK)
+java version "11.0.26" 2025-01-21 LTS
+Java(TM) SE Runtime Environment 18.9 (build 11.0.26+7-LTS-187)
+Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.26+7-LTS-187, mixed mode)
+# java17 (OpenJDK)
+java version "17.0.14" 2025-01-21 LTS
+Java(TM) SE Runtime Environment (build 17.0.14+8-LTS-191)
+Java HotSpot(TM) 64-Bit Server VM (build 17.0.14+8-LTS-191, mixed mode, sharing)
+# java 21 (OpenJDK)
+java version "21.0.7" 2025-04-15 LTS
+Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
+Java HotSpot(TM) 64-Bit Server VM (build 21.0.7+8-LTS-245, mixed mode, sharing)
 ```
-As you see here I have OpenJDK from `Homebrew`. You can also download and use oracle JDK.
+As you see here I have OpenJDK from `Homebrew` and from `OpenJDK` and output is way different You can also download and use oracle JDK.
 
 Don't confuse: OpenJDK vs HotSpot:
 * From Java 11 forward, Oracle JDK builds and OpenJDK builds will be essentially identical
