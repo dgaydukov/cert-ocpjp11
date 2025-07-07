@@ -10890,15 +10890,21 @@ public class App {
             .map(i -> value.charAt(i) << (i * 8))
             .sum();
 
+    int reversed = Integer.reverseBytes(sum);
+
     try(DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-      System.out.println("Writing to file: int=" + sum);
-      writer.writeInt(sum);
+      System.out.println("Writing to file: originalInt=" + sum + " reversed=" + reversed);
+      // Writes an int to the underlying output stream as four bytes, high byte first
+      writer.writeInt(reversed);
       writer.flush();
     }
   }
 }
 ```
-Here we take a string of 4 chars, and convert it into int and calculate the sum, and write such int into output stream as int. The result if we open file it would contain `DCBA` because `writeInt` writes int value as int into ouput from right bytes.
+If you run:
+* console output: `Writing to file: originalInt=1145258561 reversed=1094861636`
+* file created `text.txt` would store `ABCD`
+* pay attention to `Integer.reverseBytes` we have to reverse bytes, otherwise we would write `DCBA`, because `writeInt/writeLon` right into output stream, from right to left. This is how they work.
 
 `PrintStream` vs `PrintWriter` - they both are used to write data to files. Difference the same as Writer/Stream. One for bytes, other for chars. Yet both have methods to write chars. `System.out` and `System.err` using PrintStream to write to console.
 PrintWriter has method `printf` - (overloaded can take just String or Locale and String) - that returns PrintWriter with specific locale and print input string param.
