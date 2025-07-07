@@ -10869,6 +10869,37 @@ PrintStream => java.io.FileNotFoundException: src/main/java/com/java/test/nonExi
 PrintWriter => java.io.FileNotFoundException: src/main/java/com/java/test/nonExistingDir/nonExistingFile (No such file or directory)
 ```
 
+Don't confuse:
+* DataOutputStream - to print data as bytes. So if you use any method like `writeInt/writeLong` - they will not write actual int/long values, but would write int/long into output, but it would be converted into bytes and store as bytes and if you open file, you will see weird characters.
+* PrintWriter - print strings into output.
+```java
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.stream.IntStream;
+
+public class App {
+  public static void main(String[] args) throws IOException {
+    File file = new File("src/main/java/com/java/test/text.txt");
+
+    String value = "ABCD";
+    int sum = IntStream.range(0, value.length())
+            .limit(4)
+            .map(i -> value.charAt(i) << (i * 8))
+            .sum();
+
+    try(DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
+      System.out.println("Writing to file: int=" + sum);
+      writer.writeInt(sum);
+      writer.flush();
+    }
+  }
+}
+```
+Here we take a string of 4 chars, and convert it into int and calculate the sum, and write such int into output stream as int. The result if we open file it would contain `DCBA` because `writeInt` writes int value as int into ouput from right bytes.
+
 `PrintStream` vs `PrintWriter` - they both are used to write data to files. Difference the same as Writer/Stream. One for bytes, other for chars. Yet both have methods to write chars. `System.out` and `System.err` using PrintStream to write to console.
 PrintWriter has method `printf` - (overloaded can take just String or Locale and String) - that returns PrintWriter with specific locale and print input string param.
 ```java
