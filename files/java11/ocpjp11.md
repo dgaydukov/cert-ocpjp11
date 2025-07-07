@@ -14710,6 +14710,19 @@ jenv global 1.8.0.441
 java -version
 mvn -version
 ```
+How `jenv` works:
+* for java to properly work we need to set up 2 env variables (this is true for all OS like Linux, MacOS, Windows):
+    * `JAVA_HOME` - points to JDK installation directory. You can directly assign new value to it, like: `JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-21.0.7.jdk/Contents/Home`
+    * `PATH` - should contain `$JAVA_HOME/bin` so we can run java commands like `java`, `javac`, `mvn`, etc. Here you must append java path to home, not to overwrite it, do like this this: `PATH=$JAVA_HOME/bin:$PATH`
+* so if you want to have multiple JDK versions, you can just play with `JAVA_HOME` and `PATH` variables, and you can switch between different java versions. But doing this can be cumbersome, so `jenv` is a tool that helps you to manage these variables and switch between different JDK versions easily. If you have `jenv` you can clearly see that both `JAVA_HOME` and `PATH` variables are set up by `jenv`, so you don't have to do it manually.
+```shell
+echo $JAVA_HOME
+/Users/diman/.jenv/versions/oracle64-21.0.7
+
+echo $PATH
+/Users/diman/.jenv/bin:{OTHER_PATH...}
+```
+As you see, this utility under-the-hood manage 2 env vars `JAVA_HOME` and `PATH`, so you can switch between different JDK versions easily.
 
 ###### Java 16
 1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP, you will find this statement
