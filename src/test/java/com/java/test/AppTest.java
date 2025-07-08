@@ -1,38 +1,44 @@
 package com.java.test;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class AppTest {
-    @ParameterizedTest
-    @MethodSource("getAllCars")
-    public void maxSpeedTest(Car car, int expectedSpeed) {
-        Assertions.assertEquals(expectedSpeed, car.speed(), "Max car speed should be: "+expectedSpeed);
+    @Test
+    public void testPerson(){
+        Clock clock = Mockito.mock(Clock.class);
+        Person person = new Person(clock);
+        Mockito.doAnswer(new Answer() {
+            private int count = 0;
+            public Object answer(InvocationOnMock invocation) {
+                return (long) ++count;
+            }
+        }).when(clock).getTimestamp();
+        Assertions.assertEquals("run at 1", person.run(), "run mismatch");
+        Assertions.assertEquals("swim at 2", person.swim(), "swim mismatch");
+        Assertions.assertEquals("dance at 3", person.dance(), "dance mismatch");
+    }
+}
+
+interface Clock {
+    long getTimestamp();
+}
+class Person {
+    private final Clock clock;
+    public Person(Clock clock) {
+        this.clock = clock;
     }
 
-    private static Stream<Arguments> getAllCars() {
-        return Stream.of(
-                Arguments.of(new FamilyCar(), 60),
-                Arguments.of(new SportCar(), 120)
-        );
+    public String run(){
+        return "run at " + clock.getTimestamp();
     }
-}
-
-interface Car {
-    int speed();
-}
-class FamilyCar implements Car {
-    @Override
-    public int speed() {
-        return 60;
+    public String swim(){
+        return "swim at " + clock.getTimestamp();
     }
-}
-class SportCar implements Car {
-    @Override
-    public int speed() {
-        return 120;
+    public String dance(){
+        return "dance at " + clock.getTimestamp();
     }
 }
