@@ -25,7 +25,7 @@ There are 6 bit manipulation operators:
 
 ### Utility
 ##### AND
-bitmask is when you pack a ton of boolean values into a single integer and then use a bitwise AND to mask the single bit you are interested in. For example you have 4 flags, you can store them in 4bit number, and max is 16. Now you can use AND operation to immediately see if flag is allowed in your operation or not.
+bitmask is when you pack a ton of boolean values into a single integer and then use a bitwise AND to mask the single bit you are interested in. For example, you have 4 flags, you can store them in 4bit number, and max is 16. Now you can use AND operation to immediately see if flag is allowed in your operation or not.
 ```
 16 => 1111
 4  => 0100
@@ -47,7 +47,7 @@ Let's consider this example. we have 4 bit data=8, and we want to apply mask=4.
 ```
 8 => 1000
 4 => 0100
-     1100 => 12 # now our value include bit 4 or third bit from right is set to 0
+OR   1100 => 12 # now our value include bit 4 or third bit from right is set to 0
 ```
 
 ### Tricks
