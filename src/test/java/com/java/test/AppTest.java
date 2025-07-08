@@ -1,16 +1,12 @@
-###### Junit Testing
-Junit Parametrized Tests:
-* you can test interface directly by providing it's implementations
-* You just create instances of the interface and feed them to your test
-* Check below code - as you see we create 2 instances of `Car` class but instead of creating 2 separate tests, we create single parametrized test that covers both scenarios.
-```java
+package com.java.test;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
-public class InterfaceTest {
+public class AppTest {
     @ParameterizedTest
     @MethodSource("getAllCars")
     public void maxSpeedTest(Car car, int expectedSpeed) {
@@ -40,4 +36,3 @@ class SportCar implements Car {
         return 120;
     }
 }
-```
