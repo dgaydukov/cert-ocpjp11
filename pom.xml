@@ -20,16 +20,7 @@
       <version>1.18.24</version>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>net.openhft</groupId>
-      <artifactId>chronicle-queue</artifactId>
-      <version>5.24ea1</version>
-    </dependency>
-    <dependency>
-      <groupId>net.openhft</groupId>
-      <artifactId>chronicle-map</artifactId>
-      <version>3.24ea0</version>
-    </dependency>
+
 
     <!-- testing dependencies -->
     <dependency>

@@ -14,7 +14,7 @@
 * 11 [Low latency logging](#low-latency-logging)
 * 12 [Low latency collections](#low-latency-collections)
 * 13 [Java Agent](#java-agent)
-
+* 14 [Java Object Layout](#java-object-layout)
 
 
 ### Basics
@@ -1785,3 +1785,14 @@ Jprofiler (use it as example, just to get better idea how profilers work):
 * The garbage collector probe has different views than the other probes and also uses a different data source. It does not obtain its data from the profiling interface of the JVM, but uses JFR streaming to analyze GC-related events from the JDK flight recorder. Because of the dependency on JFR event streaming, the GC probe is only available when you profile Java 17 or higher on a Hotspot JVM
 * you can run it directly on prod and collect data, there are many comments in the internet where ppl used jprofiler for some time in prod and all is good.
 * IntelliJ has a nice profile, but it available only for ultimate version, it's not available for community edition
+
+### Java Object Layout
+JOL - native tool from OpenJDK that helps you inspect memory and layout of objects in the heap. To use it add this OpenJDK dependency o your `pom.xml`:
+```xml
+<dependency>
+  <groupId>org.openjdk.jol</groupId>
+  <artifactId>jol-core</artifactId>
+  <version>0.17</version>
+</dependency>
+```
+If you print `VM.current().details()` you will see general rules for memory layout. One point to notice, that java uses byte to store single bit. So for `boolean[]` each value would be stored in separate byte.
