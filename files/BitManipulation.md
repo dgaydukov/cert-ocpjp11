@@ -27,7 +27,7 @@ There are 6 bit manipulation operators:
 ### BitSet
 * java class `java.util.BitSet` is used for bit manipulation
 * using `boolean[]` not good, because each boolean value would be stored as byte and will consume more memory
-* it uses a combination of int/log and bit-wise operations under-the-hood
+* it uses a combination of int/long and bit-wise operations under-the-hood - for example long - 8 bytes - 64 bits, you can use one long value as underlying storage for array of 64 bits. Of course if you need to store 1024 bits, you would need 16 long numbers. So you can use an array of 16 longs as underlying storage for 1024 bits.
 ```java
 import java.util.BitSet;
 

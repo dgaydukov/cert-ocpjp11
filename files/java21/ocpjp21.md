@@ -13,6 +13,55 @@ In this section we would take a look at java weird behavior and try to explain w
 * there is no subpackage concept, if you `import com.java.*` it will import only all classes, not all subpackages, so `import com.java.*.*` is invalid statement. you can't import package/class that doesn't exist
 * java expect project structure to map to package name, so when you compile with `javac` use `-d` option - it will direct compiler to create directory structure based on package names
 * if you have multiple java files and need to compile, first you need to compile independent class and then dependent. But you can pass all classes to compiler, and it would decide on dependency itself. You can call `javac -d . A.java B.java C.java` - compiler would compile all off them. Even simpler solution is `javac -d . *.java`
+* java has `pass-by-value` semantics because in both cases for primitive & reference type you pass actual value (either primitive value or value of memory address for reference type). Any variable just contain raw-number, and it's JVM job to interpret this number as either real number int/long/char in case for primitive type, or as memory address on the heap in case of reference type. But variable in java would always contain just raw number.
+* `int x = y = 1` is invalid, because initialization happens from left to right, `y` should be declared first.
+* variable created from auto-generated code starts from `_` or `$`.
+* literal - something that literally represent fixed value and can't be changed (for example value 5 can't be changed to anything else except integer value 5)
+
+
+compiler doesn't execute the code, only check the code for possible var declaration and initialization, that's explain this difference: in first and third example you can run code mentally in your head, and understand that it should compile, but compiler can't do it. It just sees 2 ifs (in example 3) and can't defer that value of `y` would be set with 100% certainty.
+```
+// not compiled
+int x = 0, y;
+if (x == 0){
+    y = 5;
+}
+System.out.println(y);
+
+// compiled fine
+int x = 0, y;
+if (x == 0){
+    y = 5;
+} else {
+    y = 10;
+}
+System.out.println(y);
+
+// not compiled
+        int x = 0, y;
+if (x == 0){
+    y = 5;
+}
+if (x != 0){
+    y = 10;
+}
+System.out.println(y);
+```
+
+Don't confuse:
+* statically-typed language - data type is defined during compile-time and can't change during runtime (in Java int can't be converted to boolean)
+* dynamically-typed language - where data type can be changed during runtime (in JavaScript there are no strong types, you can assign any value like int/boolean/String to variable)
+
+Java use the concept of default initialization. Look here: `a` and `b` would be initialized as 0. Yet `c` would not be initialized at all. This code would compile, but if you try later to use `c`, you will get compilation error: `java: variable c might not have been initialized`
+```java
+public class App {
+    static int a;
+    int b;
+    public static void main(String[] name){
+        int c;
+    }
+}
+```
 
 ###### Compilation unreachable statement
 ```
