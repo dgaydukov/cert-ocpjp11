@@ -3,6 +3,7 @@
 ### Content
 
 * [Basics](#basics)
+* [BitSet](#bitset)
 * [Utility](#utility)
   * [AND](#and)
   * [XOR](#xor)
@@ -22,6 +23,25 @@ There are 6 bit manipulation operators:
 * `<<`  (shifts the bits of the number to the left by n) - equivalent to multiplying the number by 2 for each shift
 * `>>`  (shifts the bits of the number to the right by n) - equivalent to dividing the number by 2 for each shift
 * `>>>` (shifts the bits to the right, filling the leftmost bits with zeroes)
+
+### BitSet
+* java class `java.util.BitSet` is used for bit manipulation
+* using `boolean[]` not good, because each boolean value would be stored as byte and will consume more memory
+* it uses a combination of int/log and bit-wise operations under-the-hood
+```java
+import java.util.BitSet;
+
+public class App {
+  public static void main(String[] args) {
+    BitSet set = new BitSet();
+    // sets bits from 20 to 30 to 1
+    set.set(20, 30);
+    // clear bit
+    set.clear(10);
+    set.flip(10);
+  }
+}
+```
 
 ### Utility
 ##### AND

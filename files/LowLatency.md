@@ -1796,3 +1796,45 @@ JOL - native tool from OpenJDK that helps you inspect memory and layout of objec
 </dependency>
 ```
 If you print `VM.current().details()` you will see general rules for memory layout. One point to notice, that java uses byte to store single bit. So for `boolean[]` each value would be stored in separate byte.
+If you run following code, you can see that array of 1024 boolean values take 1040 bytes in memory
+```java
+import org.openjdk.jol.info.ClassLayout;
+
+public class App {
+    public static void main(String[] args) {
+        boolean[] bits = new boolean[1024];
+        System.out.println(ClassLayout.parseInstance(bits).toPrintable());
+    }
+}
+```
+would print
+```
+[Z object internals:
+OFF  SZ      TYPE DESCRIPTION               VALUE
+  0   8           (object header: mark)     0x0000000000000001 (non-biasable; age: 0)
+  8   4           (object header: class)    0x00001ac8
+ 12   4           (array length)            1024
+ 16 1024   boolean [Z.<elements>             N/A
+Instance size: 1040 bytes
+Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
+```
+Yet with BitSet we would need only 144 bytes (instead of 1040)
+```java
+import org.openjdk.jol.info.GraphLayout;
+import java.util.BitSet;
+
+public class App {
+    public static void main(String[] args) {
+        BitSet bitSet = new BitSet(1024);
+        System.out.println(GraphLayout.parseInstance(bitSet).toPrintable());
+    }
+}
+```
+The result is
+```
+java.util.BitSet@5910e440d object externals:
+          ADDRESS       SIZE TYPE             PATH                           VALUE
+        44d795028         24 java.util.BitSet                                (object)
+        44d795040        144 [J               .words                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+```
