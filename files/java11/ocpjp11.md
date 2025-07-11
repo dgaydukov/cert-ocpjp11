@@ -105,7 +105,7 @@
 
 #### Basics
 ###### Variable Declarations
-Line separator. Java allows as many underscores as you want when separating digits
+Line separator. Java allows as many underscores as you want when separating digits. But you can't put underscore in the begginin or in the end.
 ```java
 class App {
     public static void main(String[] args) {
@@ -114,6 +114,10 @@ class App {
         int i3 = 1___0;
         int i4 = 1_____0;
         System.out.println(i1 + " " + i2 + " " + i3 + " " + i4);
+
+      float f1 = 1_0.0f;
+      // won't compile: illegal underscore
+      float f2 = 10_.0f;
     }
 }
 ```
@@ -132,7 +136,7 @@ public class App{
         int x1 = y1 = 10; // won't compile cause y1 is not defined
         
         int x2 = (x2 = 3) + 4;
-        // it' the same as int x2 = 3; x2 = x2 + 4; so x2 = 7
+        // it's the same as int x2 = 3; x2 = x2 + 4; so x2 = 7
         System.out.println(x);
 
         int a, b, c;
@@ -185,21 +189,57 @@ d/0 => Infinity
 i/0.0 => Infinity
 Exception in thread "main" java.lang.ArithmeticException: / by zero
 ```
-When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got Infinity. 
+When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got `Infinity`. You can also adding positive/negative `Infinity` to variable using `Double` class
+```
+double d1 = 1/0d;
+double d2 = Double.POSITIVE_INFINITY;
+System.out.println("d1="+d1+", d2="+d2);
+```
+```
+d1=Infinity, d2=Infinity
+```
 
-We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 32 bits, both use 1 bit to store sign(+ or -), but int store all digit so max value is 2**31, but float use 8 bit store exponent (so max exponent value = 127, and 2**127 is the max value to store) and 23 bits to store floating value. Since floating value would be 1-2, so max is 1.9999, then max float value is 2**128 or  3.4*10**38.
+Both `int/double` use first bit to store sign, `+/-`, that's why values are:
+* int: -2**31 => 2**31-1
+* double: -2**63 => 2**63-1
+So because of this first bit reserved for sign, we call them `signed`, all numeric and floating point numbers in java are signed, except `char` it's unsigned 2 byte primitive type. So if you assign 2**32 to int, or 2**64 to long you will get overflow. Look at example below:
+```
+int i = (1 << 31) - 1;
+System.out.println(i);
+i++;
+System.out.println(i);
+```
+If you look the first time we assign max Integer value in java as 2**31-1, but when we increment on 1, we got overflow, and returning to min integer value.
+```
+2147483647
+-2147483648
+```
+Pay attention that no overflow exception is thrown. During overflow java doesn't throw any exception (compare to C# that throws `OverflowException` in `checked` context), java use silent wrapping. But you can get exception if you use these methods: `Math.addExact(), Math.subtractExact(), Math.multiplyExact(), Math.toIntExact()` throws `ArithmeticException`
+```java
+public class App{
+  public static void main(String[] args){
+    int i = (1 << 31) - 1;
+    i = Math.addExact(i, 1);
+  }
+}
+```
+```
+Exception in thread "main" java.lang.ArithmeticException: integer overflow
+```
+
+We can convert int=>float without cast, but vice versa we should cast. That happens because float store more than int. They both 4 bytes, both use 1 bit to store sign(+ or -), but int store all digit so max value is 2**31-1, but float use 8 bit store exponent (so max exponent value = 127, and 2**127 is the max value to store) and 23 bits to store floating value. Since floating value would be 1-2, so max is 1.9999, then max float value is 2**128 or  3.4*10**38.
 ```java
 int i = 1;
 float f = i;
 int i2 = f; // won't compile, need cast
 int i3 = (int)f;
 ```
-conversion 2**20 => (2**10)**2 => 1024**2 => (10**3)**2 => 10**6
+conversion 2**20 => (2**10)**2 => 1024**2 ≈ (10**3)**2 ≈ 10**6
 max values:
-* int => 2**31 => 10**9
-* long => 2**63 => 10**20
-* float => 2**127 (8 bit for exponent)
-* double => 2**1024 (11 bit for exponent)
+* int => 2**31 ≈ 10**9
+* long => 2**63 ≈ 10**19 (2**63 = (2**10)**6.3 = 10**(3*6.3) = 10**19)
+* float => 2**127 (8 bit for exponent) ≈ 10**38
+* double => 2**1024 (11 bit for exponent) ≈ 10**307
 So we can assign int/long to float/double without actual cast, but vice versa - compile error
 
 Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile time constants. The reason is that Java/C++/C implement switch as jump (branch) table. Switch can be empty-bodied (not labels & default)
@@ -327,18 +367,15 @@ short s2 = -s1; // won't compile, s1 is cast to int by default
 ```
 The key here is that final - is the reference to memory, not the value itself, so rules with constants don't apply here.
 When you create long with multiplication, it would be treated as int.
-Intellij also show you warning `Numeric overflow Exception`. Although `long` can hold more then 10B, `int` is only 2B.
-By default all operations are converted to int, then cast to long, so in below example 10B would be converted to int (which will cause overflow)
-then overflown value would be converted to long.
-To Avoid this, add `L` in the end
+Intellij also show you warning `Numeric overflow Exception`. Although `long` can hold more than 10B, `int` is only 2B. By default, all operations are converted to int, then cast to long, so in below example 10B would be converted to int (which will cause overflow), then overflown value would be converted to long. To Avoid this, add `L` in the end:
 ```java
 public class App{
-    public static void main(String[] args) throws Exception{
-        long l1 = 10 * 1024 * 1024 * 1024;
-        System.out.println("l1 => " + l1);
-        long l2 = 10 * 1024 * 1024 * 1024L;
-        System.out.println("l2 => " + l2);
-    }
+  public static void main(String[] args){
+    long l1 = 10 * 1024 * 1024 * 1024;
+    System.out.println("l1 => " + l1);
+    long l2 = 10 * 1024 * 1024 * 1024L;
+    System.out.println("l2 => " + l2);
+  }
 }
 ```
 ```
@@ -11273,9 +11310,7 @@ public class App{
 content => hello
 xxxxx
 ```
-Although you can create large map, you are limited by int number. Let's try to open 10GB file.
-`map` function take long, but inside implementation use int, and check if value not overflow max int value
-This is due to historical reasons, cause previously files were small, and 2GB was max file size.
+Although you can create large map, you are limited by int number. Let's try to open 10GB file. `map` function take long, but inside implementation use int, and check if value not overflow max int value. This is due to historical reasons, cause previously files were small, and 2GB was max file size.
 ```java
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
@@ -11286,10 +11321,8 @@ public class App{
         final long FILE_SIZE = 10 * 1024 * 1024 * 1024L;
         try(RandomAccessFile file = new RandomAccessFile("src/main/resources/file.txt", "rw")){
             MappedByteBuffer out = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, FILE_SIZE);
-            for (int j = 0;j<1;j++){
-                for (long i = 0; i < FILE_SIZE; i++){
-                    out.put((byte) 'x');
-                }
+            for (long i = 0; i < FILE_SIZE; i++){
+              out.put((byte) 'x');
             }
         }
     }

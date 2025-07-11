@@ -17,9 +17,17 @@ In this section we would take a look at java weird behavior and try to explain w
 * `int x = y = 1` is invalid, because initialization happens from left to right, `y` should be declared first.
 * variable created from auto-generated code starts from `_` or `$`.
 * literal - something that literally represent fixed value and can't be changed (for example value 5 can't be changed to anything else except integer value 5)
+* formats: binary - start with `0B` or `Ob` and hex `0X` or `0x` and in octal format (8-based) - should start with `0`. The result is `o=511, h=1911, b=7`:
+```
+int o = 0777;
+int h = 0x777;
+int b = 0b111;
+System.out.println("o="+o+", h="+h+", b="+b);
+```
+* 
 
 
-compiler doesn't execute the code, only check the code for possible var declaration and initialization, that's explain this difference: in first and third example you can run code mentally in your head, and understand that it should compile, but compiler can't do it. It just sees 2 ifs (in example 3) and can't defer that value of `y` would be set with 100% certainty.
+compiler doesn't execute the code, only check the code for possible var declaration and initialization, that's explain this difference: in first and third example you can run code mentally in your head, and understand that it should compile, but compiler can't do it, so compiler never run the code and check execution, it just see example 1 & 3, and understand that there maybe a case where value y is not initialized. Because even for third example compiler just see 2 if statement, which again doesn't assure that value `y` would be initialized. Only second example is clear to compiler, no matter what the value of `x`, the `if-else` statement guarantee 100% that value of `y` would be initialized. Keep this in mind - compiler never execute the code, code is executed only during runtime, so compiler can't deduce anything from code execution, it only look into code syntax itself. And from code syntax it's completely unclear that example 1 and 3 would init value `y`.
 ```
 // not compiled
 int x = 0, y;
@@ -38,7 +46,7 @@ if (x == 0){
 System.out.println(y);
 
 // not compiled
-        int x = 0, y;
+int x = 0, y;
 if (x == 0){
     y = 5;
 }
