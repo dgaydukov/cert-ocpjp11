@@ -2,6 +2,7 @@
 
 ### Content
 * [Git Integration](#git-integration)
+* [Hot keys](#hot-keys)
 
 
 ### Git Integration
@@ -17,3 +18,38 @@ ssh-add ~/.ssh/work_station
 # launch IntelliJ from the console, so it have SSH key context
 open /Applications/IntelliJ\ IDEA\ CE.app
 ```
+
+### Hot keys
+Below I will list all usable MacOS hot keys for IntelliJ.
+[Full list](https://www.jetbrains.com/help/idea/reference-keymap-mac-default.html)
+
+General:
+* `⌘ + ,` - open settings
+* `⌘ + ;` - open project structure
+* `^ + ⌥ + N` - create new file/directory/class/package in the current directory
+* `⌘ + N` - generate code (getters, setters, constructors, etc.)
+* `^ + T` - refactor code (rename, change signature, etc.)
+* `^ + ⌥ + L` - reformat code
+
+Editing:
+* `⌘ + Shift + V` - paste from recent buffers
+
+Build:
+* `⌘ + fn + F9` - build project (we add `fn` key because on MacOS `F9` is used to go to next track in music player)
+* `⌘ + Shift + fn + F9` - build project and run it
+
+Search:
+* `⌘ + F` - find in the current file
+* `⌘ + R` - replace in the current file
+* `⌘ + Shift + F` - find in path
+* `⌘ + Shift + R` - replace in path
+* `Shift + Shift` - search everywhere
+* `⌘ + O` - search class
+* `⌘ + Shift + O` - search file
+* `⌘ + Shift + A` - search action
+* `⌘ + ⌥ + O` - search symbol
+* `⌘ + E` - show recently opened files
+
+Code navigation:
+* `⌘ + [` - go to previous code location
+* `⌘ + ]` - go to next code location
