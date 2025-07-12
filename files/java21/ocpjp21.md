@@ -1,5 +1,5 @@
 # Content
-
+Here I would add details specific to java 21.
 
 
 ### Weird Behavior
