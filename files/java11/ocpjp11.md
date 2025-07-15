@@ -234,16 +234,22 @@ float f = i;
 int i2 = f; // won't compile, need cast
 int i3 = (int)f;
 ```
-conversion 2**20 => (2**10)**2 => 1024**2 ≈ (10**3)**2 ≈ 10**6
+conversion example: `2**20 => (2**10)**2 => 1024**2 ≈ (10**3)**2 ≈ 10**6`
 max values:
 * int => 2**31 ≈ 10**9
-* long => 2**63 ≈ 10**19 (2**63 = (2**10)**6.3 = 10**(3*6.3) = 10**19)
-* float => 2**127 (8 bit for exponent) ≈ 10**38
-* double => 2**1024 (11 bit for exponent) ≈ 10**307
+  * `2**31 = 2**(10*3.1) = (2**10)**3.1 = 1024**3.1 ≈ = (10**3)**3.1 ≈ 10**9`
+* long => 2**63 ≈ 10**19
+  * `2**63 = (2**10)**6.3 = 10**(3*6.3) = 10**19`
+* float => 2**127 ≈ 10**38
+  * 8 bit for exponent => 2**-126...2**127, so max value is `2**127 = 2**(10*12.7) = 1024**12.7 ≈ 10**(3*12.7) ≈ 10**38`
+* double => 2**1023 ≈ 10**307
+  * 11 bit for exponent => 2**-1022...2**1023, so max value `2**1023 = 2**(10*102.3) = 1024**102.3 ≈ 10**(3*102.3) ≈ 10**308`
 So we can assign int/long to float/double without actual cast, but vice versa - compile error
 
-Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile time constants. The reason is that Java/C++/C implement switch as jump (branch) table. Switch can be empty-bodied (not labels & default)
-Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it used in second case, so it's valid, but b is used before it would be declared in second case, so it's invalid.
+Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile-time constants. The reason is that Java/C++/C implement switch as jump (branch) table, `TABLESWITCH` instruction in Java, where the location to jump to is effectively looked up in a table. Switch can be empty-bodied (not labels & default). `long` can't be used in:
+* array index - because it's too much for continuous array, and max array size in java is `Integer.MAX_VALUE`
+* label in case statement - again problem is that long is too long, even int is too high value, but it's used because int is default value in java
+Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
 ```java
 public class App {
     static public final void main(String[] args) {
@@ -274,17 +280,24 @@ public class App {
 ```
 5
 ```
-Java doesn’t allow variables to have the same name as keywords(if, else, while, class...) and literals (true, false, null). All other like class name, var ... perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
+Java doesn’t allow variables to have the same name as keywords(if, else, while, class...) and literals (true, false, null). All others like class name, var ... perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
 
 
-char=>int conversion
+char=>int conversion: Although we can assign `char` to `int`. We can’t assign `char` to `Integer`, autoboxing can’t do this.
 ```java
 int i = 'a';
 Integer i2 = 'a'; //wont' compile
 ```
-Although we can assign `char` to `int`. We can’t assign `char` to `Integer`, autoboxing can’t do this.
+This is general problem, you can't assign `int` to `Long`. You get following error: `java: incompatible types: int cannot be converted to java.lang.Long`
+```
+int i = 1;
+long l = i;
+// won't compile
+Long l2 = i; 
+```
 
-Even though multiplication is associative, if somewhere we have assignment code, associative is lost. Take a look
+
+Even though multiplication is associative, if somewhere we have assignment code, associative is lost. Keep in mind that execution is happens from left to right. That's why in below example associativity is lost and we have 2 completely different results.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -337,11 +350,14 @@ public class App{
         short s4 = (short)(s1 + s2);
 
         short s1 = 1;
-        short s2 = -s1; // wont' compile, -s1 - already int
+        short s2 = -s1; // won't compile, -s1 - already int
     }
 }
 ```
-But it works only for variables, cause compiler doesn’t execute code. If we have constants (and type is byte, short, int, char), compiler know them at compiler time, so above rules not apply. But it doesn't work for float/double.
+But it works only for variables, cause compiler doesn’t execute code. If we have constants (and type is byte, short, int, char), compiler know them at compiler time, so above rules not apply. But it doesn't work for:
+* float/double
+* long
+* don’t apply to compound operators (*=, +=, ++, --, -=, /=)
 ```java
 class App {
     public static void main(String[] args) {
@@ -355,17 +371,20 @@ class App {
         
         final float f1 = 1;
         int i1 = f1; // won't compile
+
+        long l1 = 1;
+        final long l2 = 1;
+        int i1 = l1; // won't compile
+        int i2 = l2; // won't compile
     }
 }
 ```
-These rules also don’t apply to compound operators (*=, +=, ++, --, -=, /=)
 
-final with wrappers
+The key here is that `final` is the reference to memory, not the value itself, so rules with constants don't apply here.
 ```java
 final Short s1 = 1;
 short s2 = -s1; // won't compile, s1 is cast to int by default 
 ```
-The key here is that final - is the reference to memory, not the value itself, so rules with constants don't apply here.
 When you create long with multiplication, it would be treated as int.
 Intellij also show you warning `Numeric overflow Exception`. Although `long` can hold more than 10B, `int` is only 2B. By default, all operations are converted to int, then cast to long, so in below example 10B would be converted to int (which will cause overflow), then overflown value would be converted to long. To Avoid this, add `L` in the end:
 ```java
@@ -487,8 +506,25 @@ octal => 495
 binary => 495
 ```
     
-All wrapper classes has also static method `valueOf`, that can take 2 types: primitive & String. Character - has only 1 for char, Float - 2 (compare to constructor, that takes 3)
-So `Float f = Float.valueOf(1.1);` - generate compile error, cause 1.1 - double. 
+All wrapper classes has also static method `valueOf`:
+* `Character` - 1 method that accepts primitive `char`
+* `Boolean/Float/Double` - 2 methods that accept primitive & String
+* `Byte/Short/Integer/Long` - 3 methods that accept primitive & String & `string+radix`
+  * `Float f = Float.valueOf(1.1);` - generate compile error, cause 1.1 - double.
+  * radix - is param for numeric system, in range 2..36, so using it we can convert not only to 10-based system, but all the way from 2 to 36
+Radix example:
+```java
+public class App {
+    public static void main(String[] args) {
+        System.out.println("1_000_000 based 2 => "+Integer.valueOf("1000000", 2));
+        System.out.println("abcde based 36 => " + Integer.valueOf("abcde", 36));
+    }
+}
+```
+```
+1_000_000 based 2 => 64
+abcde based 36 => 17325410
+```
 Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of Boolean.TRUE & Boolean.FALSE) or cached object.
 ```java
 public class App{
@@ -537,16 +573,8 @@ Unboxing - is the opposite of autoboxing (transform primitive to box(reference))
 Integer i = 10; // autoboxing
 int x = i; // unboxing
 ```
-Pay attention, that autoboxing happens only when we cast implicitly int to Integer. Down there only second line is autoboxing.
-```java
-Integer in = (Integer)y;         // 1 explicit cast
-Integer in = y;                  // 2 implicit cast (autoboxing)
-Integer in = new Integer(y);     // 3 explicit constructor
-Integer in = Integer.valueOf(y); // 4 static factory method
-```
 Autoboxing won't happen when we call `System.out.println(1)`, cause `println` overloaded to take both int and Object.
 
-int => float conversion
 When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
 ```java
 int i = 123456789;
@@ -559,8 +587,8 @@ System.out.println(i + " " + f + " " +(i-(int)f));
 
 Object to primitive casting - you can cast `Object` to any primitive, and if underlying object is `Integer/Boolean/Double` it would cast to primitive `int/boolean/double`
 So when we cast object to primitive 2 operation happens:
-* object cast to specific primitive object
-* unboxing of value happens
+* object cast to specific primitive wrapper object
+* unboxing of wrapper object
 ```java
 public class App{
     public static void main(String[] args) {
@@ -580,9 +608,9 @@ public class App{
 b2=true, i2=1, f2=1.1
 Exception in thread "main" java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer
 ```
+Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 8 types). We can use it when working with List of integers, boolean and so on. 
 
-Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 7 types). We can use it when working with List of integers, boolean and so on. 
-So we can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
+We can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
 ```java
 import java.util.*;
 

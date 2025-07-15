@@ -49,9 +49,9 @@ bitmask is when you pack a ton of boolean values into a single integer and then 
 ```
 16 => 1111
 4  => 0100
-      0100 => 4 # so flag 4 is inside 16
+AND   0100 => 4 # so flag 4 is inside 16
 ```
-You can use this code in java `n % flag > 0`
+You can use this code in java `n & flag > 0`
 
 ##### XOR
 This operation has several properties that can be reused:
