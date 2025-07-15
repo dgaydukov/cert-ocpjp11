@@ -655,22 +655,21 @@ true
 
 `String` & `StringBuilder` method `.substring(start, end)`, throws `StringIndexOutOfBounds` exception if start < end or start < 0 or end > length()
 
-String will concatenate with `+` only if one of them is string
+String will concatenate with `+` only if one of them is string.
+That’s why first statement compiled correctly, cause it works like Object + String => Object.toString + String. But second failed, cause it works like Object + Integer, which can’t work
 ```java
 Object obj = 1;
 obj += "2";
 
 Object obj2 = "1";
 obj2 += 2; // won't compiled
-```
-That’s why first statement compiled correctly, cause it works like Object + String => Object.toString + String. But second failed, cause it works like Object + Integer, which can’t work
 
-```java
+String str = "abc"+5;
+System.out.println(str); // compile and print "abc5"
+
+
 Object obj = null;
-System.out.println(obj + "hello");
-```
-```
-nullhello
+System.out.println(obj + "hello"); // compile and print "nullhello"
 ```
 That’s the reason, why we can concatenate with null, cause when stringify null became just `null` string.
 String interning - capture the link to string pool object.
@@ -691,7 +690,7 @@ s1 == s2 => true
 s3 == s4 => false
 s5 == s1 => true
 ```
-First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why s1==s2 always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we're interning (get reference from string pool, not from object in heap), that’s why s5 pointing to the same object in string pool as s1 and s2. Internally java uses hash table to store all strings and understand if such string already exists or not. You can rewrite this behavior by using `ConcurrentHashMap`.
+First is obvious true, cause when we write `String s2 = “hello”`, java looks in string pool, and there is a string “hello” there, so java return this reference to object, that’s why `s1==s2` always true. Second is also clear, here we have 2 references that point to two different objects in heap, that’s why result is always false. In third case we're interning (get reference from string pool, not from object in heap), that’s why `s5` pointing to the same object in string pool as `s1` and `s2`. Internally java uses hash table to store all strings and understand if such string already exists or not. You can rewrite this behavior by using `ConcurrentHashMap`.
 
 `trim` vs. `strip`
 `trim` - old method to trim a string, strip - is java11, the difference is working with Unicode. 
@@ -708,7 +707,7 @@ System.out.println(s.strip());
 abc
 ```
 
-As you see, `trim` doesn’t remove whitespaces, cause this Unicode whitespace is not considered whitespace by `trim`.  Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently.  Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
+As you see, `trim` doesn’t remove whitespaces, cause this Unicode whitespace is not considered whitespace by `trim`.  Also for strip we can compare if string is blank, that because strip in case of string consisting only of whitespaces, will return empty string as literal from string pool, just `””`, but trim work differently. Yet it's not the best solution for production code, cause javadoc says `If this String object represents an empty string, or if all code points in this string are white space, then an empty string is returned.`, it's not clear whether the new empty string created or not. That's why for this check use `isBlank()` - true if no chars, only whitespaces. `.isEmpty()` - true if size 0.
 ```java
 public class App {
     public static void main(String[] args){
@@ -745,14 +744,14 @@ s1.equals(s2) =>true
 s1 == s2 => false
 ```
 
-String.replace: When replace chars, in case of the same char it returns the same object, but if we replace substring, and in case the same substring it returns new object
+When `replace` chars, in case of the same char it returns the same object, but if we replace substring, and in case the same substring it returns new object
 ```java
 String str = "hello";
 System.out.println(str.replace('h', 'h')==str); //true
 System.out.println(str.replace("h", "h")==str); //false
 ```
 
-`StringBuilder` capacity - is the length + 16
+`StringBuilder` capacity - is the size of underlying `byte[]`, by default is 16, and grow together as string length grows. So it either equal or greater than `str.length()`.
 ```java
 var sb = new StringBuilder("hello world");
 System.out.println("capacity => " + sb.capacity());
@@ -763,7 +762,9 @@ capacity => 27
 length => 11
 ```
 
-We can also set capacity with `ensureCapacity` method, length - with `setLength`.
+We can also set:
+* capacity with `ensureCapacity` - if new capacity is bigger than old, new array is allocated with new capacity length
+* length with `setLength` - call to `ensureCapacity` + fill underlying `byte[]` with 0 bytes
 ```java
 class App {
     public static void main(String[] args) {
