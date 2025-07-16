@@ -8,7 +8,6 @@
 * 1.5 [String and StringBuilder](#string-and-stringbuilder)
 * 1.6 [Arrays](#-arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
-* 1.8 [Bitwise and Bit Shift Operators](#bitwise-and-bit-shift-operators)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
@@ -791,7 +790,7 @@ hello world
 hello
 5 50
 ```
-Pay attention, that we can only increase capacity, so setting value less than current, will not affect capacity. We can also use `trimToSize()` to trim StringBuilder to current length. Setting capacity in no way affect `StrinbBuilder` you can set it to improve performance. Setting length affect the `StrinbBuilder`. If it more than current length it fill sb with empty data, if less it trims sb to set value.
+Pay attention, that we can only increase capacity, so setting value less than current, will not affect capacity. We can also use `trimToSize()` to trim StringBuilder to current length. Setting capacity in no way affect `StrinbBuilder` you can set it to improve performance. Setting length affect the `StrinbBuilder`. If it more than current length it fills `StrinbBuilder` with empty data, if less it trims sb to set value.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -849,20 +848,22 @@ Objects.equals(sb1, sb2) => false
 sb1.toString().equals(sb2.toString()) => true
 sb1.compareTo(sb2) == 0 => true
 ```
-**`StringBuilder.compareTo` works the same as String.compareTo and close to `Arrays.compare` (see tip 92).
+**`StringBuilder.compareTo` works the same as String.compareTo and close to `Arrays.compare`.
 
-`compareTo` works as left-right and return int. since upper letters precedes lower letters, a is higher than A.
+`compareTo` works as left-right and return int. since upper letters precedes lower letters, `a` is higher than `A`.
 ```java
 public class App{
     public static void main(String[] args) {
-        System.out.println("A => " + (int)'A' + ", a => " + (int)'a');
-        System.out.println("amy".compareTo("Amy"));
+      System.out.println("A => " + (int)'A' + ", a => " + (int)'a');
+      System.out.println("amy".compareTo("Amy"));
+      System.out.println("97".compareTo("65"));
     }
 }
 ```
 ```
 A => 65, a => 97
 32
+3
 ```
 
 ###### Arrays
@@ -870,27 +871,28 @@ Valid array declarations
 ```java
 class App {
     public static void main(String[] args) {
-        int[][] arr = {{1,2}, {}, new int[5]};
-        int[] arr1 = new int[3];
-        int arr2[] = new int[3];
-        int[] arr3 = {1, 2, 3};
-        int[] arr4 = new int[]{1, 2, 3};
-        var arr5 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
-        var arr6 = new int[]{1,2,3};
+      int[] arr1 = new int[3];
+      int[] arr2 = new int[]{1, 2, 3};
+      int[] arr3 = {1, 2, 3};
+      int arr4[] = new int[3];
+      var arr5 = new int[]{1,2,3};
+      int[][] arr6 = {{1,2}, {}, new int[5]};
+      // invalid declarations
+      var arr7 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
     }
 }
 ```
 
-Array index can be int/short/byte/char, you can't use long as integer. Such code won't compile. And this is clear, since array store data in the heap, you can't get unlimited chunk of data with long, cause it's too big number. If you need such a big array you can use `Unsafe` - but this is advanced java. As of now, just remember that long index won't compile
+Array index can be int/short/byte/char, you can't use long as index. Such code won't compile. And this is clear, since array store data in the heap, you can't get unlimited chunk of data with long, cause it's too big number. If you need such a big array you can use `Unsafe` - but this is advanced java. As of now, just remember that long index won't compile:
 ```java
 long index = 5;
 int[] arr = new int[index]; // this line won't compile
-int[] arr2 = new int[(int)index]; // here we cast to int, so it would compile norally
+int[] arr2 = new int[(int)index]; // here we cast to int, so it would compile normally
 ```
 
-Array.clone - copy only array itself (shallow copy), not objects inside.
+`arr.clone` and `Arrays.copyOf` - copy only array itself (shallow copy), not objects inside.
 ```java
-public class Main {
+public class App {
     public static void main(String[] args) {
         Person[] arr = {new Person("Mike"), new Person("Jack")};
         Person[] copy = arr.clone();
@@ -918,7 +920,7 @@ John
 ```
 As you see, after we change name of object inside cloned array, it was also changed inside main array.
 
-Java arrays are reified - their types are checked in runtime
+Java arrays are reified - their types are checked in runtime, but generics are not, that's why you can assing array of one type to another, and no compilation error, but it won't work with generics, you get compilation error.
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -933,7 +935,6 @@ public class App {
         // for the same reason you can't create array of generics
         List<String> genericArr[] = new List<String>[10]; // won't compile
         List arr[] = new List[10];
-
     }
 }
 ```
@@ -972,8 +973,9 @@ public class App {
         System.out.println("Arrays.toString(arr1) => " + Arrays.toString(arr1));
         System.out.println("arr1.equals(arr2) => " + arr1.equals(arr2));
         // Objects.equals call object's equals method + handling null
-        System.out.println("Objects.equals(arr1, arr2) =>" + Objects.equals(arr1, arr2));
-        System.out.println("Arrays.equals(arr1, arr2) =>" + Arrays.equals(arr1, arr2));
+        System.out.println("Objects.equals(arr1, arr2) => " + Objects.equals(arr1, arr2));
+        System.out.println("Arrays.equals(arr1, arr2) => " + Arrays.equals(arr1, arr2));
+        System.out.println("Arrays.compare(arr1, arr2) => " + Arrays.compare(arr1, arr2));
     }
 }
 ```
@@ -981,8 +983,9 @@ public class App {
 arr1.toString() => [I@85ede7b
 Arrays.toString(arr1) => [1, 2, 3, 4, 5]
 arr1.equals(arr2) => false
-Objects.equals(arr1, arr2) =>false
-Arrays.equals(arr1, arr2) =>true
+Objects.equals(arr1, arr2) => false
+Arrays.equals(arr1, arr2) => true
+Arrays.compare(arr1, arr2) => 0
 ```
 
 If you need to split string on multiple keys, you can use regex `[]`
@@ -1007,6 +1010,9 @@ As you see hex range is twice the size of decimal range, that's why it's size is
 So if we have 6 length hex string then:
 * hex array - length 3
 * decimal array - length 6
+computer terminology:
+* octet - 8 bits, basically a byte, but used if byte is ambiguous
+* nibble/semi-octet/quadbit - half-byte, or 4 bits
 ```java
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -1034,12 +1040,18 @@ public class App{
         }
         return new String(hexChars, StandardCharsets.UTF_8);
     }
+
+  /**
+   * first character is shift on 4 bits to store in higher nibble
+   * second character is stored in lower nibble
+   * then 2 nibbles are combined into single byte
+   * The bytes are 8 bit signed integers in Java. Therefore, we need to convert each 4-bit segment to hex separately and concatenate them. Consequently, we’ll get two hexadecimal characters after conversion
+   */
     public static byte[] hexToBytes(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(s.charAt(i+1), 16));
         }
         return data;
     }
@@ -1055,7 +1067,7 @@ decimal representation of 99 => 153
 ```
 
 ###### Arrays.compare and Arrays.mismatch
-These 2 functions used to compare 2 arrays and found their common prefix.
+These 2 functions are used to compare 2 arrays and found their common prefix.
 ```java
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -1144,55 +1156,6 @@ arr1 => [1, 2, 9], arr2 => []
 Arrays.compare => 3
 compareTo => 3
 Arrays.mismatch => 0
-```
-
-###### Bitwise and Bit Shift Operators
-There are 2 types of bitwise:
-* unary
-    * `~` unary bitwise operator - invert bit pattern - change 0 to 1, and vice versa
-      * java `byte` values are in range `-128 to 127`
-      * `~5 => ~0000 0101 => 1111 1010 => -6`
-      * How do you know that `1111 1010` is equal to `-6`
-        * Since first byte is `1` we know that it's negative
-        * How negative is stored in computer: we take positive => invert all bytes => add 1
-        * step 1: take positive number 6 `6 => 0000 0110`
-        * step 2: invert all bytes `0000 0110 => 1111 1001`
-        * step 3: add 1 `1111 1001 +1 => 1111 1010`
-        * So we can use this algo to calculate negative back to decimal value.
-    * `>>` signed right shift - move all bits to right `5>>1 => 101>>1 => 10 = 2`
-    * `<<` signed left shift - move all bits to left `5<<1 => 101<<1 => 1010 = 10`
-* binary
-  * `&` - AND - like logical &&
-  * `^` - exclusive OR - like logical ||
-  * `|` inclusive OR - 1 if both bits are different
-As you see strange behavior of inversion, this is due to fact, that int is 32 bits, and if we invert 5 `101`, then 29 first bitst that are 0
-sets to 1, that's why we got such strange number. For proper inversion we should take last 3 bits `..*010` and convert it into int
-if we do it we got proper result `~5 = 2`
-```java
-public class App{
-    public static void main(String[] args) {
-        int x = 5, y = 4;
-        System.out.println("x => " + x + " / " + Integer.toBinaryString(x));
-        System.out.println("y => " + y + " / " + Integer.toBinaryString(y));
-        System.out.println("~x => " + ~x + " / " + Integer.toBinaryString(~x));
-        System.out.println("x>>1 => " + (x>>1) + " / " + Integer.toBinaryString(x>>1));
-        System.out.println("x<<1 => " + (x<<1) + " / " + Integer.toBinaryString(x<<1));
-        System.out.println("x&y => " + (x&y) + " / " + Integer.toBinaryString(x&y));
-        System.out.println("x^y => " + (x^y) + " / " + Integer.toBinaryString(x^y));
-        System.out.println("x|y => " + (x|y) + " / " + Integer.toBinaryString(x|y));
-    }
-}
-```
-```
-x => 5 / 101
-y => 4 / 100
-# since it's int and it store 32 bits, we have number with length 32
-~x => -6 / 11111111111111111111111111111010
-x>>1 => 2 / 10
-x<<1 => 10 / 1010
-x&y => 4 / 100
-x^y => 1 / 1
-x|y => 5 / 101
 ```
 
 #### Classes and Objects
@@ -1725,7 +1688,7 @@ class Singleton {
 
 When we use method overloading java itself can determine the most close method to use, but sometimes it’s not the case, so we can get compile error
 ```java
-public class Main {
+public class App {
     public static void main(String[] args) {
         int i = 1;
         short s = 2;
@@ -1813,7 +1776,7 @@ class A{
 
 Static members can be accessed even if object is point to null, cause static binding is compile time binding (access to static method is decided at compile time, not in runtime).
 ```java
-public class Main {
+public class App {
     public static void main(String[] args) {
         A a = new A();
         a.x = 1;

@@ -2,6 +2,7 @@
 
 ### Content
 
+* [Bitwise and Bit Shift Operators](#bitwise-and-bit-shift-operators)
 * [Basics](#basics)
 * [BitSet](#bitset)
 * [Utility](#utility)
@@ -13,6 +14,55 @@
     * [Power of 2](#power-of-2)
     * [Number of 1 bits](#number-of-1-bits)
     * [Reverse bits](#reverse-bits)
+
+###### Bitwise and Bit Shift Operators
+There are 2 types of bitwise:
+* unary
+  * `~` unary bitwise operator - invert bit pattern - change 0 to 1, and vice versa
+    * java `byte` values are in range `-128 to 127`
+    * `~5 => ~0000 0101 => 1111 1010 => -6`
+    * How do you know that `1111 1010` is equal to `-6`
+      * Since first byte is `1` we know that it's negative
+      * How negative is stored in computer: we take positive => invert all bytes => add 1
+      * step 1: take positive number 6 `6 => 0000 0110`
+      * step 2: invert all bytes `0000 0110 => 1111 1001`
+      * step 3: add 1 `1111 1001 +1 => 1111 1010`
+      * So we can use this algo to calculate negative back to decimal value.
+  * `>>` signed right shift - move all bits to right `5>>1 => 101>>1 => 10 = 2`
+  * `<<` signed left shift - move all bits to left `5<<1 => 101<<1 => 1010 = 10`
+* binary
+  * `&` - AND - like logical &&
+  * `^` - exclusive OR - like logical ||
+  * `|` inclusive OR - 1 if both bits are different
+    As you see strange behavior of inversion, this is due to fact, that int is 32 bits, and if we invert 5 `101`, then 29 first bitst that are 0
+    sets to 1, that's why we got such strange number. For proper inversion we should take last 3 bits `..*010` and convert it into int
+    if we do it we got proper result `~5 = 2`
+```java
+public class App{
+    public static void main(String[] args) {
+        int x = 5, y = 4;
+        System.out.println("x => " + x + " / " + Integer.toBinaryString(x));
+        System.out.println("y => " + y + " / " + Integer.toBinaryString(y));
+        System.out.println("~x => " + ~x + " / " + Integer.toBinaryString(~x));
+        System.out.println("x>>1 => " + (x>>1) + " / " + Integer.toBinaryString(x>>1));
+        System.out.println("x<<1 => " + (x<<1) + " / " + Integer.toBinaryString(x<<1));
+        System.out.println("x&y => " + (x&y) + " / " + Integer.toBinaryString(x&y));
+        System.out.println("x^y => " + (x^y) + " / " + Integer.toBinaryString(x^y));
+        System.out.println("x|y => " + (x|y) + " / " + Integer.toBinaryString(x|y));
+    }
+}
+```
+```
+x => 5 / 101
+y => 4 / 100
+# since it's int and it store 32 bits, we have number with length 32
+~x => -6 / 11111111111111111111111111111010
+x>>1 => 2 / 10
+x<<1 => 10 / 1010
+x&y => 4 / 100
+x^y => 1 / 1
+x|y => 5 / 101
+```
 
 ### Basics
 There are 6 bit manipulation operators:
