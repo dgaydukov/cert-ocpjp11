@@ -2204,7 +2204,11 @@ A
 ```
 As you see, no matter how we call it, we always call method print from class A.
 
-In java we can cast to intersection of 2 types.
+In java we can cast to intersection of 2 types:
+* You can only have 1 class but have multiple interfaces
+* If you have a class it must be the first one specified
+* this heavily used in generics with `List<T extends X & Y>`
+* There is no way to imitate OR, anything like `X | Y` is invalid, except for multi-catch block with several exceptions
 ```java
 import java.util.Optional;
 
@@ -2565,28 +2569,32 @@ public class App{
         }
     }
 }
-class MyException extends RuntimeException{};
+class MyException extends RuntimeException{}
 ```
 
-If we throw exception in `finally` block it will swallow(overwrite) all other exceptions. Here the first exception is handled and we go into catch, there we throw another exception, but then we go into `finally` where we throw third. The result is only third would be shown.
+If we throw exception in `finally` block it will swallow(overwrite) all other exceptions. Here the first exception is handled, and we go into catch, there we throw another exception, but then we go into `finally` where we throw third. The result is only third would be shown.
 ```java
 public class App{
-    public static void main(String[] args) {
-        try{
-            throw new RuntimeException("1");
-        } catch (RuntimeException ex){
-            throw new RuntimeException("2");
-        } finally {
-            System.out.println("finally");
-            throw new RuntimeException("3");
-        }
+  public static void main(String[] args) {
+    try{
+      System.out.println("try");
+      throw new RuntimeException("1");
+    } catch (RuntimeException ex){
+      System.out.println("catch");
+      throw new RuntimeException("2");
+    } finally {
+      System.out.println("finally");
+      throw new RuntimeException("3");
     }
+  }
 }
 ```
 ```
+try
+catch
 finally
 Exception in thread "main" java.lang.RuntimeException: 3
-	at com.example.demo.App.main(App.java:11)
+	at com.java.test.App.main(App.java:13)
 ```
 
 If you have checked exception you can’t catch them until they are clearly thrown from the method itself
@@ -2603,31 +2611,36 @@ public class App {
 }
 class MyException extends Exception{}
 ```
-This can be fixed by throwing exception from the method itself. It just declares that this method may throw checked exception `private static void print() throws MyException{}`
+This can be fixed by throwing exception from the method itself. It just declares that this method may throw checked exception `private static void print() throws MyException{}` - so you don't need to actually throw `MyException` inside this function.
 This only true to checked exception - because we are forced to catch them, for unchecked (runtime) you can catch them.
 
 You can catch any type of exception: unchecked(RuntimeException), checked(Exception) and errors(Error). So technically you can handle any of `Throwable` subclasses. But it’s better never to catch Errors, cause of some you will not be able to recover
 ```java
 public class App {
-    public static void main(String[] args) {
-        try {
-            new A();
-        } catch (Throwable ex){
-            System.out.println("Throwable: " + ex);
-        } finally {
-            System.out.println("done");
-        }
+  public static void main(String[] args) {
+    try {
+      new A();
+    } catch (Throwable ex){
+      Throwable cause = ex;
+      while (cause != null) {
+        System.out.println("ex=" + cause);
+        cause = cause.getCause();
+      }
+    } finally {
+      System.out.println("done");
     }
+  }
 }
 class A{
-    static {
-        String[] arr = new String[0];
-        System.out.println(arr[0]); // throws java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
-    }
+  static {
+    String[] arr = new String[0];
+    System.out.println(arr[0]); // throws java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+  }
 }
 ```
 ```
-Throwable: java.lang.ExceptionInInitializerError
+ex=java.lang.ExceptionInInitializerError
+ex=java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
 done
 ```
 
@@ -2658,11 +2671,11 @@ done
 Exception in thread "main" java.lang.RuntimeException
 	at com.java.test.App.main(App.java:15)
 ```
-As you can see when we throw `throw new RuntimeException();` it wan’t be caught by the next catch, so this code `System.out.println(3);` will never be executed. Yet `finally` would be executed right before throwing exception.
+As you can see when we throw `throw new RuntimeException();` it won’t be caught by the next catch, so this code `System.out.println(3);` will never be executed. Yet `finally` would be executed right before throwing exception.
 
 When you overriding method that throws checked exception you are allowed:
 * not to throw any exception
-* throw any unchecked exception or error
+* throw any unchecked exception or error, but not `Throwable` - because it's parent for checked exception class `Exception`
 * throw itself or any child of itself
 ```java
 class MyException extends Exception {}
@@ -2686,8 +2699,7 @@ class Egret4 implements Bird {
 ```
 Here `IOException` is not child of `MyException`, that's why you get compiler error.
 
-Multi-catch block. If you want to catch multiple exceptions there are 2 cases. Either catch common parent or  `Exception`, or even `Throwable`.
-But the downside, is that it would catch all exceptions, or write multiple catch statement - what is redundant. So the solution is to use one `catch` with multiple exceptions in there.
+Multi-catch block. If you want to catch multiple exceptions there are 2 cases. Either catch common parent or `Exception`, or even `Throwable`. But the downside, is that it would catch all exceptions. Or write multiple catch statement - which is redundant. So the solution is to use one `catch` with multiple exceptions in there.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2705,38 +2717,40 @@ class Exception3 extends RuntimeException{}
 Beware that exceptions should be unrelated, if you try to declare child and parent, it won’t compile
 ```java
 public class App {
-    public static void main(String[] args) {
-        try{
-        } catch (Exception1 | RuntimeException ex){
-        }
+  public static void main(String[] args) {
+    try{
+    } catch (UncheckedException | RuntimeException ex){
     }
-}
-class Exception1 extends RuntimeException{}
-```
-```
-Alternatives in a multi-catch statement cannot be related by subclassing. Alternative com.java.test.Exception1 is a subclass of alternative java.lang.RuntimeException
-```
-  
-If you have multiple catch you can't reassign ex
-```java
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-public class App{
-  public static void main(String[] args){
-      try{
-          throw new IOException("ex");
-      } catch (IOException|RuntimeException ex){
-          ex = new FileNotFoundException(); // won't compile cause ex of type IOException|RuntimeException and they don't have any common child
-      }
   }
 }
+class UncheckedException extends RuntimeException{}
+```
+You get this compilation error:
+```
+Alternatives in a multi-catch statement cannot be related by subclassing
+  Alternative com.java.test.UncheckedException is a subclass of alternative java.lang.RuntimeException
+```
+  
+If you have multiple catch you can't reassign ex, because the type is the OR of several exceptions
+```java
+public class App{
+  public static void main(String[] args){
+    try{
+
+    } catch (Ex1 | Ex2 ex){
+      ex = new IllegalArgumentException(); // won't compile cause ex of type Ex1 | Ex2, and they don't have any common child
+    }
+  }
+}
+
+class Ex1 extends RuntimeException{}
+class Ex2 extends RuntimeException{}
 ```
 
 For checked only (not for `RuntimeException`) exception when overriding method there is a rule:
 * any method - only more specific exception
 * constructor - only more generic exception
-As you see `B1.method` - compile error, cause we try to throw more generic (and we can throw only less - children and exception itself), but for C1.constructor - compile error, cause we can only throw less generic. The reason is - that we are forced to catch checked exceptions. 
+As you see `B1.method` - compile error, cause we try to throw more generic (and we can throw only less - children and exception itself), but for C1.constructor - compile error, cause we can only throw less generic. The reason is for method we have to use liskov principle and to throw less generic, but construct make call to super, so here we can call only more generic. So with method we go-down, but with constructor we call-up.
 ```java
 class MyException extends RuntimeException{}
 class MySecondException extends MyException{}
@@ -2793,7 +2807,19 @@ try{
     System.out.println(ex);
 }
 ```
-We can catch `MyCheckedException` itself, it’s parent Exception, but not child `MySecondCheckedException`. And this is the exact reason, why when we override constructor we can throw only exception itself or more generic, cause when we create object, it will invoke it’s parent that throws more specific exception.
+We can catch `MyCheckedException` itself, it’s parent Exception, but not child `MySecondCheckedException`. And this is the exact reason, why when we override constructor we can throw only exception itself or more generic, cause when we create object, it will invoke its parent that throws more specific exception.
+
+Constructor more generic is easily explained when you look into below code: When you create `new B()`, inside first constructor of `A` is called, so that's why `B` constructor should be either identical or wider. Otherwise it's illogical. But methods called in inverted way, like up-down, so for method only less-generic exception is allowed.
+```java
+class A{
+    public A(){}
+}
+class B extends A{
+    public B(){
+        super();
+    }
+}
+```
 
 When overriding constructor you can also throw from child any other unrelated checked & unchecked exceptions, but for method - only checked
 ```java
@@ -2849,36 +2875,35 @@ class App {
 java.lang.NullPointerException
 ```
 
-Try with resources guarantees that resources would be closed. In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`.
-The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case. So they introduced the AutoClosable interface with a less restrictive close() semantic ... and retro-fitted Closeable as a subtype of AutoCloseable.                                                        
+Try with resources guarantees that resources would be closed. In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`. The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case. So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`.                                                        
 When variable declared inside try with resource it becomes final.
 ```java
 import java.io.Closeable;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        Resource r1 = new Resource();
-        try(r1){}
-        
-        Resource r4;
-        try(r4 = new Resource()){} // won't compile, cause r4 is not effectively final
+  public static void main(String[] args) throws Exception {
+    Resource r1 = new Resource();
+    try(r1){}
 
-        try(new Resource()){} // won't compile cause this declaration doesn't create final variable
+    Resource r2;
+    try(r2 = new Resource()){} // won't compile, cause r2 is not effectively final
 
-        try(Resource r2 = new Resource();){
-            r2 = new Resource(); // won't compile, r2 - final
-        }
+    try(new Resource()){} // won't compile cause this declaration doesn't create final variable
 
-        Resource r3 = new Resource();
-        try(r3){} // won't compile, since r2 is not effectively final
-        r3 = new Resource();
+    try(Resource r3 = new Resource()){
+      r3 = new Resource(); // won't compile, r3 - final
     }
+
+    Resource r4 = new Resource();
+    try(r4){} // won't compile, since r4 is not effectively final
+    r4 = new Resource();
+  }
 }
 
 class Resource implements Closeable {
-    public void close(){
-        System.out.println("closed");
-    }
+  public void close(){
+    System.out.println("closed");
+  }
 }
 ```
 
@@ -2952,8 +2977,8 @@ Exception in thread "main" java.lang.RuntimeException: something went wrong with
 		at com.java.test.App.tryWithResources(App.java:27)
 		... 1 more
 ```
-
 In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way simpler. In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code. Pay attention, that by default try-with-resources closes resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
+
 Suppressed exception - exception that is thrown in try-with-resources. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
 ```java
 import java.util.Arrays;
