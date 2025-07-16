@@ -850,20 +850,20 @@ sb1.compareTo(sb2) == 0 => true
 ```
 **`StringBuilder.compareTo` works the same as String.compareTo and close to `Arrays.compare`.
 
-`compareTo` works as left-right and return int. since upper letters precedes lower letters, `a` is higher than `A`.
+`compareTo` works as `left - right` and return int difference between 2 char. since upper letters precedes lower letters, `a` is higher than `A`.
 ```java
 public class App{
     public static void main(String[] args) {
       System.out.println("A => " + (int)'A' + ", a => " + (int)'a');
-      System.out.println("amy".compareTo("Amy"));
-      System.out.println("97".compareTo("65"));
+      System.out.println("difference between a & A => " + "amy".compareTo("Amy"));
+      System.out.println("difference between 9 & 6 => " +"97".compareTo("65"));
     }
 }
 ```
 ```
 A => 65, a => 97
-32
-3
+difference between a & A => 32
+difference between 9 & 6 => 3
 ```
 
 ###### Arrays
@@ -1075,8 +1075,8 @@ import java.util.stream.Collectors;
 public class App{
     public static void main(String[] args) {
         /**
-         * When compare alphabet arrays
-         * then Arrays.compare and compareTo => difference between these letters
+         * When compare alphabet arrays:
+         * Arrays.compare and str.compareTo => difference between these letters as left - right
          * Array.mismatch => length of common prefix
          */
         char[] arrHello = {'h', 'e', 'l', 'l', 'o'};
@@ -1161,7 +1161,7 @@ Arrays.mismatch => 0
 #### Classes and Objects
 ###### toString, equals, hashcode, clone
 These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called , it won't use your version, but from `Object` itself. 
-By default `Object.clone` is `protected`, so you have to implement `Cloneable` interface and  override the mthod to be able to call this method. If you just try to override the method without implementing `Cloneable` you will get `CloneNotSupportedException`. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
+By default `Object.clone` is `protected`, so you have to implement `Cloneable` interface and  override the method to be able to call this method. If you just try to override the method without implementing `Cloneable` you will get `CloneNotSupportedException`. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -1255,8 +1255,7 @@ _____________________________________________________________
  + : accessible         blank : not accessible
 ```
 
-Immutable class - is a class without setters. We can still set values in constructor, the idea is that we can’t change values after instantiation. 
-One caveat is when dealing with complex object, create and return value using new or unmodifiable objects. Otherwise initial values can be changed using values passed to constructor or get from `get` method, by changing them.
+Immutable class - is a class without setters. We can still set values in constructor, the idea is that we can’t change values after instantiation. One caveat is when dealing with complex object, create and return value using new or unmodifiable objects. Otherwise, initial values can be changed using values passed to constructor or get from `get` method, by changing them.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1274,10 +1273,10 @@ class Immutable{
         this.sb = new StringBuilder(sb);
     }
 
-  /**
-   * If you just return sb, you will lose immutability, because such object can be changed, and by this internal state would be changed
-   */
-  public StringBuilder getSb(){
+    /**
+     * If you just return sb, you will lose immutability, because such object can be changed, and by this internal state would be changed
+     */
+    public StringBuilder getSb(){
         return new StringBuilder(sb);
     }
 }
@@ -1295,7 +1294,7 @@ public class App {
 }
 ```
 
-Whenever we don’t supply any constructor java create default one with no argument. Java also call parent constructor inserting `super()` into our one. That’s the reason why this code won’t compile. Inside B, java create public no-argument constructor and call super - constructor inside A, but since in A we added 1 argument constructor, java didn’t inject default one. So it can’t find default constructor in A and show you an error.
+Whenever we don’t supply any constructor, by default, java creates public one with no argument. Java also call parent constructor inserting `super()` into our one. That’s the reason why this code won’t compile. Inside `B`, java create public no-argument constructor and call super - constructor inside `A`, but since in `A` we added 1 argument constructor, java didn’t inject default one. So it can’t find default constructor in A and show you an error.
 ```java
 class A{
     public A(int v){
@@ -1316,7 +1315,7 @@ Method overriding vs method hiding:
 * overriding - override non-static method
 * hiding - override static method
 The difference is - when we override method it’s overridden in both child and parent class, but when we hide it - it’s only for child class. 
-Notice when we call printA, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
+Notice when we call `printA`, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1380,7 +1379,7 @@ printB => i: 2
 printA => i: 1
 ```
 
-Polymorphism is the ability to pass one object as type of another. Here instance `b` is reference to object `B`, but it’s type is `A`. Since it’s type is A it’s value is limited, so we can call only methods available in A. 
+Polymorphism is the ability to pass one object as type of another. Here instance `b` is reference to object `B`, but its type is `A`. Since it’s type is A it’s value is limited, so we can call only methods available in A. 
 The point here if we override some method from A in B, then when we call these methods, they will be called from B. To call all B methods, we must cast it to type B.
 ```java
 public class App {
@@ -1393,31 +1392,32 @@ public class App {
         System.out.println(b2.getName()); // B
     }
 }
-class A{
+class A {
     public int getValue1(){
         return 1;
     }
 }
-class B extends A{
+class B extends A {
     public String getName(){
         return "B";
     }
 }
 ```
 There are 2 types of polymorphism:
-* compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is argument, that there is no strict compile-time polymorphism in java, so method overloading we can count as compile-time polymorphism.
+* compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is an argument, that there is no strict compile-time polymorphism in java, so method overloading we can count as compile-time polymorphism.
 * runtime polymorphism (overriding) - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, because we can change it dynamically during execution. 
 That's why we can say that java supports both:
 * compile-time polymorphism - when we overload methods
-* runtime polymorphism - when we extend/implement and pass reference
+* runtime polymorphism - when we override (extend/implement) and pass reference
 
-We can cast to parent without parenthesis (without explicit casting)
+We can cast to parent without parenthesis (without explicit casting). But casting to child requires explicit casting, otherwise it won't compile with `java: incompatible types: com.java.test.A cannot be converted to com.java.test.B`.
 ```java
 public class App {
-    public static void main(String[] args) {
-        B b = new B();
-        A a = b;
-    }
+  public static void main(String[] args) {
+    B b = new B();
+    A a = b;
+    B b2 = (B) a;
+  }
 }
 class A{}
 class B extends A{}
@@ -1468,7 +1468,7 @@ Static and instance initializers - order of execution:
 * first - static variable/block in order they are in code
 * second - instance variable/block of code, in order they are in code
 * third - constructor
-* In case one class extends other, fist all initializers of parent fires than of child.
+* In case one class extends other, fist all initializers static/instance/constructor of parent fires than of child.
 ```java
 public class App {
     public static final int NUM_VALUE;
@@ -1692,7 +1692,7 @@ public class App {
     public static void main(String[] args) {
         int i = 1;
         short s = 2;
-        print(i, s); // reference to print is ambiguous: both method print(java.lang.Integer,short) in com.java.app.Main and method print(int,java.lang.Short) in com.java.app.Main match
+        print(i, s); // reference to print is ambiguous: both method print(java.lang.Integer,short) in com.java.test.Main and method print(int,java.lang.Short) in com.java.test.Main match
     }
     public static void print(Integer i, short s){
         System.out.println(1);
@@ -1772,24 +1772,6 @@ class A{
     }
     public A(int x, int y){} // won't compile
 }
-```
-
-Static members can be accessed even if object is point to null, cause static binding is compile time binding (access to static method is decided at compile time, not in runtime).
-```java
-public class App {
-    public static void main(String[] args) {
-        A a = new A();
-        a.x = 1;
-        a = null;
-        System.out.println(a.x);
-    }
-}
-class A{
-    public static int x;
-}
-```
-```
-1
 ```
 
 When casting values, static members get shadowed. That happens because static members - bound in compiler time (static binding), and all other in runtime (dynamic bindings).
@@ -1959,7 +1941,7 @@ class A{}
 class B extends A{}
 ```
 2. return type should be identical or subtype - called covariance in java
-3. exception - overridden method can throw fewer or narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
+3. exception - overridden method can throw fewer/narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
 
 If you necessarily have to use overriding with subtype param, you can use generics
 ```java
@@ -1987,7 +1969,8 @@ class PrinterB implements Printer<B>{
 class A{}
 class B extends A{}
 ```
-This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2 were we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
+
+This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2 were we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able to call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2014,7 +1997,7 @@ class B extends A{}
 ```
 
 ###### Interfaces
-All variables in interface are always `public static final`, and can be called both from interface or from it's instance. Which is differ from `static` methods that can be called only from interface.
+All variables in interface are always `public static final`, and can be called both from interface or from its instance. Which is different from `static` methods that can be called only from interface.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2037,7 +2020,7 @@ class A implements I{}
 ```
 
 Interfaces can have 2 methods:
-* `default` - can be only called on instance of class that implements interface. Were added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compiled until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
+* `default` - can be only called on instance of class that implements interface. Were added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compile until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
 * `static` - can only be called on interface itself.
 ```java
 public class App {
@@ -2046,6 +2029,7 @@ public class App {
         System.out.println(a.m1());
         System.out.println(a.m2()); // won't compile
         System.out.println(I.m2());
+        System.out.println(I.m1()); // won't compile
     }
 }
 interface I {
@@ -2088,8 +2072,9 @@ class B implements A {
 }
 ```
 
-Since interface default methods - instance, but variables - static, when a class implements 2 interfaces with the same default method, class should redeclare it to remove ambiguity. 
-Java won’t compile such a class. In case of 2 variables with same name - you anyway can't access interface variable from instance of class - so if you try it won't compile.
+when a class implements 2 interfaces with the same:
+* variable (static) - it would compile, but if you try to access such static variable from instance of that class, you will get compilation error: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
+* default method - code won't compile: `types com.java.test.A and com.java.test.B are incompatible; class com.java.test.C inherits unrelated defaults for print() from types com.java.test.A and com.java.test.B`
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2107,6 +2092,21 @@ interface B{
 }
 class C implements A, B{}
 ```
+2 same default methods
+```java
+interface A {
+    default void print(){
+        System.out.println("A");
+    }
+}
+interface B {
+    default void print(){
+        System.out.println("B");
+    }
+}
+class C implements A, B{} // won't compile
+```
+
 If class implements 2 interfaces with same signature default method, but one override another, no compile error.
 ```java
 public class App {
@@ -2138,7 +2138,7 @@ B
 ```
 Since `B` is `A`. implementing both A, B is redundant so it the same as just implement only `B`. That’s why from compile perspective it’s like implementing only `B`, since no compile error. And if you try to call this method on class instance, you will get it from `B`.
 
-If class implements 2 interfaces, and both have the method with same signature, but one is abstract, another one is default, class is required to redeclare it
+If class implements 2 interfaces, and both have the method with same signature, but one is abstract, another one is default, class is required to redeclare it: `com.java.test.A is not abstract and does not override abstract method print() in com.java.test.X`
 ```java
 interface X{
     void print();
@@ -2152,8 +2152,7 @@ interface Y{
 
 class A implements X, Y{} // compilation error
 ```
-The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another implementation of this interface.
-Yet it works fine in case class has method's implementation, or if `Y extends X`
+The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another implementation of this interface. Yet it works fine in case class has method's implementation, or if `Y extends X`
 ```java
 interface X{
     void print();
@@ -2164,6 +2163,14 @@ class A{
 }
 
 class B extends A implements X{}
+```
+
+Same interface can't have abstract and default/static method of same name - compilation error:
+```java
+interface X{
+    void print(); // won't compile
+    default void print(){}
+}
 ```
 
 When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call this method of interface.
@@ -2343,40 +2350,42 @@ a
 x
 y
 ```
-As you see, we call super on interface with it’s name.
+As you see, we call super on interface with its name.
 
 ###### Enums
 Enum extension. There is no such thing as enum extension in java, but you can employ interface for this purpose.
 ```java
 public class App {
-    public static void main(String[] args) {
-        System.out.println(Day.valueOf("MON"));
-        System.out.println(Day.valueOf("SAT"));
-        System.out.println(Day.valueOf("Unknown"));
-    }
+  public static void main(String[] args) {
+    Day mon = WorkingDay.MON;
+    Day sun = WeekendDay.SUN;
+    System.out.println(Day.valueOf("MON"));
+    System.out.println(Day.valueOf("SAT"));
+    System.out.println(Day.valueOf("Unknown"));
+  }
 }
 enum WorkingDay implements Day{
-    MON,
-    TUE,
-    WED,
-    THU,
-    FRI,
+  MON,
+  TUE,
+  WED,
+  THU,
+  FRI,
 }
 enum WeekendDay implements Day{
-    SAT,
-    SUN,
+  SAT,
+  SUN,
 }
 interface Day {
-    static Day valueOf(String value) {
-        try {
-            return WorkingDay.valueOf(value);
-        } catch (IllegalArgumentException ex) {
-            try {
-                return WeekendDay.valueOf(value);
-            } catch (IllegalArgumentException ex2) {}
-        }
-        throw new IllegalArgumentException("No enum constant `" + value + "` found in WorkingDay or WeekendDay enums");
+  static Day valueOf(String value) {
+    try {
+      return WorkingDay.valueOf(value);
+    } catch (IllegalArgumentException ex) {
+      try {
+        return WeekendDay.valueOf(value);
+      } catch (IllegalArgumentException ex2) { }
     }
+    throw new IllegalArgumentException("No enum constant `" + value + "` found in WorkingDay or WeekendDay enums");
+  }
 }
 ```
 ```
@@ -2386,7 +2395,7 @@ Exception in thread "main" java.lang.IllegalArgumentException: No enum constant 
 ```
 As you can see, both enums implements interface, and we can pass this interface into both of them.
 
-By default enum keys are the same as values
+By default, enum keys are the same as values
 ```java
 enum WeekDays{
     SATURDAY,
@@ -2428,7 +2437,7 @@ enum WeekDays{
 
     // this method to get enum value from custom string value
     public static WeekDays fromValue(String str){
-        for(var value: WeekDays.values()){
+        for(WeekDays value: WeekDays.values()){
             if(value.toString().equals(str)){
                 return value;
             }
@@ -2445,10 +2454,10 @@ WeekDays.values() => [Saturday, Sunday]
 WeekDays.valueOf(SATURDAY) => Saturday
 WeekDays.fromValue(Saturday) => Saturday
 ```
-**Pay attention that `valueOf` expects enum constant, and if passed string (like Saturday) IllegalArgumentException would be thrown.
+**Pay attention that `valueOf` expects enum constant, and if passed string (like Saturday) IllegalArgumentException would be thrown. That's why we have implemented method `fromValue` to search by string value.
 `values()` - returns array of keys, not list or array of values. But if we override `toString` then when you call `Arrays.toString(WeekDays.values())` you will get array of values, cause you get array of keys, and then they all transform to string.
 
-Another important issue, is that enum is a static nested class. So it can't be inside inner class or be declared as local variable.
+Another important issue, is that `enum` is a static nested class. So it can't be inside inner class or be declared as local variable. But it was changed in java 16 as part of `JEP-395`
 ```java
 public class App {
     enum My{}
@@ -2466,7 +2475,7 @@ public class App {
 ```
 **Enum can't be extended from other classes (cause all enums are implicitly extended from `java.lang.Enum`, yet it can implement interfaces). Class can't be extended from enum (cause all enums are implicitly final).
 
-Unlike a regular class in enum's constructor you can't access non-final static fields
+Unlike a regular class in enum's constructor you can't access non-final static fields. This is because `enum` constructor called before all `static` fields have been initialized, so to avoid partial initialization we have such rule.
 ```java
 enum Days{
     SAT("Sat"),
@@ -2541,7 +2550,7 @@ enum Days{
 ```
 
 ###### Exceptions
-If parent exception goes before child, the `catch` block with child exception won’t compile with the error: `exception com.java.app.MyException has already been caught`
+If parent exception goes before child, the `catch` block with child exception won’t compile with the error: `exception com.java.test.MyException has already been caught`
 ```java
 public class App{
     public static void main(String[] args) {
@@ -2647,7 +2656,7 @@ class MyException extends RuntimeException{}
 2
 done
 Exception in thread "main" java.lang.RuntimeException
-	at com.java.app.App.main(App.java:15)
+	at com.java.test.App.main(App.java:15)
 ```
 As you can see when we throw `throw new RuntimeException();` it wan’t be caught by the next catch, so this code `System.out.println(3);` will never be executed. Yet `finally` would be executed right before throwing exception.
 
@@ -2705,7 +2714,7 @@ public class App {
 class Exception1 extends RuntimeException{}
 ```
 ```
-Alternatives in a multi-catch statement cannot be related by subclassing. Alternative com.java.app.Exception1 is a subclass of alternative java.lang.RuntimeException
+Alternatives in a multi-catch statement cannot be related by subclassing. Alternative com.java.test.Exception1 is a subclass of alternative java.lang.RuntimeException
 ```
   
 If you have multiple catch you can't reassign ex
@@ -2935,12 +2944,12 @@ done tryWithResources
 closing app2
 closing app1
 Exception in thread "main" java.lang.RuntimeException: something went wrong with app2
-	at com.java.app.App.close(App.java:16)
-	at com.java.app.App.tryWithResources(App.java:32)
-	at com.java.app.App.main(App.java:22)
+	at com.java.test.App.close(App.java:16)
+	at com.java.test.App.tryWithResources(App.java:32)
+	at com.java.test.App.main(App.java:22)
 	Suppressed: java.lang.RuntimeException: something went wrong with app1
-		at com.java.app.App.close(App.java:16)
-		at com.java.app.App.tryWithResources(App.java:27)
+		at com.java.test.App.close(App.java:16)
+		at com.java.test.App.tryWithResources(App.java:27)
 		... 1 more
 ```
 
@@ -12960,7 +12969,7 @@ echo $PATH
 As you see, this utility under-the-hood manage 2 env vars `JAVA_HOME` and `PATH`, so you can switch between different JDK versions easily.
 
 ###### Java 16
-1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP, you will find this statement
+1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP-395, you will find this statement
 ```
 Static members of inner classes
 
