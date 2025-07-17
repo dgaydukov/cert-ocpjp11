@@ -3130,9 +3130,7 @@ App.java
 ```
 As you see for every class it creates separate file with template like `{MainClassName}${InnerClassName}.class`
 
-Static classes are not related with parent classes. You can create them only using parent class name with new keyword. They are just like separate classes that can access static members from parent classes.
-Inner classes on the other hand are associated with instances of outer class. So we can't create them without instance of outer class.
-Pay attention, that inside class we can instantiate static & inner classes the same way `new Outer.Inner()`
+Static classes are not related with parent classes. You can create them only using parent class name with new keyword. They are just like separate classes that can access static members from parent classes. Inner classes on the other hand are associated with instances of outer class. So we can't create them without instance of outer class. Pay attention, that inside class we can instantiate static & inner classes the same way `new Outer.Inner()`
 ```java
 public class App
 {
@@ -3177,7 +3175,7 @@ class Outer{
 }
 ```
 
-Nested non-static class can’t have static members, except `final static` methods. (this rule is relevant to up to java 16, because in java 16 `Record` was added and this rule was relaxed. Started from java 16 you can have static members for non-static class. Look into [Java 16](#java-16))
+Nested non-static class can’t have static members, except `final static` methods. (this rule is relevant to up to java 16, because in java 16 `Record` was added and this rule was relaxed. Started from java 16 with `JEP-395` you can have static members for non-static class.
 Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. Since we can have many instances of outer class and each has its own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
 ```java
 class A {
@@ -3194,12 +3192,12 @@ class A {
             System.out.println(i1);
             System.out.println(i2);
         }
-        public static int x = 1; // won't compile
+        public static int x = 1; // won't compile, would compile from java16
         public final static int y = 2;
-        public static int getValue() { // won't compile
+        public static int getValue() { // won't compile, would compile from java16
             return 2;
         }
-        public final static String getString() { // won't compile
+        public final static String getString() { // won't compile, would compile from java16
             return null;
         }
     }
@@ -3246,7 +3244,7 @@ class A{
 2
 ```
 
-By default we can call static classes as `Outer.Inner`, but if we import them, as static, we can call them directly
+By default, we can call static classes as `Outer.Inner`, but if we import them, as static, we can call them directly
 ```java
 import static com.java.test.Outer.Inner;
 
@@ -3304,7 +3302,7 @@ interface Person{
 John
 ```
 
-Anonymous class inside instance method can get access to parent this using `$ParentClass.this`
+Anonymous class inside instance method can get access to parent this using `{ParentClass}.this`
 ```java
 public class App {
     public static void main(String[] args) {
@@ -3368,7 +3366,7 @@ printing...
 
 #### Date and Time
 ###### Old date api (java.util.Date & java.util.Calendar)
-Before 2014 (introduction of `java.time`) java used these 2 classes `Date/Calendar` to work with dates. But it has a lot of problems
+Before 2014 (introduction of `java.time`) java used these 2 classes `Date/Calendar` to work with dates. But it has a lot of problems:
 * no time zone
 * no formatting
 * month starts from 0
@@ -3541,9 +3539,9 @@ seconds since 01-01-1970 UTC [OffsetDateTime.now().toEpochSecond()] => 158381501
 ```
 
 ###### Period and Duration
-For time intervals we have 2 classes `Period` and `Duration`.
-`Period` - used for days, months, years
-`Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
+For time intervals we have 2 classes:
+* `Period` - used for days, months, years
+* `Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
 `Duration.toString` always return `PT` (stands for Period of Time) and then duration itself.
 ```java
 import java.time.Duration;

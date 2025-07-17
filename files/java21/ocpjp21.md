@@ -102,3 +102,30 @@ class WeirdCompiler {
 }
 ```
 So in both cases you have `static final` var that is not supposed to change, yet in one case compilation works fine, yet in another it fails. This is because java designed it in such way, cause many devs use `if` statements for debug purposes, so they change one value for `DEBUG` and all code inside `if` would be visible or not. That's why java designers decided to let `if` statement with `static final` still be reachable and not produce compile error. Yet with `while` here is obviously no utility, that's why in this case it shows compilation error of unreachable code.
+
+
+###### Nested Types
+Since java16, you can have static members for inner classes, and behavior may look a bit confusing
+```java
+public class App {
+    public static void main(String[] args) {
+        Outer.Inner inner1 = new Outer().new Inner();
+        Outer.Inner inner2 = new Outer().new Inner();
+        inner1.i = 1;
+        System.out.println("inner1.i => " + inner1.i);
+        inner2.i = 2;
+        System.out.println("inner1.i => " + inner1.i);
+    }
+}
+
+class Outer {
+    class Inner {
+        public static int i = 1;
+    }
+}
+```
+See that `inner1` and `inner2` are 2 completely unrelated classes, each has its own parent, which are also unrelated. You should expect that static fields inside `Inner` would also be unrelated, but they actually are and shared across all instances of `Inner` class. This may look confusing at first, that's why java designers originally prohibit this behavior to avoid such confusion, but since adding `record` they have to relax this rule, and now you can have static members inside inner classes.
+```
+inner1.i => 1
+inner1.i => 2
+```
