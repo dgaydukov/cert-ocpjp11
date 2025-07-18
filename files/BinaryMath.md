@@ -56,6 +56,21 @@ There are 4 ways to store signed numbers:
 * offset binary - not used
 * base -2 - not used
 
+Now the question is how CPU knows what the number is normal binary or two's compliment negative binary. The answer is simple, CPU doesn't care, it just stores bytes. The CPU knows whether to do signed or unsigned arithmetic according to the op-code that you (or the compiler on your behalf) chose
+```
+15 => 1111
+-1 => 1111 in two's complement
+
+# why -1 => 1111, let's perform 3 steps
+# step 1 convert 1 to binary
+1 => 0001 (first number is 0 as sign)
+# step 2: invert bits
+0001 => 1110
+# step 3: add 1
+1110 + 1 => 1111
+```
+Some values in two's compliment system are the same:
+* 128 and -128 => `1000 0000`
 
 ### Storing floating point numbers
 let's see how fractional numbers stored in memory
