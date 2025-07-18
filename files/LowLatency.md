@@ -682,21 +682,7 @@ so you can see that we have rational number like:
 * float - 32bit
 * double - 64bit
 * long double (not available in java, yet we have it in C) - 80bit or 128bit
-  let's see how fractional numbers stored in memory
-```
-convert separately integer and fractional part into binary
-7.25=111.01
-write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - mantis, e - power 10
-111.01=1.1101 * 10**2
-move our power number into binary 2=10
-7.25=1.1101 * 10**10
-write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
-since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129, 
-based on this rule you can see that for 32bit we can store max 10**128 - very large number 0[10000001]1101[all zeros]
-we can convert it back
--1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
-```
-so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others. Yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989...  And this is limitation of binary math, not of processors or programming language. There are a few ways you can circumvent it:
+There are a few ways you can circumvent [Binary Math]:
 * don't use fractional numbers, use integers
 * use BigDecimal/BigInteger
 
