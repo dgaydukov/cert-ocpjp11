@@ -188,7 +188,7 @@ d/0 => Infinity
 i/0.0 => Infinity
 Exception in thread "main" java.lang.ArithmeticException: / by zero
 ```
-When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got `Infinity`. You can also adding positive/negative `Infinity` to variable using `Double` class
+When we divide `int` by zero we got `ArithmeticException`, but when we divide `double` we got `Infinity`. You can also add positive/negative `Infinity` to variable using `Double` class
 ```
 double d1 = 1/0d;
 double d2 = Double.POSITIVE_INFINITY;
@@ -12992,7 +12992,7 @@ echo $PATH
 As you see, this utility under-the-hood manage 2 env vars `JAVA_HOME` and `PATH`, so you can switch between different JDK versions easily.
 
 ###### Java 16
-1. https://openjdk.org/jeps/395 - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can. If you read this JEP-395, you will find this statement
+1. [JEP-395](https://openjdk.org/jeps/395) - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can.
 ```
 Static members of inner classes
 
