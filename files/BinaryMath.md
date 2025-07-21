@@ -111,8 +111,10 @@ converting decimal fraction to binary:
 
 Finite representation:
 * not all numbers can be finitely represented in either decimal or binary
-* if it's power 2 - then it can be represented as finite binary
-* if 10 can be divided without leftover (like 2/5/10) - then it can be represented as finite decimal
+* to be finite it, we should multiply by base-n until we get 0: if we can't get 0, fraction can't be finite
+* denominator rule:
+  * if power of 2 can be divided into denominator without leftover - fraction can be represented as finite binary. example => 2,4,8,16,32.... any number if power of 2 can be divided into this number without leftover - generally for 2 it's only power of 2 number itself
+  * if power of 10 can be divided into denominator without leftover - fraction can be represented as finite binary. example => 2,5,10,20,25,50,100,125.... any number if power of 10 can be divided into this number without leftover - generally for 10 is any combination of 2/5/10 like 2*2*2, 5*5*2*2, 5*2*10*5 and so on... As you can see here 2 is subset of 10, so any finite number within binary is also finite within decimal, but not vice versa.
 ```
 convert 1/5 to binary
 0.2 * 2 = 0 + 0.4
