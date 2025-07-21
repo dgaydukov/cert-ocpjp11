@@ -879,9 +879,40 @@ class App {
       int[][] arr6 = {{1,2}, {}, new int[5]};
       // invalid declarations
       var arr7 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
+      int[] arr8 = new int[3]{1,2,3}; // won't compile, size should be missing in this case => array creation with both dimension expression and initialization is illegal
     }
 }
 ```
+
+Array class name - java make up class name using followint notatioin: `{dimensions}{letter_of_type}`
+Below is the list for letters:
+```
+boolean Z
+byte B
+char C
+short S
+int I
+long J
+float F
+double D
+any Object L
+```
+If you run this code:
+```java
+int[] intArr = new int[10];
+String[][] strArr = new String[10][];
+Object[][][] objArr = new Object[10][][];
+System.out.println("intArr => " + intArr.getClass().getName());
+System.out.println("strArr => " + strArr.getClass().getName());
+System.out.println("objArr => " + objArr.getClass().getName());
+```
+You will get this output, where bracket `[` denotes how many dimensions array has, leter denotes type of array
+```
+intArr => [I
+strArr => [[Ljava.lang.String;
+objArr => [[[Ljava.lang.Object;
+```
+
 
 Array index can be int/short/byte/char, you can't use long as index. Such code won't compile. And this is clear, since array store data in the heap, you can't get unlimited chunk of data with long, cause it's too big number. If you need such a big array you can use `Unsafe` - but this is advanced java. As of now, just remember that long index won't compile:
 ```java
