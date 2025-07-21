@@ -2,7 +2,8 @@
 
 ### Content
 * [Binary to decimal conversion](#binary-to-decimal-conversion)
-* [Storing negative numbers](#storing-negative-numbers)
+* [Converting negative numbers](#converting-floating-point-numbers)
+* [Converting floating point numbers](#converting-floating-point-numbers)
 * [Storing floating point numbers](#storing-floating-point-numbers)
 
 ### Binary to decimal conversion
@@ -24,7 +25,7 @@ Lets closer look into this example, we would convert 100:
 0110 0100 => 0 * 2**0 + 0 * 2**1 + 1 * 2**2 + 0 * 2**3 + 0 * 2**4 + 1 * 2**5 + 1 * 2**6 + 0 * 2**7 = 100
 ```
 
-### Storing negative numbers
+### Converting negative numbers
 There are 4 ways to store signed numbers:
 * sing-magnitude - the most simple to understand. We just use most-significant-bit to store sign, so bit representation of positive and negative is almost the same:
     * problems:
@@ -41,16 +42,17 @@ There are 4 ways to store signed numbers:
 00101011 => 43
 11010100 => -43
 ```
-* Two's complement - most common way to represent signed integers in binary format (for integers this one is currently used in most PC). Negative number is NOT of positive binary number plus 1. This solves problems of 2 zeros and adding caret, that we have with ones' complement.
+* Two's complement - most common way to represent signed integers in binary format (for integers this one is currently used in most PC). Negative number is NOT of positive binary number plus 1. This solves problems of 2 zeros and adding caret, that we have with ones' complement. Arithmetic operation can be applied to both signed and unsigned integers. The `two` in the name refers to the `2**N`, so it means this number is a compliment to `2**N`. Complement - means simply addition of this number with `2**N`. (for example if we have 3 bits, then max is 2**3=8, so 3 is complement to 5, because when we add them we get 8). Calculation of the binary two's complement of a positive number essentially means subtracting the number from the `2**N`.
 ```
-# binary form of -6
+# binary form of -6: we need 3 steps
+# step 1: calculate binary of 6
 6 => 0110 (add first bit 0 as positive sign)
-# slipt all bits
+# step 2: flip all bits
 0110 => 1001
-# add 1 to flipped bits
+# step 3: add 1 to flipped bits, ignoring overflow
 1001 + 1 => 1010
 
-# backward calcuation
+# backward calcuation: exactly the same but we add minus to the rightmost bit
 1010 = −(1×2**3) + (0×2**2) + (1×2**1) + (0×2**0) 
 ```
 * offset binary - not used
@@ -72,19 +74,89 @@ Now the question is how CPU knows what the number is normal binary or two's comp
 Some values in two's compliment system are the same:
 * 128 and -128 => `1000 0000`
 
+### Converting floating point numbers
+Don't confuse (for number 2/3):
+* numerator - upper part of fractional number or `2`
+* denominator - bottom part of fractional number or `3`
+* fractional bar - divisor
+
+There are several types of numbers:
+* natural numbers - 1,2,3...
+* integers - positive/negative natural numbers and zero -2,-1,0,1,2....
+* rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
+* irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
+* real numbers - include both rational and irrational
+
+converting decimal fraction to binary:
+* to convert you start with fraction and multiply by 2 until fraction is 0
+* only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
+* other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
+```
+# convert 7.25 to binary: convert separately integer and fractional part
+# integer - divide on 2 until we reach 0
+7 / 2 = 3 + 1
+3 / 2 = 1 + 1
+1 / 2 = 0 + 1
+7 => 111
+# fractional - multiply by 2 until we reach 0, and write the whole part from top-down
+0.25 * 2 = 0 + 0.5
+0.5  * 2 = 1 + 0
+0.25 => 0.01
+
+7.25 => 111.01
+
+# for backwrad conversion: integer part convert normally but fraction with multiply by 2 with minus
+111.01 = (1 * 2**0) + (1 * 2**1) + (1 * 2**2) + (0 * 2**-1) + (1 * 2**-2) = 1 + 2 + 4 + 0 + 1/4 = 7.25
+```
+
+Finite representation:
+* not all numbers can be finitely represented in either decimal or binary
+* if it's power 2 - then it can be represented as finite binary
+* if 10 can be divided without leftover (like 2/5/10) - then it can be represented as finite decimal
+```
+convert 1/5 to binary
+0.2 * 2 = 0 + 0.4
+0.4 * 2 = 0 + 0.8
+0.8 * 2 = 1 + 0.6
+0.6 * 2 = 1 + 0.2 => as you see again we got 0.2
+so 0.2 = 0.(1100)
+```
+so you can see that we have rational number like:
+* 1/8=0.125 that can be represented as finite in both decimal and binary
+* 1/5=0.2 that can be represented as finite in decimal but not in binary
+* `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
+
+
+
+As you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it - but once we do this, we encounter rounding problem:
+* stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
+* floating-point representation - most widely used representation of real numbers in PC. it has base=b, and precision=p.
+  there are 3 way to store floating point:
+* float - 32bit
+* double - 64bit
+* long double (not available in java, yet we have it in C) - 80bit or 128bit
+
+There are a few ways you can avoid floating point rounding error:
+* don't use fractional numbers, use integers
+* use BigDecimal/BigInteger
+
 ### Storing floating point numbers
-let's see how fractional numbers stored in memory
+* converting fraction to binary is one thing, but storing in memory is another, computers use `IEEE 754` as standard to store fractions in memory
+* `fixed point` - convenient way to store fractions `7.25 => 111.01` but computers use the concept called `floating point`
+* There are 2 standards in IEEE 754:
+  * single precision: 32 bits => 1 bit for sign + 8 bits for exponent + 23 bits for mantissa
+  * double precision: 64 bits => 1 bit for sign + 11 bits for exponent + 52 bits for mantissa
 ```
-convert separately integer and fractional part into binary
-7.25=111.01
-write number in exponential way (-1**s) * 1.m * 10**e, where s - first bit, m - mantis, e - power 10
-111.01=1.1101 * 10**2
-move our power number into binary 2=10
-7.25=1.1101 * 10**10
-write this into 32 bit; first bit - sign, 8 bit - for power, 23 bits for mantis
-since power itself can be positive/negative we have simple rule based on 127 = power+127, in our case we would get 129, 
-based on this rule you can see that for 32bit we can store max 10**128 - very large number 0[10000001]1101[all zeros]
-we can convert it back
--1**0 * 1.1101 * 10**(10000001-127) == 1 * 1.1101 * 10**2
+# step 1: convert separately integer and fractional part into binary
+7.25 = 111.01
+# step 2: normalize the binary so that only one non zero digit remains to the left of it (do ti by shifting n bits left and multiplying b 2**n)
+# since power itself can be positive/negative we have simple rule based on 127 = power+127
+111.01 = 1.1101 * 2**2 
+# step 3: set first bit as sign, 0 - in our case cause it's a positive number
+# step 4: normalize exponent => adjust exponent by adding 127 to id and convert to binary
+2 + 127 = 129 = 1000_0001
+# step 5: normalize mantissa => remove left bit cause it's 1 and add zeros to the length of 23
+1.1101 = 1101 000 0000 0000 0000 0000
+# step 6: write final number in 32 bits system as: sign + exponent + mantissa
+0 - 1000 0001 - 110 1000 0000 0000 0000 0000
 ```
-so if we use this calculation now it's clear that some fractions like 0.2 when we try to convert to binary we have to fill first 23 bits and discard others. Yet when we try to convert this binary back into decimal, we don't get 0.2, but 0.199989...  And this is limitation of binary math, not of processors or programming language. 

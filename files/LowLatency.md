@@ -643,49 +643,6 @@ str => ϨϩϪϫϬϭϮϯϰϱ
 str => ��������������������
 ```
 
-### Floating Point Numbers
-There are several types of numbers:
-* natural numbers - 1,2,3...
-* integers - positive/negative natural numbers and zero -2,-1,0,1,2....
-* rational numbers - those that can be represented as `ratio` like 1/3. all integers are rational cause 5 is 5/1
-* irrational numbers - those that can't be represented as `ratio` of 2 numbers, like `sqrt(2)`
-* real numbers - include both rational and irrational
-  converting decimal fraction to binary:
-* to convert you start with fraction and multiply by 2 until fraction is 0
-* only those with denominator of power 2 can be finitely represented in binary like 3/8=0.375
-* other denominators like 1/10=0.1 or 1/5=0.2 can't be finitely represented in binary
-```
-convert 3/8 to binary
-0.375 * 2 = 0 + 0.75
- 0.75 * 2 = 1 + 0.5
-  0.5 * 2 = 1 + 0
-so 0.375 =. 0.110
-
-convert 1/5 to binary
-0.2 * 2 = 0 + 0.4
-0.4 * 2 = 0 + 0.8
-0.8 * 2 = 1 + 0.6
-0.6 * 2 = 1 + 0.2 => as you see again we got 0.2
-so 0.2 = 0.(1100)
-```
-so you can see that we have rational number like:
-* 1/8=0.125 that can be represented as finite in both decimal and binary
-* 1/5=0.2 that can be represented as finite in decimal but not in binary
-* `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
-  Simple rule is denominator:
-* if 10 can be divided without leftover, like 2/5/10, - no problems
-* if it's power 2, then it can be represented as finite binary
-  As you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it - but once we do this, we encounter rounding problem:
-* stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
-* floating-point representation - most widely used representation of real numbers in PC. it has base=b, and precision=p.
-  there are 3 way to store floating point:
-* float - 32bit
-* double - 64bit
-* long double (not available in java, yet we have it in C) - 80bit or 128bit
-There are a few ways you can circumvent [Binary Math]:
-* don't use fractional numbers, use integers
-* use BigDecimal/BigInteger
-
 ### Unsafe, VarHandle, MethodHandle
 `sun.misc` - special package for 2 low-level classes (you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant):
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
