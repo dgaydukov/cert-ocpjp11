@@ -9,6 +9,11 @@
 In this file I'll add all the tricks and hacks, including all best practices related to OOP. This is very broad topics, so I'll not add all the details and basic concepts, only the most advanced.
 
 ### Composition over inheritance
+There are 2 main approach how you can build your app:
+* inheritance - the downside is that you create tight coupling. Moreover in real world you have composition. For example car consist of multiple not directly related parts
+* composition - better than inheritance, cause it gives you more flexible and remove tight coupling. There are several ways how you can achieve this in java:
+  * use of multiple interfaces
+  * use of `@Delegate` interface from Lombok
 
 ### Lombok Delegate
 Lombok has one nice annotation `@Delegate` that can allows you to kind of extend one class with functionality of another, without using any kind of inheritance. Take a look at this program:
