@@ -877,12 +877,27 @@ class App {
       int arr4[] = new int[3];
       var arr5 = new int[]{1,2,3};
       int[][] arr6 = {{1,2}, {}, new int[5]};
+      int[][] arr7[][] = new int[10][][][]; // four-dimension array with size of first array of 10
+      int[][] arr8 = new int[3][5]; // initialize array of 3 elements, where each element is array of 5 ints
+      int[][] arr9 = new int[3][]; // initialize array of 3 elements, where each element is null
       // invalid declarations
-      var arr7 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
-      int[] arr8 = new int[3]{1,2,3}; // won't compile, size should be missing in this case => array creation with both dimension expression and initialization is illegal
+      var arr10 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
+      int[] arr11 = new int[3]{1,2,3}; // won't compile, size should be missing in this case => array creation with both dimension expression and initialization is illegal
+
+
+
+      Integer[] arr = new Integer[10];
+      Object[] objArr = arr;
+      int [] intArr = new int [10];
+      // won't compile: incompatible types: int[] cannot be converted to java.lang.Object[]
+      Object[] objArr2 = intArr;
+      // compiles fine
+      Object[] objArr3 = new int[10][];
     }
 }
 ```
+
+Jagged array - for multidimensional array, java doesn't have a concept of matrix like 2x3, so it has array of arrays, and memory layout not clear defined. This is why in java it's called jagged array. But in C# we can have 2 types of array, kind of matrix-based and jagged. Java doesn’t have the concept of single or multidimensional arrays, If the elements of an array are themselves arrays, we call it a multidimensional array but from the language perspective, it is still just an array.
 
 Array class name - java make up class name using followint notatioin: `{dimensions}{letter_of_type}`
 Below is the list for letters:
@@ -951,7 +966,8 @@ John
 ```
 As you see, after we change name of object inside cloned array, it was also changed inside main array.
 
-Java arrays are reified - their types are checked in runtime, but generics are not, that's why you can assing array of one type to another, and no compilation error, but it won't work with generics, you get compilation error.
+Java arrays are reified - their types are checked in runtime, but generics are not, that's why you can assign array of one type to another, and no compilation error, but it won't work with generics, you get compilation error.
+What you need to understand regarding array reify: this is opposite to generics, because generics check type on compile-time, so your code won't compile, but arrays check only in runtime, that's why code would compile, but throw exception.
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -11396,12 +11412,12 @@ There are 3 types of modules:
 * named module (NM) - one with `module-info.java` file loaded from `--module-path`
 * automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so mysql-java-connector-1.2.3.jar => mysql.java.connector. You can also set it explicitly by adding to MANIFEST.MF => Automatic-Module-Name: <module name>)
 * unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`
-NM can have access to AM, but should require it in it's `module-info.java` file by it's name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
+NM can have access to AM, but should require it in it's `module-info.java` file by its name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
 AM can access all types from both NM and AM 
 UM can access all types from both NM and AM
-Bottom-up vs top-down approach. Suppose we have 3 jars A.jar => B.jar => C.jar (=> - means depend).
+Bottom-up vs top-down approach: suppose we have 3 jars A.jar => B.jar => C.jar (`=>` - means depend on).
 Bottom-up:
-* first convert C.jar (A.jar and B.jar can still be run from classpath since from classpath you can access all packages)
+* first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
 * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
 * finally convert A.jar -> now all are named modules run from --module-path
 Top-down:

@@ -163,7 +163,6 @@ class WeirdCompiler {
 ```
 So in both cases you have `static final` var that is not supposed to change, yet in one case compilation works fine, yet in another it fails. This is because java designed it in such way, cause many devs use `if` statements for debug purposes, so they change one value for `DEBUG` and all code inside `if` would be visible or not. That's why java designers decided to let `if` statement with `static final` still be reachable and not produce compile error. Yet with `while` here is obviously no utility, that's why in this case it shows compilation error of unreachable code. If you remove `final` it would work fine.
 
-
 ###### Nested Types
 Since java16 with `JEP-395`, you can have static members for inner classes, and behavior may look a bit confusing
 ```java
