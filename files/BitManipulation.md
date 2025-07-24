@@ -109,15 +109,38 @@ This operation has several properties that can be reused:
 * `x ^ x = 0`, `x ^ 0 = x`
 
 ##### Bit masking
+In essence, Bitmask is a list of boolean flags (for example isAlive, isMoving...) compressed into a single field, usually an integer (max 32 boolean values, but we can store up to 64 in `long`). It can cut quite a significant amount of JSON string size or memory footprint.
 bit mask - a pattern of bit that we can apply to any binary, usually used for storing flags and "rights". For example for 8bit, you can store up to 8 flags or permissions. And mask is specific permission, for example if second bit is allowed. This is our mask. Using bitwise operations we can apply mask to data to check or set if our data has mask inside.
-* apply mask: `data | mask`
-* clear mask: `data & ~mask`
-* toggle mask: `data ^ mask`
+* apply mask: `data | mask` - set a subset of bits into the value `8 | 4 = 12`
+* check mask: `data & mask` - extract a subset of bits from the value `12 | 4 = 4`
+* clear mask: `data & ~mask` - remove a subset of bits from the value `12 & ~4 = 8`
+* toggle mask: `data ^ mask` - toggle a subset of the bits in the value `12 ^ 4 = 8`, but `8 ^4 = 12` so you can easily toggle/switch between different `data`
+  * actually `XOR => AND + NOT`, so we can see that `12 ^ 4 = 12 & ~4 = 8`
 Let's consider this example. we have 4 bit data=8, and we want to apply mask=4.
 ```
+# apply mask 4 to our value of 8
 8 => 1000
 4 => 0100
 OR   1100 => 12 # now our value include bit 4 or third bit from right is set to 0
+
+# check if mask 4 in our value of 12
+12 => 1100
+4  => 0100
+AND   0100 => 4 # if mask bits were not set, the result would be 0
+
+# clear/remove mask: 2 steps
+# step1: invert our mask
+4  => 0100
+~4 => 1011
+# spep2: call AND with inverted mask
+12 => 1100
+~4 => 1011
+AND   1000 => 8 # result is our value before applying mask
+
+# toggle mask
+8 => 1000
+4 => 0100
+XOR  1100 => 12
 ```
 
 ### Tricks

@@ -11577,15 +11577,18 @@ Random number generation. There are 5 ways to generate number:
 * `java.lang.Math.random()` - generate random between 0 and 1. Using internally `new Random().nextDouble()`.
 * `java.util.Random` - standard class to get numbers
 * `java.util.SplittableRandom` - not thread-safe, but very quick
-* `java.util.concurrent.ThreadLocalRandom` - enhanced version of Random designed to generate multi-threaded safe randoms.
-* `java.security.SecureRandom` - generate cryptographically secure randoms (mostly used in secure app)
-Use this class for password/token generation. While `Random` takes data from system clock, `SecureRandom` takes from `/dev/(u)random`
-so it's more secure and less change of somebody guess it. You can also manually generate random binary with shell
+* `java.util.concurrent.ThreadLocalRandom` - enhanced version of Random designed to generate multithreaded safe randoms.
+* `java.security.SecureRandom` - generate cryptographically secure randoms (mostly used in secure app) - use this class for password/token generation. While `Random` takes data from system clock, `SecureRandom` takes from `/dev/(u)random`, so it's more secure and less chance of somebody guess it. 
+
+You can also manually generate random binary with shell  - which uses environmental noise collected from device drivers as seed. There are 2 types:
+* `dev/random` - can block on startup when not enough noise collected to build seed. Once initialized, behave the same as `dev/urandom`
+* `dev/urandom` - never blocked, always ready to be used
 ```shell script
+# read 1024 random bytes into file
 dd if=/dev/urandom of=~/random.bytes count=4 bs=1024
 ```
 All methods in `Random` are on instance (no static calls).
-There are 2 constructors one is empty another with seed of `long`. When you use no-arg it generate seed based on nanotime.
+There are 2 constructors one is empty another with seed of `long`. When you use no-arg it generate seed based on nanotime. If you pass same seed into 2 different randoms, you will generate the same sequence of random numbers. This is useful in testing and in deterministic systems.
 ```java
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -11650,7 +11653,7 @@ range with rnd.nextInt => 214
 ```
 
 ###### Locale and ResourceBundle
-`Locale` - immutable class, once created can't change it's locale. There are 3 ways to create `Locale`. Language, language & country, language & country & variant. So `Locale` at least requires language.
+`Locale` - immutable class, once created can't change its locale. There are 3 ways to create `Locale`. Language, language & country, language & country & variant. So `Locale` at least requires language.
 `getString(str s)` - retrieve value by key from current or all parent bundles. Loading happens this way:
 first => parent bundle loaded, and then more concrete loaded and values from concrete bundle overwrite values from base bundle.
 Don't confuse builder method setRegion(not setCountry) and locale method getCountry(not getRegion)
@@ -11679,7 +11682,7 @@ myapp_en.properties
 myapp_en_US.properties
 myapp_fr.properties
 ```
-Then we have following order of execution:
+Then we have the following order of execution:
 * if we don't pass anything `myapp_en` would be loaded, cause default locale is en
 * if we pass existing locale (like `fr` or `en_US`) corresponding file would be loaded
 * if we pass `en_us` locale 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
@@ -11795,13 +11798,9 @@ person => Person[name=Jack, age=30]
 ```
 
 ###### Assertions
-By default assertions are turned off. You should use `-ea` or `-enableassertions` flag on `java` in order for them to work. Since assertion fail throws `AssertionError`, it's considered a bad practice trying to catch and recover. Although you can do it.
-If you want to disable assertion use `-da` or `-disableassertions`. You can enable/disable assertions from specific class/package `-ea:mypackage`.
-You can have multiple line ea or da. For example if you want to enable them in general but disable for mypackage `java -ea -da:mypackage`.
-If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`
-If you want to enable/disable assertions for all subpackages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
-Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods.
-The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
+By default, assertions are turned off. You should use `-ea` or `-enableassertions` flag on `java` in order for them to work. Since assertion fail throws `AssertionError`, it's considered a bad practice trying to catch and recover. Although you can do it.
+If you want to disable assertion use `-da` or `-disableassertions`. You can enable/disable assertions from specific class/package `-ea:mypackage`. You can have multiple line ea or da. For example if you want to enable them in general but disable for package `java -ea -da:mypackage`. If you want to enable/disable assertions for system classes (classes from JDK) use `-enablesystemasserstions`/`-esa` or `-disablesystemassertions`/`-dsa`If you want to enable/disable assertions for all subpackages use 3 dots `...` (called ellipsis). `java -ea:package1... -da:package2... Main`.
+Since assertions can be turned off by the will of user, it's not a good practice to verify `public` methods input params with assertions. It's better to use runtime exceptions for this purpose. Yet you can use assertions in `private` methods. The reason is since data into private methods goes by developer, so in case of error, he would find it during development.
 If you want assertions to be enabled you can force user of your program to use it
 ```java
 public class App {
@@ -11966,6 +11965,7 @@ Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer
 ```
 If we add `@SafeVarags` to `print` methods, compilation warnings would be gone. Although it won't make code safe, you will still get `ClassCastException`.
 Meta annotations - those that applied to other annotations. Here is the list of `java.lang.annotation` package. Annotation value must be compile time constant non-null value.
+
 `@Retention(SOURCE/CLASS/RUNTIME)` - how long annotation would be available. Source - only for source code. Class - during runtime, but not for reflection. Runtime - during runtime and can get it by reflection.
 `@Target` - to which element does annotation applied (like Field, Method, Constructor) 
 `@Repetable`
@@ -12022,8 +12022,7 @@ class User{}
     }
 }
 ```
-Pay attention that name of the array `Role[]` should be `value`. Otherwise you will get compile error. Also if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, 
-but inside it creates this wrapper, and so if your array's name is not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
+Pay attention that name of the array `Role[]` should be `value`. Otherwise, you will get compile error. Also, if you have other values inside repeatable annotation they should have default values. The reason for these rules is simple. Java allows you to omit wrapper annotation, but inside it creates this wrapper, and so if your array's name is not value, and if you have other fields without default values, java won't be able to create wrapper annotation.
 ```java
 @Role("user") // won't compile
 @Role("admin") // won't compile

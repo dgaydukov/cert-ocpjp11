@@ -8,13 +8,12 @@
 * 5 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
 * 6 [Garbage collector](#garbage-collector)
 * 7 [Encoding](#encoding)
-* 8 [Floating Point Number](#floating-point-numbers)
-* 9 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
-* 10 [Linked lists](#linked-lists)
-* 11 [Low latency logging](#low-latency-logging)
-* 12 [Low latency collections](#low-latency-collections)
-* 13 [Java Agent](#java-agent)
-* 14 [Java Object Layout](#java-object-layout)
+* 8 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
+* 9 [Linked lists](#linked-lists)
+* 10 [Low latency logging](#low-latency-logging)
+* 11 [Low latency collections](#low-latency-collections)
+* 12 [Java Agent](#java-agent)
+* 13 [Java Object Layout](#java-object-layout)
 
 
 ### Basics
@@ -412,8 +411,9 @@ Viewing GC logs (using GCViewer tool):
         * survivor memory space 1
         * survivor memory space 2
     * OldGen - old generation - contains old objects that survived after several rounds of `minor GC`. When OldGen is full, `major GC` is run to clean up - this take longer time
-* non-heap - contains PermGen (Permanent Generation - called MetaSpace since java8)
+* non-heap - contains PermGen (Permanent Generation replaced with MetaSpace since java8 by [JEP-122](https://openjdk.org/jeps/122))
     * stores fields & methods names, code for methods, constants
+    * static variables - only variables, not objects itself (if static variable store object, this object would reside in the heap, and only reference value would be stored in PermGen)
     * size can be set with ` -XX:PermSize` & `-XX:MaxPermSize`
 * cache - stored compiled code
 * stack - unique per thread, stored local variables and code execution
