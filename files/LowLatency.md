@@ -247,7 +247,7 @@ Don't confuse:
 
 ### Garbage collector and Weak References
 GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.
-GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this).
+GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this). This is similar to defragmentation of HDD in modern PC.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -285,18 +285,26 @@ run when jvm exits
 ```
 `finalize` - became deprecated since Java9. You should use `Cleaner` instead.
 ```java
+import java.lang.ref.Cleaner;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class App {
     public static void main(String[] args) {
         Cleaner cleaner = Cleaner.create();
         My my = new My();
+        AtomicBoolean flag = new AtomicBoolean();
         cleaner.register(my, ()->{
             System.out.println("object of type My has been garbage-collected");
+            flag.set(true);
         });
         my = null;
         // some memory-intensive allocation
-        for (int i = 1; i <= 10; i++) {
-            int[] a = new int[10_000_000];
-            System.out.println(i);
+        for (int i = 1; i < 1_000; i++) {
+            int[] arr = new int[10_000_000];
+            if (flag.get()) {
+                System.out.println("breaking at step: " + i);
+                break;
+            }
         }
         System.out.println("done");
     }
@@ -309,24 +317,15 @@ class My{
 ```
 ```
 object of type My has been created
-1
-2
 object of type My has been garbage-collected
-3
-4
-5
-6
-7
-8
-9
-10
+breaking at step: 13
 done
 ```
 Java has concept of strong/weak/soft/phantom reference:
 * strong - normal object `Object obj = new Object();`. Once you set it to null, any call on such object would cause `NullPointerException`
-* phantom - always null. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects. This is useful if you don't want to use `finalize`, wih such a reference, you can poll the queue and if it contains object - that means such object was garbage collected, you can add custom finalizing logic
-* weak - becomes null after calling `System.gc()`
-* soft - still holds object after GC called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`)
+* weak - becomes null after calling `System.gc()`. Has 2 constructor, 1 can take second param as `ReferenceQueue`
+* soft - still holds object after GC called, it would remove it only in urgent need of memory (like risk of `OutOfMemoryError`). Has 2 constructor, 1 can take second param as `ReferenceQueue`
+* phantom (always null) - reference to an object that may be already garbage collected. An object is phantom reachable if it is neither strongly, softly, nor weakly reachable, it has been finalized, and some phantom reference refers to it. Have 1 constructor. You pass queue (thread safe `ReferenceQueue`), which store garbage-collected objects, you can use it to poll such objects. This is useful if you don't want to use `finalize`, wih such a reference, you can poll the queue and if it contains object - that means such object was garbage collected, you can add custom finalizing logic. Because this reference is always null, there is only 1 constructor with the queue, because it's the only way to know if your original object was garbage-collected. An obvious question arises – if we cannot access an object from phantom reference, how one can take any cleanup/”finalization” action for it? This is done by a simple workaround – we do not need a whole object to cleanup resource, we just need some representation (handle) of the resource it owns. Thus, altogether with the phantom reference itself we can store some necessary data, taken from an object at the time of phantom reference creation, which will be used afterward. Even if an object will be already garbage collected, our side data will allow us to cleanup resources of our interest.
 ```java
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
@@ -383,6 +382,7 @@ public class App {
 ```
 done => 185
 ```
+Object Resurrection - a process where you "resurrect" java object that is chosen for garbage collection. Java has two different mechanisms for reacting to the deallocation of an object. The older mechanism, using `finalize`, runs a particular method just before the object is deallocated. The new mechanism, using `PhantomReference`, instead allows you to run a particular method just after the object is deallocated. The idea is before object is garbage collected, JVM would run `finalize` where we would have access to `this` and can reassign this object to some variable, and know it's accessible once again, and can't be garbage collected. But this is not the best approach, so JVM is deprecating `finalize` method, and instead encourage to use `PhantomReference`. Here object already is removed by GC, but you merely notified about it, so you can do some clean up, but not able to actually "resurrect" the object.
 
 ### Garbage collector
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
@@ -1698,7 +1698,7 @@ Brief introduction:
 * it uses `Instrumentation` API to achieve its goals
 * you can use it if you don't/can't modify original code, so you add this agent code to modify your original code on byte code level
 * aeron logs using this tool for logging - in order to avoid scattered log statement all around the code, they decided to use java agent instead
-* logic is similar to javassist, where you weave agent code into your own, and kind of enhancing the functionality of your code without actually modifing it (again kind of Reflection)
+* logic is similar to javassist, where you weave agent code into your own, and kind of enhancing the functionality of your code without actually modifying it (again kind of Reflection)
   There are 2 types of loading:
 * static (use of `premain` method) - calling it as separate jar in java command: `java -javaagent:agent.jar -jar app.jar`
     * you need to add `Premain-Class : com.java.test.JavaAgent` entry to manifest

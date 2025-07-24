@@ -884,8 +884,7 @@ class App {
       var arr10 = {1,2,3}; // wont' compile, also var[] arr or var arr[] - invalid
       int[] arr11 = new int[3]{1,2,3}; // won't compile, size should be missing in this case => array creation with both dimension expression and initialization is illegal
 
-
-
+      
       Integer[] arr = new Integer[10];
       Object[] objArr = arr;
       int [] intArr = new int [10];
