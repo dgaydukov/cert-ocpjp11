@@ -2,8 +2,9 @@
 
 ### Contents
 * [Junit Parametrized Tests](#junit-parametrized-tests)
+* [Mockito: mock vs spy](#mockito-mock-vs-spy)
 * [Mockito multiple returns](#mockito-multiple-returns)
-
+* [Mockito: throw exception for all other calls](#mockito-throw-exception-for-all-other-calls)
 
 ###### Junit Parametrized Tests
 * you can test interface directly by providing it's implementations
@@ -48,7 +49,12 @@ class SportCar implements Car {
 }
 ```
 
-###### Mockito multiple returns
+###### Mockito: mock vs spy
+Mocking framework provides 2 ways to mock objects:
+* `mock` - completely simulated object that always return null for objects, 0 for primitives, false for boolean, except the cases when explicitly provided with `when().thenReturn()`
+* `spy` - real object wrapped into spy object that always return real values and execute methods, except the cases when explicitly provided with `when().thenReturn()` - in these cases method is not executed, and fake results are returned
+
+###### Mockito: multiple returns
 You know that with `Mockito` you can return values with `when/thenReturn`. But what if your method called many times, and you want to return different but consistent values. You can use `Answer` argument.
 ```java
 import org.junit.jupiter.api.Assertions;
@@ -91,6 +97,47 @@ class Person {
     }
     public String dance(){
         return "dance at " + clock.getTimestamp();
+    }
+}
+```
+
+###### Mockito: throw exception for all other calls
+When you mock object, you can add stub invocations with the construct `when().thenReturn`. And it works fine, but inside the code you may have multiple calls to different methods. For example, you expect that only 2 methods of the mock would be called, and you stub it, but actually other also called with default values (null/0/false) but in test you are not aware about it. Or maybe somebody later add code to call other non-stubbed methods of this dependency. This is bad, because your test is non-deterministic. Ideally it would be that you mock all potentially knows called methods, and throw exception if non-stubbed method is called. You can achieve this with below code. Pay attention we pass `Answer` as second param to our `Mockito.mock` method. With this, all invocations that are not explicitly stubbed, would be handled by this method. In below code we have a call `nextDouble` which is not stubbed. If you remove second param for mock, this code would run fine and test would execute successfully. But adding this logic to throw exception for any call of unstubbed method add determinism into our test.
+```java
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.Random;
+
+public class AppTest {
+    @Test
+    public void test(){
+        Random mock = Mockito.mock(Random.class, invocation -> {
+            throw new UnsupportedOperationException("Method not stubbed: " + invocation.getMethod().getName());
+        });
+        Mockito.doReturn(1).when(mock).nextInt();
+        Mockito.doReturn(2L).when(mock).nextLong();
+        Printer printer = new Printer(mock);
+        Assertions.assertEquals("nextInt=1, nextLong=2", printer.print(), "print mismatch");
+    }
+}
+
+class Printer {
+    private final Random random;
+
+    public Printer(Random random) {
+        this.random = random;
+    }
+
+    public String print() {
+        doWork();
+        return "nextInt=" + random.nextInt() + ", nextLong=" + random.nextLong();
+    }
+
+    private void doWork() {
+        // hidden call to method not explicitly defined in the mock
+        random.nextDouble();
     }
 }
 ```

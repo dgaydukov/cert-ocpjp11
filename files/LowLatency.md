@@ -385,6 +385,7 @@ done => 185
 Object Resurrection - a process where you "resurrect" java object that is chosen for garbage collection. Java has two different mechanisms for reacting to the deallocation of an object. The older mechanism, using `finalize`, runs a particular method just before the object is deallocated. The new mechanism, using `PhantomReference`, instead allows you to run a particular method just after the object is deallocated. The idea is before object is garbage collected, JVM would run `finalize` where we would have access to `this` and can reassign this object to some variable, and know it's accessible once again, and can't be garbage collected. But this is not the best approach, so JVM is deprecating `finalize` method, and instead encourage to use `PhantomReference`. Here object already is removed by GC, but you merely notified about it, so you can do some clean up, but not able to actually "resurrect" the object.
 
 ### Garbage collector
+You can get current default GC by running this command: `java -XX:+PrintCommandLineFlags -version` - this would print default JVM settings, including default GC that would be running with your JVM.
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 Viewing GC logs (using GCViewer tool):
 * you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -XX:+PrintGCDetails -Xlog:gc*::time `
