@@ -5,7 +5,7 @@
 * 2 [CPU and Cache](#cpu-and-cache)
 * 3 [Compiler Design](#compiler-design)
 * 4 [Java memory model](#java-memory-model)
-* 5 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
+* 5 [GC and Weak References](#gc-and-weak-references)
 * 6 [Garbage collector](#garbage-collector)
 * 7 [JVM and GC tuning](#jvm-and-gc-tuning)
 * 8 [Encoding](#encoding)
@@ -245,7 +245,7 @@ Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
 
-### Garbage collector and Weak References
+### GC and Weak References
 GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.
 GC compaction - moving all objects into beginning of memory for removing dead objects more quickly, so dead objects removed, alive objects stored contiguously in RAM (GC using mark-compact algorithm for this). This is similar to defragmentation of HDD in modern PC.
 ```java
@@ -542,9 +542,9 @@ JMV tuning:
     * `-XX:+UseGCOverheadLimit` - GC overhead limit is the feature of AdaptiveSizePolicy, which is used in Parallel GC and CMS, but not in G1
 * GC - you can choose any of these GC:
     * `-XX:+UseSerialGC`
-    * `-XX:+UseParallelGC`
+    * `-XX:+UseParallelGC` - default for OpenJDK 8
     * `-XX:+UseConcMarkSweepGC` - was deprecated in Java 9 and removed in Java 14
-    * `-XX:+UseG1GC` - best java21 general purpose
+    * `-XX:+UseG1GC` - best java21 general purpose, default GC for OpenJDK 11,17,21 
     * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
     * `-XX:+UseShenandoahGC` (from JDK 11) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses
 * GC logging:
