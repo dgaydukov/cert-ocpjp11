@@ -2,7 +2,7 @@
 
 ### Contents
 * [Junit Parametrized Tests](#junit-parametrized-tests)
-* [Mockito: mock vs spy](#mockito-mock-vs-spy)
+* [Mockito basics](#mockito-basics)
 * [Mockito multiple returns](#mockito-multiple-returns)
 * [Mockito: throw exception for all other calls](#mockito-throw-exception-for-all-other-calls)
 
@@ -49,10 +49,17 @@ class SportCar implements Car {
 }
 ```
 
-###### Mockito: mock vs spy
-Mocking framework provides 2 ways to mock objects:
+###### Mockito basics
+Don't confuse (2 ways to mock objects):
 * `mock` - completely simulated object that always return null for objects, 0 for primitives, false for boolean, except the cases when explicitly provided with `when().thenReturn()`
 * `spy` - real object wrapped into spy object that always return real values and execute methods, except the cases when explicitly provided with `when().thenReturn()` - in these cases method is not executed, and fake results are returned
+
+Don't confuse:
+* `doReturn(...) when(...)` - you can always use for stubbing
+    * for spy: would return stub object without calling real method
+* `when(...) thenReturn(...)` - there are cases where you can't use
+    * for spy: will call real method first, but then would return stub object
+    * can't be used for void method
 
 ###### Mockito: multiple returns
 You know that with `Mockito` you can return values with `when/thenReturn`. But what if your method called many times, and you want to return different but consistent values. You can use `Answer` argument.
