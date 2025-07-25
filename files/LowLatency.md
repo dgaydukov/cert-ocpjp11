@@ -7,14 +7,14 @@
 * 4 [Java memory model](#java-memory-model)
 * 5 [Garbage collector and Weak References](#garbage-collector-and-weak-references)
 * 6 [Garbage collector](#garbage-collector)
-* 7 [Encoding](#encoding)
-* 8 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
-* 9 [Linked lists](#linked-lists)
-* 10 [Low latency logging](#low-latency-logging)
-* 11 [Low latency collections](#low-latency-collections)
-* 12 [Java Agent](#java-agent)
-* 13 [Java Object Layout](#java-object-layout)
-
+* 7 [JVM and GC tuning](#jvm-and-gc-tuning)
+* 8 [Encoding](#encoding)
+* 9 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
+* 10 [Linked lists](#linked-lists)
+* 11 [Low latency logging](#low-latency-logging)
+* 12 [Low latency collections](#low-latency-collections)
+* 13 [Java Agent](#java-agent)
+* 14 [Java Object Layout](#java-object-layout)
 
 ### Basics
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
@@ -522,6 +522,32 @@ Try to avoid:
 * heavy code in finalize(), cause gc should wait until it executed
 * resize heavy arrays - in this case gc compaction - will need to move such arrays in memory and it heavy operation. For such big arrays - try to pre-fetch them in the initialization
 
+### JVM and GC tuning
+You should tune your app in following way:
+* first tune the app itself - badly designed app, which using wrong data structures should be refactored first
+* tune JVM - once your app is refactored you can try tuning JVM itself
+* tune GC - this is last step, that ideally should be avoided, but if you completed first 2 and still need improvements you can try to configure GC settings
+
+JMV tuning:
+* memory - first thing you should do is to tune the memory usage:
+    * `-Xms` for minHeapSize and `-Xmx` for maxHeapSize - usually we set it to the same value, so JVM won't spend CPU to adjust memory between min to max
+    * `-XX:+AlwaysPreTouch` - by default when you allocate heap you just stand intention, actual memory is added to java process as pages. What may happen is that you set `-Xmx=32GB` but on 15GB your process would be killed. To preload all the RAM immediately you can use this command
+    * `-XX:MetaspaceSize` and `-XX:MaxMetaspaceSize` - set size of meta space where all static data is stored
+    * `-XX:NewSize` and `-XX:MaxNewSize` - initial and max size of young generation space
+    * `-Xmn` - size of entire young gen + 2 survivor spaces
+* Handling `java.lang.OutOfMemoryError`:
+    * `-XX:+HeapDumpOnOutOfMemoryError` - dump the heap into the file when JVM crashed with this error
+    * `-XX:HeapDumpPath=~/java_pid<pid>.hprof` - path to the file
+    * `-XX:OnOutOfMemoryError="<cmd args>;<cmd args>"` - run user-defined commands on this error
+    * `-XX:+UseGCOverheadLimit` - GC overhead limit is the feature of AdaptiveSizePolicy, which is used in Parallel GC and CMS, but not in G1
+* GC - you can choose any of these GC:
+    * `-XX:+UseSerialGC`
+    * `-XX:+UseParallelGC`
+    * `-XX:+UseConcMarkSweepGC` - was deprecated in Java 9 and removed in Java 14
+    * `-XX:+UseG1GC` - best java21 general purpose
+    * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
+    * `-XX:+UseShenandoahGC` (from JDK 11) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses
+* GC logging:
 
 ### Encoding
 Don't confuse(endianess - the way we store bytes in memory):
