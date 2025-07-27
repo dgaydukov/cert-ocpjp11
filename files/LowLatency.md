@@ -547,8 +547,12 @@ java -XX:+UseShenandoahGC --version
 Error occurred during initialization of VM
 Option -XX:+UseShenandoahGC not supported
 
-# will not work in Oracle JDK 21
-java -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC --version
+# work for Adoptium JDK 21
+java -XX:+UseShenandoahGC --version
+
+openjdk 21.0.8 2025-07-15 LTS
+OpenJDK Runtime Environment Temurin-21.0.8+9 (build 21.0.8+9-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, sharing)
 ```
 * memory - first thing you should do is to tune the memory usage:
     * `-Xms` for minHeapSize and `-Xmx` for maxHeapSize - usually we set it to the same value, so JVM won't spend CPU to adjust memory between min to max
@@ -567,7 +571,7 @@ java -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC --version
     * `-XX:+UseConcMarkSweepGC` (not available in Oracle JDK 21) - deprecated in Java 9 and removed in Java 14
     * `-XX:+UseG1GC` - best java21 general purpose, default GC for OpenJDK 11,17,21 
     * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
-    * `-XX:+UseShenandoahGC` (from JDK 12, not available in Oracle JDK 21) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses. This GC is not supported in Oracle JDK, but may be available in other JDK.
+    * `-XX:+UseShenandoahGC` (from JDK 12, not available in Oracle JDK 21) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses. This GC is not supported in Oracle JDK, also not available in OpenJDK builds 17,21,24 that were downloaded from [official OpenJDK site](https://jdk.java.net//), but available in [Adoptium JDK 21](https://adoptium.net/temurin/releases/)
 * GC logging:
 
 ### Encoding
