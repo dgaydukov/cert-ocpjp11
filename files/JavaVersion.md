@@ -1,4 +1,22 @@
-###### JDK Versions
+# Java Version
+
+### Contents
+* [JDK Releases](#jdk-releases)
+* [Check your Java version](#check-your-java-version)
+* [Switch Java versions on MacOS](#switch-java-versions-on-macos)
+
+### JDK Releases
+There are multiple versions of JDK builds by different vendors:
+* [OracleJDK](https://www.oracle.com/ae/java/technologies/downloads/archive/) - build made by Oracle itself. Oracle JDK is Oracle's commercially licensed version of Java SE. While certain versions or usage scenarios might be free for development and testing, commercial deployment generally requires a paid license under the Oracle Binary Code License Agreement.
+* [OpenJDK](https://jdk.java.net/archive/) - build made by [OpenJDK community](https://openjdk.org/) where Oracle is major contributor. So the difference with OracleJDK is licensing. Has a faster release cycle, with new feature releases every six months. OpenJDK is the official open-source reference implementation of Java SE. It is licensed under the GNU General Public License (GPL)
+* [Amazon Corretto](https://docs.aws.amazon.com/corretto/) - build by Amazon
+* Azul Zulu - build by Azul Systems for low latency systems with their low latency GC
+* Microsoft Build of OpenJDK
+* Red Hat
+* GraalVM
+* Eclipse Temurin
+
+### Check your Java version
 If you run this code:
 ```java
 System.out.println(System.getProperty("java.version"));
@@ -14,7 +32,7 @@ Java HotSpot(TM) 64-Bit Server VM
 /Library/Java/JavaVirtualMachines/jdk-21.0.7.jdk/Contents/Home
 ```
 But if you run console command `java --version`, you can see all the output from console including versions and JDK build.
-Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my macos terminal, I can see this:
+Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my MacOS terminal, I can see this:
 ```shell
 # java 8 (AdoptOpenJDK)
 openjdk version "1.8.0_292"
@@ -46,12 +64,6 @@ java version "21.0.7" 2025-04-15 LTS
 Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
 Java HotSpot(TM) 64-Bit Server VM (build 21.0.7+8-LTS-245, mixed mode, sharing)
 ```
-As you see here I have JDK from `Homebrew` and from `OpenJDK`. You can also download and use many other JDK builds like:
-* Amazon Corretto
-* Azul Zulu
-* GraalVM
-* Eclipse Temurin
-* Microsoft Build of OpenJDK
 
 Don't confuse: OpenJDK vs HotSpot:
 * From Java 11 forward, Oracle JDK builds and OpenJDK builds will be essentially identical
@@ -59,7 +71,7 @@ Don't confuse: OpenJDK vs HotSpot:
 * So it's 2 different concept: HotSpot is a codename for JVM, and OpenJDK is a codename for Oracle JDK, which includes HotSpot
 * There are [many others JVM](https://en.wikipedia.org/wiki/List_of_Java_virtual_machines)
 
-Switch Java versions on MacOS:
+### Switch Java versions on MacOS:
 * You can use `jenv` to switch between different java versions
 * see [instruction](https://gist.github.com/gramcha/81dcec3f1e4ce8cffd7f248d3e2a42a7)
 * Then you can download JDK from official oracle website and unzip them into `/Library/Java/JavaVirtualMachines` directory
