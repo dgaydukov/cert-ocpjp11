@@ -529,6 +529,27 @@ You should tune your app in following way:
 * tune GC - this is last step, that ideally should be avoided, but if you completed first 2 and still need improvements you can try to configure GC settings
 
 JMV tuning:
+* how to check: you can easily check any VM options, by running them with `java --version`. By doing this you can immediately see if this particular options is available for your JDK (all below example for Oracle JDK 21):
+```shell
+# if you run java with ZGC, everything would be fine
+java -XX:+UseZGC --version
+
+# if you run with removed GC, you would get error
+java -XX:+UseConcMarkSweepGC --version
+
+Unrecognized VM option 'UseConcMarkSweepGC'
+Error: Could not create the Java Virtual Machine.
+Error: A fatal exception has occurred. Program will exit.
+
+# if you run with unsupported VM flag, you get different error (my Oracle JDK 21 doesn't support ShenandoahGC)
+java -XX:+UseShenandoahGC --version
+
+Error occurred during initialization of VM
+Option -XX:+UseShenandoahGC not supported
+
+# will not work in Oracle JDK 21
+java -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC --version
+```
 * memory - first thing you should do is to tune the memory usage:
     * `-Xms` for minHeapSize and `-Xmx` for maxHeapSize - usually we set it to the same value, so JVM won't spend CPU to adjust memory between min to max
     * `-XX:+AlwaysPreTouch` - by default when you allocate heap you just stand intention, actual memory is added to java process as pages. What may happen is that you set `-Xmx=32GB` but on 15GB your process would be killed. To preload all the RAM immediately you can use this command
@@ -543,10 +564,10 @@ JMV tuning:
 * GC - you can choose any of these GC:
     * `-XX:+UseSerialGC`
     * `-XX:+UseParallelGC` - default for OpenJDK 8
-    * `-XX:+UseConcMarkSweepGC` - was deprecated in Java 9 and removed in Java 14
+    * `-XX:+UseConcMarkSweepGC` (not available in Oracle JDK 21) - deprecated in Java 9 and removed in Java 14
     * `-XX:+UseG1GC` - best java21 general purpose, default GC for OpenJDK 11,17,21 
     * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
-    * `-XX:+UseShenandoahGC` (from JDK 11) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses
+    * `-XX:+UseShenandoahGC` (from JDK 12, not available in Oracle JDK 21) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses. This GC is not supported in Oracle JDK, but may be available in other JDK.
 * GC logging:
 
 ### Encoding

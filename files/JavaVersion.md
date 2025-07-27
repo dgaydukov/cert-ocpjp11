@@ -14,7 +14,7 @@ There are multiple versions of JDK builds by different vendors:
 * Microsoft Build of OpenJDK
 * Red Hat
 * GraalVM
-* Eclipse Temurin
+* Eclipse Adoptium (formerly AdoptOpenJDK) - build by Eclipse Foundation
 
 ### Check your Java version
 If you run this code:
@@ -38,31 +38,18 @@ Java come as part of JDK (java development kit) which can have multiple builds b
 openjdk version "1.8.0_292"
 OpenJDK Runtime Environment (AdoptOpenJDK)(build 1.8.0_292-b10)
 OpenJDK 64-Bit Server VM (AdoptOpenJDK)(build 25.292-b10, mixed mode)
-# java 11 (Homebrew)
-openjdk version "11.0.25" 2024-10-15
-OpenJDK Runtime Environment Homebrew (build 11.0.25+0)
-OpenJDK 64-Bit Server VM Homebrew (build 11.0.25+0, mixed mode)
-# java 21 (Homebrew)
+# java 21 (Homebrew JDK)
 openjdk 21.0.5 2024-10-15
 OpenJDK Runtime Environment Homebrew (build 21.0.5)
 OpenJDK 64-Bit Server VM Homebrew (build 21.0.5, mixed mode, sharing)
-
-# java8 (OpenJDK)
-java version "1.8.0_441"
-Java(TM) SE Runtime Environment (build 1.8.0_441-b07)
-Java HotSpot(TM) 64-Bit Server VM (build 25.441-b07, mixed mode)
-# java11 (OpenJDK)
-java version "11.0.26" 2025-01-21 LTS
-Java(TM) SE Runtime Environment 18.9 (build 11.0.26+7-LTS-187)
-Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.26+7-LTS-187, mixed mode)
-# java17 (OpenJDK)
-java version "17.0.14" 2025-01-21 LTS
-Java(TM) SE Runtime Environment (build 17.0.14+8-LTS-191)
-Java HotSpot(TM) 64-Bit Server VM (build 17.0.14+8-LTS-191, mixed mode, sharing)
-# java 21 (OpenJDK)
+# java 21 (Oracle JDK)
 java version "21.0.7" 2025-04-15 LTS
 Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
 Java HotSpot(TM) 64-Bit Server VM (build 21.0.7+8-LTS-245, mixed mode, sharing)
+# java 21 (OpenJDK)
+openjdk 21.0.2 2024-01-16
+OpenJDK Runtime Environment (build 21.0.2+13-58)
+OpenJDK 64-Bit Server VM (build 21.0.2+13-58, mixed mode, sharing)
 ```
 
 Don't confuse: OpenJDK vs HotSpot:
