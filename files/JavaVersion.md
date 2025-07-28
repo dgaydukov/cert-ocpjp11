@@ -16,7 +16,7 @@ Don't confuse between:
 There are multiple versions of JDK builds by different vendors:
 * [OracleJDK](https://www.oracle.com/ae/java/technologies/downloads/archive/) - build made by Oracle itself. Oracle JDK is Oracle's commercially licensed version of Java SE. While certain versions or usage scenarios might be free for development and testing, commercial deployment generally requires a paid license under the Oracle Binary Code License Agreement.
 * [OpenJDK](https://jdk.java.net/archive/) - build made by [OpenJDK community](https://openjdk.org/) where Oracle is major contributor. So the difference with OracleJDK is licensing. Has a faster release cycle, with new feature releases every six months. OpenJDK is the official open-source reference implementation of Java SE. It is licensed under the GNU General Public License (GPL)
-* [Amazon Corretto](https://docs.aws.amazon.com/corretto/) - build by Amazon
+* [Amazon Corretto](https://docs.aws.amazon.com/corretto/) - build by Amazon with LTS support and for free, so it's ideal if you want LTS for free.
 * [Azul Zulu](https://www.azul.com/downloads/?version=java-21-lts&os=macos&architecture=arm-64-bit&package=jdk#zulu) - build by Azul Systems for low latency systems with their own JVM & GC. You can download JDK and use for development purposes for free, but for production you have to pay the license
 * [Red Hat](https://developers.redhat.com/products/openjdk/download)
 * [Eclipse Adoptium](https://adoptium.net/en-GB/temurin/releases) (formerly AdoptOpenJDK) - build by Eclipse Foundation. Eclipse Temurin is the name of the OpenJDK distribution produced by the Eclipse Adoptium project
@@ -32,6 +32,12 @@ Don't confuse:
 * OpenJDK - community JDK mainly developed and maintained by Oracle with some features from other companies like RedHat, Amazon, Azul. It doesn't have concept of LTS. Every 6 months new version is released, and that's all. Older versions are not updated with any changes, that's why for OpenJDK you have to always use latest version, otherwise you risk some bugs or problems.
 * Oracle JDK - proprietary JDK by Oracle based on OpenJDK with concept of LTS (long-term support) where some versions like 8/11/17/21 are maintained and supported for many years. So the main difference from OpenJDK is some additional features and LTS. For example latest LTS is 21, but latest java is 24. So for OpenJDK you have to download java24, because java21 for OpenJDK is already outdated, nobody update and patch it. But for Oracle you can download java 21 and use it long time, because Oracle would update/patch it with changes.
 * others - all other JDK from Amazon, Red Hat, Azul and so on, basically is raw OpenJDK with some additional features added on top based on company. For example Azul concentrate a lot on performance so their JDK is the same OpenJDK but with a lot of performance tuning for faster code execution. So we can say that OpenJDK is a baseline for all other JDK.
+
+Which JDK to choose out of 3(open, oracle, amazon):
+* Use OpenJDK for free, but upgrade every 6 months to get updates
+* Use a paid JDK from Oracle or another vendor
+* Use Corretto for free, and get free updates for several years
+
 
 ### Check your Java version
 If you run this code:
