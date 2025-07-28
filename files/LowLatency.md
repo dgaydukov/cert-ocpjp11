@@ -541,7 +541,7 @@ Unrecognized VM option 'UseConcMarkSweepGC'
 Error: Could not create the Java Virtual Machine.
 Error: A fatal exception has occurred. Program will exit.
 
-# if you run with unsupported VM flag, you get different error (my Oracle JDK 21 doesn't support ShenandoahGC)
+# if you run with unsupported VM flag, you get different error (both Oracle JDK and OpenJDK 21 don't have shenandoah GC by default)
 java -XX:+UseShenandoahGC --version
 
 Error occurred during initialization of VM

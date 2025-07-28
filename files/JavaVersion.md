@@ -1,20 +1,37 @@
 # Java Version
 
 ### Contents
+* [JDK JRE JVM](#jdk-jre-jvm)
 * [JDK Releases](#jdk-releases)
 * [Check your Java version](#check-your-java-version)
 * [Switch Java versions on MacOS](#switch-java-versions-on-macos)
+
+### JDK JRE JVM
+Don't confuse between:
+* JRE (Java Runtime Environment) - everything necessary to run compiled java program, including: JVM, java class library, `java` command. Use it if you only need to run compiled programs.
+* JDK (Java Development Kit) - JRE plus tools like `javac/javadoc/jdb`. Use it for creating/compiling new programs
+* JVM (Java Virtual Machine) - virtual machine that runs the Java bytecodes. It doesn't understand source code, so you have to use compiler to compile `.java` files into `.class` files with bytecode.
 
 ### JDK Releases
 There are multiple versions of JDK builds by different vendors:
 * [OracleJDK](https://www.oracle.com/ae/java/technologies/downloads/archive/) - build made by Oracle itself. Oracle JDK is Oracle's commercially licensed version of Java SE. While certain versions or usage scenarios might be free for development and testing, commercial deployment generally requires a paid license under the Oracle Binary Code License Agreement.
 * [OpenJDK](https://jdk.java.net/archive/) - build made by [OpenJDK community](https://openjdk.org/) where Oracle is major contributor. So the difference with OracleJDK is licensing. Has a faster release cycle, with new feature releases every six months. OpenJDK is the official open-source reference implementation of Java SE. It is licensed under the GNU General Public License (GPL)
 * [Amazon Corretto](https://docs.aws.amazon.com/corretto/) - build by Amazon
-* Azul Zulu - build by Azul Systems for low latency systems with their low latency GC
+* [Azul Zulu](https://www.azul.com/downloads/?version=java-21-lts&os=macos&architecture=arm-64-bit&package=jdk#zulu) - build by Azul Systems for low latency systems with their own JVM & GC. You can download JDK and use for development purposes for free, but for production you have to pay the license
 * Microsoft Build of OpenJDK
 * Red Hat
 * GraalVM
 * Eclipse Adoptium (formerly AdoptOpenJDK) - build by Eclipse Foundation
+
+Just like JDK, several companies has their own JVM:
+* HotSpot - default JVM of OpenJDK and Oracle JDK
+* GraalVM - build on top of OpenJDK JVM
+* Azul Platform Prime - low latency JVM by Azul
+
+Don't confuse:
+* OpenJDK - community JDK mainly developed and maintained by Oracle with some features from other companies like RedHat, Amazon, Azul. It doesn't have concept of LTS. Every 6 months new version is released, and that's all. Older versions are not updated with any changes, that's why for OpenJDK you have to always use latest version, otherwise you risk some bugs or problems.
+* Oracle JDK - proprietary JDK by Oracle based on OpenJDK with concept of LTS (long-term support) where some versions like 8/11/17/21 are maintained and supported for many years. So the main difference from OpenJDK is some additional features and LTS. For example latest LTS is 21, but latest java is 24. So for OpenJDK you have to download java24, because java21 for OpenJDK is already outdated, nobody update and patch it. But for Oracle you can download java 21 and use it long time, because Oracle would update/patch it with changes.
+* others - all other JDK from Amazon, Red Hat, Azul and so on, basically is raw OpenJDK with some additional features added on top based on company. For example Azul concentrate a lot on performance so their JDK is the same OpenJDK but with a lot of performance tuning for faster code execution.
 
 ### Check your Java version
 If you run this code:
