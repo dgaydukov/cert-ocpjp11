@@ -388,11 +388,12 @@ Object Resurrection - a process where you "resurrect" java object that is chosen
 You can get current default GC by running this command: `java -XX:+PrintCommandLineFlags -version` - this would print default JVM settings, including default GC that would be running with your JVM.
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 Viewing GC logs (using GCViewer tool):
-* you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -XX:+PrintGCDetails -Xlog:gc*::time `
+* you can add following line to VM arguments: `-verbose:gc -Xlog:gc:gc.log -Xlog:gc*::time -Xlog:safepoint`
+* `-XX:+PrintGCDetails` - old way, before java9 to print GC logs
 * `-verbose:gc` - display verbose logs (by default into stdout)
 * `-Xlog:gc:gc.log` - send logs to file where `gc.log` - filename, you can specify other path to file
-* `-XX:+PrintGCDetails` - add gc details like: size of young and old before each gc
 * `-Xlog:gc*::time` - add timestamp to gc logs
+* `-Xlog:safepoint` - as combination of `-XX:+PrintGCApplicationConcurrentTime` and `XX:+PrintGCApplicationStoppedTime`
 * you can use https://github.com/chewiebug/GCViewer tools to visualize GC `java -jar gcviewer-1.36.jar`
 * you can use this tool https://visualvm.github.io/features.html
   You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
@@ -556,7 +557,7 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
 ```
 * memory - first thing you should do is to tune the memory usage:
     * `-Xms` for minHeapSize and `-Xmx` for maxHeapSize - usually we set it to the same value, so JVM won't spend CPU to adjust memory between min to max
-    * `-XX:+AlwaysPreTouch` - by default when you allocate heap you just stand intention, actual memory is added to java process as pages. What may happen is that you set `-Xmx=32GB` but on 15GB your process would be killed. To preload all the RAM immediately you can use this command
+    * `-XX:+AlwaysPreTouch` - by default when you allocate heap you just stand intention, actual memory is added to java process as pages. What may happen is that you set `-Xmx=32GB` but on 15GB your process would be killed. To preload all the RAM immediately you can use this command. Setting xms=xmx and AlwaysPreTouch=true would decrease latency by avoiding heap resizing.
     * `-XX:MetaspaceSize` and `-XX:MaxMetaspaceSize` - set size of meta space where all static data is stored
     * `-XX:NewSize` and `-XX:MaxNewSize` - initial and max size of young generation space
     * `-Xmn` - size of entire young gen + 2 survivor spaces
@@ -573,6 +574,24 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
     * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
     * `-XX:+UseShenandoahGC` (from JDK 12, not available in Oracle JDK 21) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses. This GC is not supported in Oracle JDK, also not available in OpenJDK builds 17,21,24 that were downloaded from [official OpenJDK site](https://jdk.java.net//), but available in [Adoptium JDK 21](https://adoptium.net/temurin/releases/)
 * GC logging:
+  * since java9, all GC logs VM options where refactored into unified logging framework using `-Xlog`
+* General:
+  * `-XX:+IgnoreUnrecognizedVMOptions` - ignore unknown VM options. Useful when you use different JDK so you can use same command on different builds from different vendors. In this case your java command would run everywhere and just ignore unknown VM options, otherwise, it would fail to start.
+  * `java -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+PrintFlagsFinal -version` - print all available VM options
+  * `-XX:+PerfDisableSharedMem` - disable writing to IO java internal metrics and expedite the system by this
+* GC
+  * G1:
+    * `-XX:InitiatingHeapOccupancyPercent` (45%) - initial value until reached, G1 is moving objects from young gen to old
+    * `-XX:-G1UseAdaptiveIHOP` (true) - if set to false, above param won't be changing dynamically
+    * `-XX:MinHeapFreeRatio` (40) - the ratio of free memory that should be achieved
+    * `-XX:MaxHeapFreeRatio` (70) - desired max ratio of free memory
+    * `-XX:G1NewSizePercent` (5) - size of young gen
+    * `-XX:G1MaxNewSizePercent` (60) - max size of young gen
+    * `-XX:NewSize` and `-XX:MaxNewSize` - size in MB of young gen
+    * `-XX:GCTimeRatio` (12) - ratio of time spent in GC compared to app running, 1 / (1 + GCTimeRatio) = ratio how much app is running
+  * Z:
+    * `-Xmx` - the most important part is max heap size
+    * `-XX:ConcGCThreads` - number of threads GC is using (by default 6)
 
 ### Encoding
 Don't confuse(endianess - the way we store bytes in memory):
