@@ -3143,6 +3143,30 @@ Nested classes can be of 2 types:
 * static nested classes (called just static classes) - those declared with `static` keyword
 * instance nested classes (called just inner classes) - those declared without `static` keyword
 
+By keeping the inner class within the outer class, you hide the inner class from outside code, maintaining better encapsulation. It allows you to group classes that should only be used within the context of the outer class. Because they are tied to an instance of the outer class, non-static inner classes can increase memory consumption, as they hold references to their outer class instances.
+Why Inner class doesn’t have any static declarations: The reason why inner classes cannot have static members is because static members are usually instantiated when the program starts. However, an inner class depends on having an instance of its enclosing class in order to create it and then access its members. So the decision to not have static members for an inner class makes sense due to this dependency. The static member cannot be accessed until something has been created i.e. the enclosing class instance, so why have it?
+
+Correct declaration of member and static classes:
+```java
+public class App {
+    public static void main(String[] args) {
+        Outer outer = new Outer();
+        Outer.Inner inner1 = outer.new Inner();
+        Outer.StaticInner inner2 = new Outer.StaticInner();
+
+        // invalid declarations: not compiled
+        Outer.Inner inner3 = new outer.Inner(); // package outer does not exist
+        Outer.StaticInner inner4 = new outer.StaticInner(); // package outer does not exist
+        Outer.StaticInner inner5 = outer. new StaticInner(); // qualified new of static class
+    }
+}
+
+class Outer {
+    class Inner {}
+    static class StaticInner {}
+}
+```
+
 By default, java expects every class to have its own file and be declared `public` there. But you can declare many classes in single file (but only one that matches filename can be public). When you compile file with public class, and it includes inner classes, java compile them into separate files.
 ```java
 public class App {
@@ -3220,7 +3244,7 @@ class Outer{
 }
 ```
 
-Nested non-static class can’t have static members, except `final static` methods. (this rule is relevant to up to java 16, because in java 16 `Record` was added and this rule was relaxed. Started from java 16 with `JEP-395` you can have static members for non-static class.
+Nested non-static class can’t have static members, except `final static` methods. (this rule is relevant to up to java 16, because in java 16 `Record` was added and this rule was relaxed. Started from java 16 with `JEP-395` you can have static members for non-static class. Now member class can have `main` method too.
 Static inner classes can't access parent instance members. Since inner class not `static`, it belongs to instance of outer. Since we can have many instances of outer class and each has its own instance of inner, they can't have static members. Inner class can extend other classes and implement interfaces.
 ```java
 class A {
@@ -3259,7 +3283,7 @@ public class Outer{
 }
 ```
 
-Nested Inner classes can access parent class variables (static classes only static variables, inner classes both static & instance)
+Nested Inner classes can access parent class variables, including private. (static classes only static variables, inner classes both static & instance).
 ```java
 class App {
     public static void main(String[] args) {
@@ -3289,6 +3313,23 @@ class A{
 2
 ```
 
+For member class: 
+* `this` refers to the class itself, not to the parent
+* `Outer.this` - should be used if you want to access `this` of parent class 
+```java
+class Outer {
+  private int i;
+  class Inner {
+    private int i;
+    public void work() {
+      System.out.println("local i => " + i);
+      System.out.println("local i => " + this.i);
+      System.out.println("parent i => " + Outer.this.i);
+    }
+  }
+}
+```
+
 By default, we can call static classes as `Outer.Inner`, but if we import them, as static, we can call them directly
 ```java
 import static com.java.test.Outer.Inner;
@@ -3304,6 +3345,26 @@ class Outer{
     public static class Inner{}
 }
 ```
+
+Method class:
+* you can have a class defined inside the method
+* it can't be static, cause there is no `static` keyword for method scope
+* such class can access `effectively final` variables from the method
+```java
+class Outer {
+    public void print() {
+        class Inner {
+            void print() {}
+        }
+        Inner inner = new Inner();
+        inner.print();
+    }
+}
+```
+
+Method class and lambda can access only `effectively final` variables:
+* this limitation is related to scope and lifetime and made on purpose
+* lifetime of method variables is method execution, and when method is returned, all variables are cleared from the stack. But lambda/class may outlive the method, they may be returned and continue to live after method returned. In this case having non-final method variables may be confusing. Moreover, lambda/class create new scope, and copy values. So if we pass non-final method variables to lambda/class, it's confusing what should happen with them, if we are changing them inside lambda/class. For this reason to avoid confusion there is hard requirement to use either final or effectively final variables inside lambda/class
 
 ###### Anonymous classes
 Anonymous classes - can be created out of interface/(abstract)class by implementing class body on the fly. They can't:
