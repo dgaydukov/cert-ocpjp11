@@ -1,6 +1,9 @@
 package com.java.test;
 
 import sun.misc.Unsafe;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 
 public class App {
@@ -27,6 +30,20 @@ public class App {
                 Printer printer = (Printer) unsafe.getObject(secret, unsafe.objectFieldOffset(f));
                 printer.print("Access through sun.misc.Unsafe object");
             } catch (NoSuchFieldException ex) {
+                System.out.println(ex);
+            }
+        }
+
+        // using VarHandle
+        {
+            try {
+                Secret secret = new Secret();
+                Field f = secret.getClass().getDeclaredField("printer");
+                MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(Secret.class, MethodHandles.lookup());
+                VarHandle varHandle = lookup.unreflectVarHandle(f);
+                Printer printer = (Printer) varHandle.get(secret);
+                printer.print("Access through VarHandle");
+            } catch (NoSuchFieldException | IllegalAccessException ex) {
                 System.out.println(ex);
             }
         }
