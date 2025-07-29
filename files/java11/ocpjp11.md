@@ -1283,7 +1283,7 @@ Type vs state: classes, interfaces and enums - types. Since java support multipl
 State - instance variables of class, so only class can have state. Since java support only one class inheritance => java support one state inheritance. 
 One reason why the Java programming language does not permit you to extend more than one class is to avoid the issues of multiple inheritance of state, 
 which is the ability to inherit fields from multiple classes. [Multiple Inheritance of State, Implementation, and Type](https://docs.oracle.com/javase/tutorial/java/IandI/multipleinheritance.html).
-Java methods visibility:
+Java methods' visibility:
 ```
 _____________________________________________________________
 |           │ Class │ Package │ Subclass │ Subclass │ World  |
