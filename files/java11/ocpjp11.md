@@ -11478,16 +11478,22 @@ Bottom-up vs top-down approach: suppose we have 3 jars A.jar => B.jar => C.jar (
 Bottom-up:
 * first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
 * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
-* finally convert A.jar -> now all are named modules run from --module-path
+* finally convert A.jar -> now all are named modules run from `--module-path`
 Top-down:
-* first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from --module-path, B - automatic module, and C.jar loaded from classpath
+* first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from `--module-path`, B - automatic module, and C.jar loaded from classpath
 * second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
 * finally convert C.jar
-If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from modulepath (in this case named module loaded as named module, others as automatic modules).
+If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `--module-path` (in this case named module loaded as named module, others as automatic modules).
 Inside module-info we can:
 * requires one module at a time (requires moduleA, moduleB - illegal)
 * exports one package at a time (exports my.com.java.* - illegal)
 * provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
+
+Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, load as simply jar, trying to get access to package inside `X` jar, but this jar already converted into java module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The "opens" directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly "open" the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
+Don't confuse:
+* `--add-opens` - provides access for deep reflection (including non-public members) at run time only. So if you have the code like `setAccessible(true)` that means you are trying to get access to some private types, that you are not supposed to get access, and you need to use this option. Basically we can say that this option is wider than `--add-exports` because additionally it opens access to private types.
+* `--add-exports` - provides access to public API at compile and run time
+
 We can also use custom module inside maven project.
 ```xml
 <dependency>
