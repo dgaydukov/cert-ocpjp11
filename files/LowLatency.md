@@ -756,6 +756,7 @@ public class App{
 Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
 ```
 There are several examples where you can use `Unsafe`:
+* get object address in the heap
 * allocateInstance - allocate memory but doesn't call constructor
 * change private fields (by the way reflection use `Unsafe` under-the-hood). But if you use `Unsafe` for this you can modify any object, even if you don't have direct reference to it. For example, you have Object A1 with reference and next to it object A2 in memory. So you can use `unsafe.putInt(obj, 32 + unsafe.objectFieldOffset(secretField), 123);` - this would modify next object in memory (32 - size of object in memory)
 * throw any exception (java compiler doesn't validate Unsafe same way as other code, so you can throw any checked exception)
@@ -774,9 +775,69 @@ There are several examples where you can use `Unsafe`:
 * remove strings from memory
 * treat variable as volatile without `volatile` keyword using `getXXXVolatile/putXXXVolatile`
 * pause thread using `park/unpark` methods - similar to `Object.wait`, but use native OS implementation
-  Basic example with class instantiation & throwing checked exception
+
+Get object address:
+* `toString` returns `hex` of hashcode: `obj.Tostring() = {FullClassName}@{hex(hashcode)}`
+* hashCode is a randomly generated number and has nothing to do with the address
+* you can use `Unsafe` to get object address, but shouldn't use this in prod because after GC memory layout may change and address of object in memory would also be changed
+* you can use classes from `jol-core` to get address
+* `VarHandle` does not provide a direct method to retrieve the raw memory address of an arbitrary object
 ```java
 import java.lang.reflect.Field;
+import org.openjdk.jol.vm.VM;
+import sun.misc.Unsafe;
+
+public class App{
+    public static void main(String[] args) {
+        Object obj = new Object();
+        Unsafe unsafe = getUnsafe();
+        System.out.println("obj.hashCode => " + obj.hashCode());
+        System.out.println("System.identityHashCode => " + System.identityHashCode(obj));
+        System.out.println("getAddress => " + getAddress(unsafe, obj));
+        System.out.println("JOL library address => " + VM.current().addressOf(obj));
+    }
+
+    /**
+     * We put one object into array with index 0
+     * Then use getInt/getLong to retrieve object memory address from array, using array offset, because we have only 1 object, we just use offset, otherwise we have to use formula
+     * offset + n * size (where n - index, size - size of arrayIndexScale
+     * This return address of object in memory layout, if you call this method twice you get the same value
+     */
+    public static long getAddress(Unsafe unsafe, Object obj) {
+        Object[] array = new Object[] {obj};
+        long baseOffset = unsafe.arrayBaseOffset(Object[].class);
+        int addressSize = unsafe.addressSize();
+        return switch (addressSize) {
+            case 4 -> unsafe.getInt(array, baseOffset);
+            case 8 -> unsafe.getLong(array, baseOffset);
+            default -> throw new RuntimeException("unsupported address size: " + addressSize);
+        };
+    }
+
+    public static Unsafe getUnsafe(){
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+Pay attention that addresses from JOL and `Unsafe` are different.
+```
+obj.hashCode => 1915910607
+System.identityHashCode => 1915910607
+getAddress => 2309776649
+# WARNING: Unable to get Instrumentation. Dynamic Attach failed. You may add this JAR as -javaagent manually, or supply -Djdk.attach.allowAttachSelf
+JOL library address => 18478213192
+```
+
+Basic example with class instantiation & throwing checked exception: pay attention that `final` fields get default value, because constructor is never called
+```java
+import java.lang.reflect.Field;
+import lombok.Getter;
 import sun.misc.Unsafe;
 
 public class App{
@@ -784,7 +845,7 @@ public class App{
         Unsafe unsafe = getUnsafe();
 
         Person p2 = (Person) unsafe.allocateInstance(Person.class);
-        System.out.println(p2.getAge());
+        System.out.println("age=" + p2.getAge() + ", name=" + p2.getName());
 
         unsafe.throwException(new Exception("oops"));
     }
@@ -800,18 +861,18 @@ public class App{
     }
 }
 
+@Getter
 class Person{
     private int age;
+    private final String name;
     public Person(){
         age = 10;
-    }
-    public int getAge(){
-        return age;
+        name = "Mike";
     }
 }
 ```
 ```
-0
+age=0, name=null
 Exception in thread "main" java.lang.Exception: oops
 ```
 As you see class was created, but constructor not called. Below is example of off-heap byte array (again use `ByteBuffer.allocate` instead).
