@@ -95,10 +95,11 @@
 * 11.15 [Class Diagram](#class-diagram)
 * 11.16 [Remote debugging](#remote-debugging)
 12. [New Java Versions](#new-java-versions)
-* 12.1 [Java 16](#java-16)
-* 12.2 [Java 17](#java-17)
-* 12.3 [Java 21](#java-21)
-* 12.4 [Java 25](#java-25)
+* 12.1 [Java 15](#java-15)
+* 12.2 [Java 16](#java-16)
+* 12.3 [Java 17](#java-17)
+* 12.4 [Java 21](#java-21)
+* 12.5 [Java 25](#java-25)
 
 
 #### Basics
@@ -13007,6 +13008,15 @@ How remote debugging works:
 #### New Java Versions
 Here we would show all new cool features of LTS (long term support) java versions from 11 (original document was for java 11 certification). Since then several LTS version were released so we would take a closer look. You can look [Java version history](https://en.wikipedia.org/wiki/Java_version_history) for more details.
 
+###### Java 15
+[JEP-371](https://openjdk.org/jeps/371) - Hidden classes:
+* cannot be used directly by the bytecode or other classes
+* Non-discoverable – a hidden class is not discoverable by the JVM during bytecode linkage, nor by programs making explicit use of class loaders
+* may be unloaded even though its notional defining class loader is still reachable
+* Hidden classes are used by frameworks that generate classes at runtime and use them indirectly via reflection
+* Hidden classes are created using the MethodHandles.Lookup::defineHiddenClass method, which takes the bytecode of the class to be defined and options for its behavior, such as whether it should be initialized or participate in an access control nest
+* Hidden classes provide a more secure and efficient way for frameworks to generate and manage temporary, internal classes without exposing them to the broader application
+
 ###### Java 16
 1. [JEP-395](https://openjdk.org/jeps/395) - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can.
 ```
@@ -13164,7 +13174,7 @@ public class App{
 null => oops
 ```
 
-4. Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using "final"). It also works for interfaces.Sealed classes/interfaces are a way to create a tagged union. Tagged unions are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week like this:
+4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using "final"). It also works for interfaces.Sealed classes/interfaces are a way to create a tagged union. Tagged unions are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week like this:
 There are several rules when you create sealed class/interface:
 * classes in `permits` section should be already defined, otherwise it won't compile
 ```java
