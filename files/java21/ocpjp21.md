@@ -11,7 +11,24 @@ Here I would add details specific to java 21.
 * there is no subpackage concept, if you do `import com.java.*` it will import only all classes, not all subpackages, so `import com.java.*.*` is invalid statement. you can't import package/class that doesn't exist
 * java expect project structure to map to package name, so when you compile with `javac` use `-d` option - it will direct compiler to create directory structure based on package names
 * if you have multiple java files and need to compile, first you need to compile independent class and then dependent. But you can pass all classes to compiler, and it would decide on dependency itself. You can call `javac -d . A.java B.java C.java` - compiler would compile all off them. Even simpler solution is `javac -d . *.java`
-* java has `pass-by-value` semantics because in both cases for primitive & reference type you pass actual value (either primitive value or value of memory address for reference type). Any variable just contain raw-number, and it's JVM job to interpret this number as either real number int/long/char in case for primitive type, or as memory address on the heap in case of reference type. But variable in java would always contain just raw number.
+* java has `pass-by-value` semantics because in both cases for primitive & reference type you pass actual value (either primitive value or value of memory address for reference type). Any variable just contain raw-number, and it's JVM job to interpret this number as either real number int/long/char in case for primitive type, or as memory address on the heap in case of reference type. But variable in java would always contain just raw number. So if you pass either primitive or reference param into function and assign new value to this param. Original value won't be changed: in below example both int and `obj` are the same, although were changed inside function. But because of `pass-by-value`, you can't change the value. You can change it inside function scope, but this doesn't affect outside variables.
+```java
+public class App {
+    public static void main(String[] args) {
+        int i = 1;
+        Object obj = new Object();
+        System.out.println("int=" + i + ", object=" + obj);
+        call(i, obj);
+        System.out.println("int=" + i + ", object=" + obj);
+    }
+
+    public static void call(int i, Object obj) {
+        i = 0;
+        obj = null;
+    }
+}
+```
+During method call, variables are copied into local variables of the method, so i & obj, inside `call` are copies of original values of i & obj from `main` method.
 * `int x = y = 1` is invalid, because initialization happens from left to right, `y` should be declared first. Yet this code is fine `int y; int x = y = 1;` because we declared `y` first, so `y=1` just works because `y` was already declared before.
 * `var` is a shortcut, just like `import`, when you use it, under-the-hood JVM just translate your code into full name. Because it's shortcut you can write `var var = 1`.
 * variable created from auto-generated code starts from `_` or `$`.
@@ -32,6 +49,34 @@ result, as you see the higher the base the bigger the actual decimal number woul
 ```
 binary=7, octal=73, decimal=111, hex=273
 ```
+* `this` is `final` variable, you can't reassign new value to it.
+```java
+class Person {
+    private String name;
+    public Person(String name) {
+        this.name = name;
+    }
+    public void reset(){
+        //compile error: cannot assign to 'this'
+        this = new Person("Jack");
+    }
+}
+```
+* initializer can't throw exception, such code won't compile
+```java
+class Person {
+    {
+        // compile error: initializer must be able to complete normally
+        throw new RuntimeException("oops");
+    }
+    public Person() {
+        throw new RuntimeException("oops");
+    }
+}
+```
+* for `final` variable:
+  * constructor - you should init it in all constructor, because only 1 constructor is used. If you call one constructor from another, you can init only once
+  * initializer - only once, because all initializers are called during object creation
 
 Don't confuse:
 * statically-typed language - data type is defined during compile-time and can't change during runtime (in Java int can't be converted to boolean)
@@ -188,4 +233,22 @@ See that `inner1` and `inner2` are 2 completely unrelated classes, each has its 
 ```
 inner1.i => 1
 inner1.i => 2
+```
+
+###### Record
+If record doesn't implement interface, if you try to check if it's instance of interface, the code won't compile
+```java
+public class App {
+    public static void main(String[] args) {
+        BigPrinter bigPrinter = new BigPrinter();
+        SmallPrinter smallPrinter = new SmallPrinter();
+        System.out.println(bigPrinter instanceof Printer);
+        // won't compile
+        System.out.println(smallPrinter instanceof Printer);
+    }
+}
+
+interface Printer {}
+class BigPrinter  {}
+record SmallPrinter() {}
 ```

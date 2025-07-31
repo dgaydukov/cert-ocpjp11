@@ -379,6 +379,14 @@ class App {
 }
 ```
 
+Return type promotion - same rules applied for return types:
+* for numeric return type:
+  * numeric - you can return smaller type: for `long` return type you can return `int/short/char/byte`
+  * wrapper - you can return smaller type: for `long` return type you can return `Integer/Short/Character/Byte`
+* for wrapper return type:
+  * numeric - only same value: for `Integer` return type you can return only `int`
+  * wrapper - only same value: for `Integer` return type you can return only `Integer`
+
 The key here is that `final` is the reference to memory, not the value itself, so rules with constants don't apply here.
 ```java
 final Short s1 = 1;
@@ -1543,6 +1551,32 @@ Instance Initializer
 Constructor
 ```
 
+illegal forward reference:
+* instance initializer can't access variable that declared after the block (same true for static)
+* you can access methods from initializers even though such methods were declared after the initializer
+* yet method can access such variable
+```java
+class Person {
+  static {
+    // compile error: illegal forward reference
+    System.out.println(name);
+    name = "Jack";
+  }
+  {
+    // compile error: illegal forward reference
+    System.out.println(age);
+    init();
+    age = 30;
+  }
+  void init() {
+    System.out.println(age);
+    age = 20;
+  }
+  private int age;
+  private static String name;
+}
+```
+
 Java can import static members from class
 ```java
 import static java.util.Arrays.asList;
@@ -1921,6 +1955,36 @@ public class App {
 ```
 by default `(int x)` would be called. If we comment it, `(long x)` would be called, if we comment that, `(Integer x)` would be called, and finally `(int... x)` would be called.
 
+varags method param:
+* it is just synthesis sugar for array, under-the-hood it converts all arguments passed into array
+* if you don't pass any argument empty array is passed
+* if you pass null - `null` object is used
+* method can't have more than 1 varags - if you pass 2 varags params - it won't compiled
+* varags param should be the last param in the method
+```java
+public class App {
+    public static void main(String[] args) {
+        System.out.println(sum(1,2,3));
+        System.out.println(sum());
+        // you will get NPE, cause instead of array null is passed
+        System.out.println(sum(null));
+    }
+
+    public static int sum(int... values) {
+        int sum = 0;
+        for (int value : values) {
+            sum += value;
+        }
+        return sum;
+    }
+}
+```
+```
+6
+0
+Exception in thread "main" java.lang.NullPointerException: Cannot read the array length because "<local2>" is null
+```
+
 Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Notice that field/method can't be `abstract static`.
 ```java
 abstract class App {
@@ -2152,6 +2216,41 @@ interface B {
 }
 class C implements A, B{} // won't compile
 ```
+
+method signature:
+* inclde only `name` + `ordered list of arguments`
+* all other like modifier, return type, name of params not counted as signature
+* all the below 4 methods have the same signature
+```java
+int sum (int a, int b){}
+void sum (int a, int b){}
+private void sum (int a, int b){}
+int sum (int value1, int value2){}
+```
+* method "overloading" - same name but different set of params, so your method is "overloaded" - means there are multiple possibilities with the same name
+* method overloading compilation error: happens only if you try to call it with ambiguous params, by default those 2 `sum` function are overloaded, and no errors, only if you try to call with ambiguous param, it became an issue
+```java
+public class App {
+  public static void main(String[] args) {
+    int a = 5;
+    short b = 10;
+    // compilation error: reference to sum is ambiguous
+    sum(a, b);
+
+    // compile fine
+    sum((short) a, b); // calls sum(int, Short)
+    sum((Integer) a, b); // calls sum(Integer, short)
+    sum(a, (Short) b); // calls sum(int, Short)
+  }
+
+  public static void sum(Integer a, short b) {}
+  public static void sum(int a, Short b) {}
+}
+```
+* subtype for primitives:
+  * `double > float > long > int > char`
+  *                         `int > short > byte`
+  * so if you have 2 methods that take `int` and `short` and you pass `byte` then method with `short` would be called as the more specific
 
 If class implements 2 interfaces with same signature default method, but one override another, no compile error.
 ```java
@@ -7125,6 +7224,7 @@ max2 => Optional[5]
 
 #### Concurrency
 ###### Threads
+Constructor is thread-safe, and it's guranteed by JVM.
 Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have to override one method `run` to run it. If you extend from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
 ```java
 public class App {
@@ -9412,7 +9512,7 @@ Get exception: message => Unknown column 'ids' in 'where clause', SQLState => 42
 #### Serialization
 ###### Java serialization
 When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
-Deserialization doesn't invoke constructor & instance initializator because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
+Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
 It searches all parents until it found one that doesn't implement `Serializable` and have default constructor,
 (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), 
 and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor.
