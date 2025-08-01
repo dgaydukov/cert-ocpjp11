@@ -99,6 +99,44 @@ public class App {
     }
 }
 ```
+* Records don't follow JavaBean convention:
+  * they don't have setter, because they are immutable
+  * they name getter different, they don't use `getFieldName` notation, they just use `name`
+```java
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+
+public class App {
+    public static void main(String[] args) {
+        Person p1 = new Person("John", 30);
+        System.out.println("p1=" + p1);
+        System.out.println("name=" + p1.getName() + ", age=" + p1.getAge());
+
+        Person2 p2 = new Person2("John", 30);
+        System.out.println("p2=" + p2);
+        System.out.println("name=" + p2.name() + ", age=" + p2.age());
+    }
+}
+
+@RequiredArgsConstructor
+@Getter
+@ToString
+class Person {
+    private final String name;
+    private final int age;
+}
+
+record Person2(String name, int age) {}
+```
+We have to use 3 lombok annotations to achieve same result. Also pay attention to getter names, `record` doesn't follow JavaBean standard
+```
+p1=Person(name=John, age=30)
+name=John, age=30
+p2=Person2[name=John, age=30]
+name=John, age=30
+```
+
 
 ###### Assignment rules
 * `widening conversion` - assigning smaller type to larger type

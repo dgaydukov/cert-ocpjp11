@@ -2432,7 +2432,8 @@ class A{
 }
 ```
 
-If class implements 2 interfaces with same signature, but one is static and one is default, no compilation error. The reason is for interface static can only be visible from interface, not from instance, so that's why no ambiguity
+If class implements 2 interfaces with same signature, but one is static and one is default, no compilation error. The reason is for interface static can only be visible from interface, not from instance, so that's why no ambiguity.
+As you see, compare to classes, interface static method can't be called on instance, this is limitation of [JLS 8.4.8](http://docs.oracle.com/javase/specs/jls/se8/html/jls-8.html#jls-8.4.8) where it's said `A class does not inherit static methods from its superinterfaces.`. This is because class can extend only 1 class, in this case for static method simple shadowing rule is working. But if class implements multiple interfaces with same static method, it would be unclear which one to call. And generally calling static method on instance is a "code smell", and should be avoided.
 ```java
 interface X {
     static void print(){}
@@ -2502,6 +2503,117 @@ y
 As you see, we call super on interface with its name.
 
 ###### Enums
+Features:
+* typesafe enum pattern - pattern to implement enums before Java5. Actually java devs saw the popularity of this pattern and decided to add this feature into java5
+* can't be instantiated with `new` keyword, even wihtin the enum itself - this is different from class with private constructor, inside such a class you can create new instance with `new` keyword, but inside enum you can't instantiate new enum instance
+* can't extend other class, because all enums extends `java.lang.Enum`, but it can implement interface, can have methods and constructor
+* is implicitly final or sealed, you can't extend it
+* you can create anonymous subclasses for specific enum constants - see below for 2 enum constants we create anonymous class that implement abstract methods of enums
+```java
+public class App {
+  public static void main(String[] args) {
+    System.out.println("ADD(10, 5) => " + Math.ADD.apply(10, 5));
+    System.out.println("SUBTRACT(10, 5) => " + Math.SUBTRACT.apply(10, 5));
+  }
+}
+
+enum Math {
+  ADD {
+    @Override
+    public int apply(int x, int y) {
+      return x + y;
+    }
+  },
+  SUBTRACT {
+    @Override
+    public int apply(int x, int y) {
+      return x - y;
+    }
+  };
+
+  abstract int apply(int x, int y);
+}
+```
+This is the same code if we move `apply` into interface
+```java
+interface IMath {
+  int apply(int a, int b);
+}
+enum Math implements IMath {
+  ADD {
+    @Override
+    public int apply(int x, int y) {
+      return x + y;
+    }
+  },
+  SUBTRACT {
+    @Override
+    public int apply(int x, int y) {
+      return x - y;
+    }
+  }
+}
+```
+But you can also directly implement method of interface, but in this case all your instances would have the same behavior
+```java
+public class App {
+    public static void main(String[] args) {
+        System.out.println("ADD(10, 5) => " + Math.ADD.apply(10, 5));
+        System.out.println("SUBTRACT(10, 5) => " + Math.SUBTRACT.apply(10, 5));
+    }
+}
+
+interface IMath {
+    int apply(int a, int b);
+}
+enum Math implements IMath {
+    ADD,
+    SUBTRACT;
+    public int apply(int a, int b) {
+        return a + b;
+    }
+}
+```
+```
+ADD(10, 5) => 15
+SUBTRACT(10, 5) => 15
+```
+
+Typesafe enum pattern
+```java
+class Day {
+    private String day;
+    private Day (String day) {
+        this.day = day;
+    }
+    @Override
+    public String toString() {
+        return day;
+    }
+
+    public static final Day MON = new Day("Monday");
+    public static final Day TUE = new Day("Tuesday");
+    public static final Day WED = new Day("Wednesday");
+    public static final Day THU = new Day("Thursday");
+    public static final Day FRI = new Day("Friday");
+    public static final Day SAT = new Day("Saturday");
+    public static final Day SUN = new Day("Sunday");
+}
+```
+
+all enums implement `java.lang.Comparable` so you can pass it into the map: below code would return -5 as `0-5= -5`
+```java
+public class App {
+    public static void main(String[] args) {
+        System.out.println(Day.MON.compareTo(Day.SAT));
+    }
+}
+
+enum Day {
+    MON, TUE, WED, THU, FRI, SAT, SUN;
+}
+```
+
 Enum extension. There is no such thing as enum extension in java, but you can employ interface for this purpose.
 ```java
 public class App {
@@ -3239,9 +3351,35 @@ finally
 
 ###### Nested Types
 Classes, interfaces, enums, can be declared inside classes and have modifiers.
-Nested classes can be of 2 types:
-* static nested classes (called just static classes) - those declared with `static` keyword
-* instance nested classes (called just inner classes) - those declared without `static` keyword
+Nested classes can be of 3 types:
+* member class - class defined as member of parent as opposite to local and anonymous (can be static & inner):
+  * static nested classes (called just static classes) - those declared with `static` keyword
+  * instance nested classes (called just inner classes) - those declared without `static` keyword
+    * interface/enum/record can never be called "inner class" because they always implicitly static, but anonymous is always inner class
+* local class - class defined within method or initializer block, can't have access modifier, be static, be sealed
+  * yet local interface/enum/record are always implicitly static
+* anonymous class - class without a name that extends other class or implement interface
+
+nested type:
+* nested class by default is inner class, but we can add `static` keyword to make it static class
+* nested interface/enum/record always static
+```java
+public class App {
+    public static void main(String[] args) {
+        Outer.Inner inner = new Outer().new Inner();
+        Outer.R rec = new Outer.R(30);
+        Outer.E e = Outer.E.A;
+    }
+}
+
+class Outer {
+    class Inner {}
+    interface I {} // implicitly static
+    enum E {A} // implicitly static
+    record R(int age) {} // implicitly static
+}
+```
+
 
 By keeping the inner class within the outer class, you hide the inner class from outside code, maintaining better encapsulation. It allows you to group classes that should only be used within the context of the outer class. Because they are tied to an instance of the outer class, non-static inner classes can increase memory consumption, as they hold references to their outer class instances.
 Why Inner class doesn’t have any static declarations: The reason why inner classes cannot have static members is because static members are usually instantiated when the program starts. However, an inner class depends on having an instance of its enclosing class in order to create it and then access its members. So the decision to not have static members for an inner class makes sense due to this dependency. The static member cannot be accessed until something has been created i.e. the enclosing class instance, so why have it?
@@ -12096,7 +12234,7 @@ class Printer{
 ```
 If you compile you will get following errors
 ```
-Warning:(13, 16) java: print() in com.java.test.Printer has been deprecated
+Warning:(13, 16) java: print() in com.java.test.at.Printer has been deprecated
 Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
 Information:java: Recompile with -Xlint:unchecked for details.
 ```
@@ -12866,51 +13004,61 @@ class Printer implements PrinterMBean {
 Run it and open `jconsole`, got to `Mbean` tab open package and call print method from there.
 
 ###### Custom ClassLoader
-In java there are 3 types of classLoaders. All system classes are loaded by BootStrap ClassLoader. When you try to call `getClassLoader()` on such classes you will get null.
-Extension classLoaders => load all extensions classes
-Application classLoaders => load all application classes.
-If you want to write custom classLoader you have to extend from `ClassLoader` and override `loadClass` function
+In java there are 3 types of classLoaders:
+* BootStrap ClassLoader - load all system classes, when you try to call `getClassLoader()` on such classes you will get `null`
+* Extension classLoaders => load all extensions classes from `$JAVA_HOME/jre/lib/ext`
+* Application classLoaders => load all application classes.
+If you want to write custom classLoader:
+* you have to extend from `ClassLoader` and override `loadClass` function
+* pay attention that `static initializer` is fired twice, first time by default `AppClassLoader` and second time by our custom `MyClassLoader`
+* static fields and static initializer initialized once per classloader - just keep this in mind if you have custom classloader
+* why do you need:
+  * if you want to load classes from different classpath, because default classloader loads classes only from local classpath
+  * implement hot reload - if you change the class you can reload it into JVM without restarting the JVM
+  * bytecode change and weaving - with custom classloader you can implement AOP with adding logic to the class and reload it into JVM
 ```java
-package com.java.test;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 public class App{
-    public static void main(String[] args) throws Exception {
-        System.out.println("MyService classLoader => " + MyService.class.getClassLoader());
-        System.out.println("ArrayList classLoader => " + ArrayList.class.getClassLoader());
+  public static void main(String[] args) throws Exception {
+    System.out.println("MyService classLoader => " + MyService.class.getClassLoader());
+    System.out.println("ArrayList classLoader => " + ArrayList.class.getClassLoader());
 
-        System.out.println();
+    System.out.println();
 
-        MyClassLoader loader = new MyClassLoader();
-        Class<?> cls = loader.loadClass("MyService");
-        Object obj = cls.getDeclaredConstructors()[0].newInstance();
-        Method m = cls.getMethod("print");
-        m.invoke(obj);
-    }
+    MyClassLoader loader = new MyClassLoader();
+    Class<?> cls = loader.loadClass("MyService");
+    Object obj = cls.getDeclaredConstructors()[0].newInstance();
+    Method m = cls.getMethod("print");
+    m.invoke(obj);
+  }
 }
 
 class MyService{
-    public void print(){
-        System.out.println("hello world");
-    }
+  static {
+    System.out.println("MyService classLoader => " + MyService.class.getClassLoader());
+  }
+  public void print(){
+    System.out.println("hello world");
+  }
 }
 
 class MyClassLoader extends ClassLoader{
-    @Override
-    public Class<?> loadClass(String name) throws ClassNotFoundException{
-        System.out.println("loading class... " + name);
-        String packageName = "com.java.test.";
-        return super.loadClass(packageName + name);
-    }
+  @Override
+  public Class<?> loadClass(String name) throws ClassNotFoundException{
+    System.out.println("loading class... " + name);
+    String packageName = "com.java.test.";
+    return super.loadClass(packageName + name);
+  }
 }
 ```
 ```
-MyService classLoader => jdk.internal.loader.ClassLoaders$AppClassLoader@3d4eac69
+MyService classLoader => jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
 ArrayList classLoader => null
 
 loading class... MyService
+MyService classLoader => jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
 hello world
 ```
 
