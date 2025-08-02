@@ -57,22 +57,57 @@ Java HotSpot(TM) 64-Bit Server VM
 But if you run console command `java --version`, you can see all the output from console including versions and JDK build.
 Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my MacOS terminal, I can see this:
 ```shell
-# java 8 (AdoptOpenJDK)
-openjdk version "1.8.0_292"
-OpenJDK Runtime Environment (AdoptOpenJDK)(build 1.8.0_292-b10)
-OpenJDK 64-Bit Server VM (AdoptOpenJDK)(build 25.292-b10, mixed mode)
-# java 21 (Homebrew JDK)
-openjdk 21.0.5 2024-10-15
-OpenJDK Runtime Environment Homebrew (build 21.0.5)
-OpenJDK 64-Bit Server VM Homebrew (build 21.0.5, mixed mode, sharing)
-# java 21 (Oracle JDK)
+# run this command for multiple JDKs
+java -XX:+PrintCommandLineFlags -version
+
+# Oracle JDK 21
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
 java version "21.0.7" 2025-04-15 LTS
 Java(TM) SE Runtime Environment (build 21.0.7+8-LTS-245)
 Java HotSpot(TM) 64-Bit Server VM (build 21.0.7+8-LTS-245, mixed mode, sharing)
-# java 21 (OpenJDK)
-openjdk 21.0.2 2024-01-16
+
+# Oracle JDK 17
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=32178700288 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC
+java version "17.0.14" 2025-01-21 LTS
+Java(TM) SE Runtime Environment (build 17.0.14+8-LTS-191)
+Java HotSpot(TM) 64-Bit Server VM (build 17.0.14+8-LTS-191, mixed mode, sharing)
+
+# Oracle JDK 11
+-XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MaxHeapSize=32178700288 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC
+java version "11.0.26" 2025-01-21 LTS
+Java(TM) SE Runtime Environment 18.9 (build 11.0.26+7-LTS-187)
+Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.26+7-LTS-187, mixed mode)
+
+# Oracle JDK 8
+-XX:InitialHeapSize=2147483648 -XX:MaxHeapSize=32203866112 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC
+java version "1.8.0_441"
+Java(TM) SE Runtime Environment (build 1.8.0_441-b07)
+Java HotSpot(TM) 64-Bit Server VM (build 25.441-b07, mixed mode)
+
+# OpenJDK 21
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
+openjdk version "21.0.2" 2024-01-16
 OpenJDK Runtime Environment (build 21.0.2+13-58)
 OpenJDK 64-Bit Server VM (build 21.0.2+13-58, mixed mode, sharing)
+
+# Eclipse Adoptium JDK 21
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
+openjdk version "21.0.8" 2025-07-15 LTS
+OpenJDK Runtime Environment Temurin-21.0.8+9 (build 21.0.8+9-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, sharing)
+
+
+# Azul Zulu 21
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
+openjdk version "21.0.8" 2025-07-15 LTS
+OpenJDK Runtime Environment Zulu21.44+17-CA (build 21.0.8+9-LTS)
+OpenJDK 64-Bit Server VM Zulu21.44+17-CA (build 21.0.8+9-LTS, mixed mode, sharing)
+
+# Azul Zulu 11
+-XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MaxHeapSize=32178700288 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC
+openjdk version "11.0.28" 2025-07-15 LTS
+OpenJDK Runtime Environment Zulu11.82+19-CA (build 11.0.28+6-LTS)
+OpenJDK 64-Bit Server VM Zulu11.82+19-CA (build 11.0.28+6-LTS, mixed mode)
 ```
 
 Don't confuse: OpenJDK vs HotSpot:
