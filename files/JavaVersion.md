@@ -96,6 +96,11 @@ openjdk version "21.0.8" 2025-07-15 LTS
 OpenJDK Runtime Environment Temurin-21.0.8+9 (build 21.0.8+9-LTS)
 OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, sharing)
 
+# Amazon Corretto 21
+-XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
+openjdk version "21.0.8" 2025-07-15 LTS
+OpenJDK Runtime Environment Corretto-21.0.8.9.1 (build 21.0.8+9-LTS)
+OpenJDK 64-Bit Server VM Corretto-21.0.8.9.1 (build 21.0.8+9-LTS, mixed mode, sharing)
 
 # Azul Zulu 21
 -XX:ConcGCThreads=3 -XX:G1ConcRefinementThreads=13 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=2147483648 -XX:MarkStackSize=4194304 -XX:MaxHeapSize=31675383808 -XX:MinHeapSize=6815736 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCache -XX:+UseCompressedOops -XX:+UseG1GC
@@ -109,6 +114,13 @@ openjdk version "11.0.28" 2025-07-15 LTS
 OpenJDK Runtime Environment Zulu11.82+19-CA (build 11.0.28+6-LTS)
 OpenJDK 64-Bit Server VM Zulu11.82+19-CA (build 11.0.28+6-LTS, mixed mode)
 ```
+As you can see above there are several different JDK:
+* Oracle JDK - you can identify it by its VM codename `HotSpot`
+* OpenJDK - includes only `OpenJDK`, but under-the-hood also uses HotSpot as JVM, because Oracle is main contributor for OpenJDK
+* Eclipse Adoptium - build of OpenJDK by Adoptium with VM codename `Temurin`
+* Amazon Corretto - build of OpenJDK by Amazon with VM codename `Corretto`
+* Azul Zulu - build of OpenJDK by Azul with VM codename `Zulu`
+* Azul Platform Prime - paid JDK from Azul, with their famous C4GC (Continuously Concurrent Compacting Collector), available only for Linux (that's why it's not in the above output, cause I'm using MacOS).
 
 Don't confuse: OpenJDK vs HotSpot:
 * From Java 11 forward, Oracle JDK builds and OpenJDK builds will be essentially identical
