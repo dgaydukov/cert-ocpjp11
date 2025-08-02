@@ -568,9 +568,9 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
     * `-XX:+UseGCOverheadLimit` - GC overhead limit is the feature of AdaptiveSizePolicy, which is used in Parallel GC and CMS, but not in G1
 * GC - you can choose any of these GC:
     * `-XX:+UseSerialGC`
-    * `-XX:+UseParallelGC` - default for OpenJDK 8
+    * `-XX:+UseParallelGC` - default for OpenJDK-8 (also default for JDK-8 from different vendors)
     * `-XX:+UseConcMarkSweepGC` (not available in Oracle JDK 21) - deprecated in Java 9 and removed in Java 14
-    * `-XX:+UseG1GC` - best java21 general purpose, default GC for OpenJDK 11,17,21 
+    * `-XX:+UseG1GC` - best java21 general purpose, default GC for OpenJDK-11/17/21 ((also default for JDK-11/17/21 from different vendors))
     * `-XX:+UseZGC` (from JDK 11) - best java21 ultra low latency
     * `-XX:+UseShenandoahGC` (from JDK 12, not available in Oracle JDK 21) - low-latency collector aiming for concurrent operation with minimal "stop-the-world" pauses. This GC is not supported in Oracle JDK, also not available in OpenJDK builds 17,21,24 that were downloaded from [official OpenJDK site](https://jdk.java.net//), but available in [Adoptium JDK 21](https://adoptium.net/temurin/releases/)
 * GC logging:
