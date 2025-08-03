@@ -21,20 +21,20 @@ There are multiple versions of JDK builds by different vendors:
 * [Eclipse Adoptium](https://adoptium.net/en-GB/temurin/releases) (formerly AdoptOpenJDK) - build by Eclipse Foundation. Eclipse Temurin is the name of the OpenJDK distribution produced by the Eclipse Adoptium project.
 * [GraalVM](https://www.graalvm.org/downloads) - (formerly Oracle GraalVM Enterprise) is built on top of the Oracle JDK.
 * [Azul Zulu Builds of OpenJDK](https://www.azul.com/downloads/?package=jdk#zulu) - build by Azul Systems for low latency systems with their own JVM & GC. You can download JDK and use for development purposes for free, but for production you have to pay the license
-* [Azul Platform Prime](https://www.azul.com/downloads/#prime) - paid build of OpenJDK by Azul with VM codename `Zulu`, with significant improvements of JVM including their famous C4GC (Continuously Concurrent Compacting Collector), but available only for Linux, no MacOS support.
+* [Azul Platform Prime](https://www.azul.com/downloads/#prime) - paid build of OpenJDK by Azul with VM codename `Zing`, with significant improvements of JVM including their famous C4GC (Continuously Concurrent Compacting Collector), but available only for Linux.
 * [Red Hat](https://developers.redhat.com/products/openjdk/download) - build of OpenJDK by Red Hat, but it also doesn't have a build for MacOS, on website they say that they have a build for MacOS called `temurin`, which you can use. And Eclipse Temurin is based on Red Hat build of OpenJDK
 
-|                             | JVM codename | Based on   | License | LTS support   | Available for MacOS |
+|                             | JVM codename | Based on   | License | LTS support   | Supported OS        |
 |-----------------------------|--------------|------------|---------|---------------|---------------------|
-| Oracle JDK                  | HotSpot      | OpenJDK    | Paid    | 8, 11, 17, 21 | YES                 |
-| OpenJDK                     | HotSpot      | OpenJDK    | Free    | NO            | YES                 |
-| Amazon Corretto             | Corretto     | OpenJDK    | Free    | 8, 11, 17, 21 | YES                 |
-| Microsoft Build of OpenJDK  | Microsoft    | OpenJDK    | Free    | 11, 17, 21    | YES                 |
-| Eclipse Adoptium            | Temurin      | Red Hat    | Free    | 8, 11, 17, 21 | YES                 |
-| GraalVM                     | GraalVM      | Oracle JDK | Free    | 11, 17, 21    | YES                 |
-| Azul Zulu Builds of OpenJDK | Zulu         | OpenJDK    | Free    | 8, 11, 17, 21 | YES                 |
-| Azul Platform Prime         | Zulu         | OpenJDK    | Paid    | 8, 11, 17, 21 | NO                  |
-| Red Hat                     | Temurin      | OpenJDK    | Free    | 8, 11, 17, 21 | NO                  |
+| Oracle JDK                  | HotSpot      | OpenJDK    | Paid    | 8, 11, 17, 21 | Windows/Linux/MacOS |
+| OpenJDK                     | HotSpot      | OpenJDK    | Free    | NO            | Windows/Linux/MacOS |
+| Amazon Corretto             | Corretto     | OpenJDK    | Free    | 8, 11, 17, 21 | Windows/Linux/MacOS |
+| Microsoft Build of OpenJDK  | Microsoft    | OpenJDK    | Free    | 11, 17, 21    | Windows/Linux/MacOS |
+| Eclipse Adoptium            | Temurin      | Red Hat    | Free    | 8, 11, 17, 21 | Windows/Linux/MacOS |
+| GraalVM                     | GraalVM      | Oracle JDK | Free    | 11, 17, 21    | Windows/Linux/MacOS |
+| Azul Zulu Builds of OpenJDK | Zulu         | OpenJDK    | Free    | 8, 11, 17, 21 | Windows/Linux/MacOS |
+| Azul Platform Prime         | Zing         | OpenJDK    | Paid    | 8, 11, 17, 21 | Linux               |
+| Red Hat                     | Temurin      | OpenJDK    | Free    | 8, 11, 17, 21 | Windows             |
 
 
 Don't confuse:
