@@ -714,6 +714,83 @@ str => ϨϩϪϫϬϭϮϯϰϱ
 str => ��������������������
 ```
 
+### Unsafe vs. Reflection
+There are cases where using of `Unsafe` may solve some problems of Reflection API: if you get the error `module X does not 'opens Y' to unnamed module`. In below example we would use:
+* class from `java.security` package from `java.base` module
+* It would throw `module java.base does not "opens java.security" to unnamed module @3feba861`
+* You can solve it by adding to VM options this: `--add-opens=java.base/java.security=ALL-UNNAMED`
+* but `Unsafe` can help you to resolve it without opening module
+```java
+import sun.misc.Unsafe;
+import javax.security.auth.AuthPermission;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.lang.reflect.Field;
+import java.security.Permission;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("-----Reflection API-----");
+        try {
+            AuthPermission ap = new AuthPermission("auth");
+            Field f = Permission.class.getDeclaredField("name");
+            f.setAccessible(true);
+            String name = (String) f.get(ap);
+            System.out.println("name => " + name);
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            System.out.println("ERR => " + ex);
+        } catch (Exception ex) {
+            System.out.println("ERR => " + ex);
+        }
+
+        System.out.println("-----VarHandle-----");
+        try {
+            AuthPermission ap = new AuthPermission("auth");
+            Field f = Permission.class.getDeclaredField("name");
+            MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(Permission.class, MethodHandles.lookup());
+            VarHandle varHandle = lookup.unreflectVarHandle(f);
+            String name = (String) varHandle.get(ap);
+            System.out.println("name => " + name);
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            System.out.println("ERR => " + ex);
+        }
+
+        System.out.println("-----sun.misc.Unsafe-----");
+        try {
+            AuthPermission ap = new AuthPermission("auth");
+            Field f = Permission.class.getDeclaredField("name");
+            Unsafe unsafe = getUnsafe();
+            String name = (String) unsafe.getObject(ap, unsafe.objectFieldOffset(f));
+            System.out.println("name => " + name);
+        } catch (NoSuchFieldException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+
+    public static Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+A few points on output:
+* Reflection API: If class in different module, trying to access private property `f.setAccessible(true)` would throw `InaccessibleObjectException`
+* VarHandle:  If class in different module, calling `MethodHandles.privateLookupIn` would throw `IllegalAccessException`
+* Unsafe works fine, even if required object in module, because it fetches object directly from heap, without any access to private fields
+```
+-----Reflection API-----
+ERR => java.lang.reflect.InaccessibleObjectException: Unable to make field private final java.lang.String java.security.Permission.name accessible: module java.base does not "opens java.security" to unnamed module @3feba861
+-----VarHandle-----
+ERR => java.lang.IllegalAccessException: module java.base does not open java.security to unnamed module @3feba861
+-----sun.misc.Unsafe-----
+name => auth
+```
+
 ### Unsafe, VarHandle, MethodHandle
 `sun.misc` - special package for 2 low-level classes (you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant):
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
