@@ -782,16 +782,50 @@ A few points on output:
 * Reflection API: If class in different module, trying to access private property `f.setAccessible(true)` would throw `InaccessibleObjectException`
 * VarHandle:  If class in different module, calling `MethodHandles.privateLookupIn` would throw `IllegalAccessException`
 * Unsafe works fine, even if required object in module, because it fetches object directly from heap, without any access to private fields
+* keep in mind that multiple functions from `sun.misc.Unsafe` are deprecated:
+  * `getObject` => `@Deprecated(since="23", forRemoval=true)`
+  * `objectFieldOffset` => `@Deprecated(since="18", forRemoval=true)`
+  * code would still compile, but would show multiple warnings
 ```
 -----Reflection API-----
-ERR => java.lang.reflect.InaccessibleObjectException: Unable to make field private final java.lang.String java.security.Permission.name accessible: module java.base does not "opens java.security" to unnamed module @3feba861
+ERR => java.lang.reflect.InaccessibleObjectException: Unable to make field private final java.lang.String java.security.Permission.name accessible: module java.base does not "opens java.security" to unnamed module @4f023edb
 -----VarHandle-----
-ERR => java.lang.IllegalAccessException: module java.base does not open java.security to unnamed module @3feba861
+ERR => java.lang.IllegalAccessException: module java.base does not open java.security to unnamed module @4f023edb
 -----sun.misc.Unsafe-----
 name => auth
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.java.test.App
+WARNING: Please consider reporting this to the maintainers of class com.java.test.App
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 ```
 
 ### Unsafe, VarHandle, MethodHandle
+Don't confuse:
+* `sun.misc.Unsafe`:
+  * original version now in `jdk.unsupported` module, but you can access it without opening the module, because this module opens `sun.misc` package for backward compatability with pre-java9 libraries that used this class
+  * all code was moved into `jdk.internal.misc.Unsafe` and now all methods are proxied into this new class
+  * https://openjdk.org/jeps/471 - many methods are marked "for removal" so use modular version instead
+  * bottom line: don't use it, use new version from `jdk.internal.misc` package
+* `jdk.internal.misc.Unsafe`:
+  * modular version within `java.base` module, to access you have to open module `--add-opens java.base/jdk.internal.misc=ALL-UNNAMED`
+  * this package is not exported (compared to `sun.misc` for `jdk.unsupported` module), so if you ry to compile the code you will get compilation error: `package jdk.internal.misc is declared in module java.base, which does not export it to the unnamed module`. You can resolve it by adding: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`
+  * for IntelliJ you have to modify `settings => java compiler => Additional command-line parameters`, otherwise IntelliJ won't be able to compile your code
+
+Aeron under-the-hood uses `jdk.internal.misc.Unsafe` that's why you have to open access to module, otherwise you can't use it: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`
+```java
+import org.agrona.concurrent.UnsafeBuffer;
+import java.nio.ByteBuffer;
+
+public class App {
+    public static void main(String[] args) {
+        UnsafeBuffer unsafeBuffer = new UnsafeBuffer(ByteBuffer.allocate(256));
+    }
+}
+```
+```
+Exception in thread "main" java.lang.IllegalAccessError: class org.agrona.UnsafeApi (in unnamed module @0x7106e68e) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x7106e68e
+```
+
 `sun.misc` - special package for 2 low-level classes (you shouldn't use these 2 classes in your code, otherwise your code would be too OS-dependant):
 * Unsafe - low-level logic that designed to be used by the core Java library developers. You can't even instantiate it normally (since constructor is private we have to use reflection to get instance).
 * Signal - low level system signals handling
