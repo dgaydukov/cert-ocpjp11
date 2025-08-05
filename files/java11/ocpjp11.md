@@ -11733,6 +11733,36 @@ Don't confuse:
 * `--add-opens` - provides access for deep reflection (including non-public members) at run time only (this can't be used with `javac`). So if you have the code like `setAccessible(true)` that means you are trying to get access to some private types, that you are not supposed to get access, and you need to use this option. Basically we can say that this option is wider than `--add-exports` because additionally it opens access to private types.
 * `--add-exports` - provides access to public API at compile and run time
 
+Rule for package exposure:
+* each module has a `module-info.java` file with package declarations:
+  * no declaration - package is hidden from outside world and can be used only inside module
+  * exports - module exports the package to the outside world, package can be used with limitation: reflection API not available
+  * opens - modules opens full access to the package including deep reflection
+* Look into below 2 code statements, one would compile and run other would fail:
+```java
+sun.misc.Unsafe unsafe1 = sun.misc.Unsafe.getUnsafe(); // compiles fine
+jdk.internal.misc.Unsafe unsafe2 = jdk.internal.misc.Unsafe.getUnsafe(); // won't compile
+```
+We have 2 `Unsafe` classes but:
+* first form package `sun.misc` from module `jdk.unsupported` which exports/opens this package
+* second from package `jdk.internal.misc` from module `java.base` which doesn't exports this package - that's why this code would fail to compile unless you explicitly add `--add-exports` to compiler VM option
+Below is example of `module-info.java` for `jdk.unsupported` module - as you can see, package `sun.misc` is both exported - can be used by anybody and opened - which means you can use deep reflection on it
+```
+module jdk.unsupported {
+    exports com.sun.nio.file;
+    exports sun.misc;
+    exports sun.reflect;
+
+    opens sun.misc;
+    opens sun.reflect;
+}
+```
+If package is hidden:
+* to compile add `--add-exports` - without it, the code won't compile
+* if you run compiled code you can get 2 exceptions:
+  * `java.lang.IllegalAccessError` - if you run compiled code without `--add-exports` (yes you need to add it to both `javac` to compile and `java` to run)
+  * `java.lang.reflect.InaccessibleObjectException` - if you run compiled code that has deep reflection, then you have to add `--add-opens` (for deep reelection just adding `--add-exports` is not enough)
+
 We can also use custom module inside maven project.
 ```xml
 <dependency>
