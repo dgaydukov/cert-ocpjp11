@@ -9,13 +9,15 @@
 * 6 [Garbage collector](#garbage-collector)
 * 7 [JVM and GC tuning](#jvm-and-gc-tuning)
 * 8 [Encoding](#encoding)
-* 9 [Unsafe, VarHandle, MethodHandle](#unsafe-varhandle-methodhandle)
-* 10 [Linked lists](#linked-lists)
-* 11 [Low latency logging](#low-latency-logging)
-* 12 [Low latency collections](#low-latency-collections)
-* 13 [Java Agent](#java-agent)
-* 14 [Java Object Layout](#java-object-layout)
-* 15 [Java Flight Recorder](#java-flight-recorder)
+* 9 [sun.misc.Unsafe](#sunmiscunsafe)
+* 10 [VarHandle](#varhandle)
+* 11 [MethodHandle](#methodhandle)
+* 12 [Linked lists](#linked-lists)
+* 13 [Low latency logging](#low-latency-logging)
+* 14 [Low latency collections](#low-latency-collections)
+* 15 [Java Agent](#java-agent)
+* 16 [Java Object Layout](#java-object-layout)
+* 17 [Java Flight Recorder](#java-flight-recorder)
 
 ### Basics
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
@@ -800,7 +802,7 @@ WARNING: Please consider reporting this to the maintainers of class com.java.tes
 WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 ```
 
-### Unsafe, VarHandle, MethodHandle
+### sun.misc.Unsafe
 Don't confuse:
 * `sun.misc.Unsafe`:
   * original version now in `jdk.unsupported` module, but you can access it without opening the module, because this module opens `sun.misc` package for backward compatability with pre-java9 libraries that used this class
@@ -888,6 +890,92 @@ There are several examples where you can use `Unsafe`:
 * remove strings from memory
 * treat variable as volatile without `volatile` keyword using `getXXXVolatile/putXXXVolatile`
 * pause thread using `park/unpark` methods - similar to `Object.wait`, but use native OS implementation
+
+Basic example:
+```java
+import java.lang.reflect.Field;
+import lombok.AllArgsConstructor;
+import sun.misc.Unsafe;
+
+public class App {
+
+    public static void main(String[] args) {
+        App app = new App();
+        System.out.println("----------------------storeInt----------------------");
+        app.storeInt();
+        System.out.println("----------------------storeIntObj----------------------");
+        app.storeIntObj();
+        System.out.println("----------------------storeIntByteArray----------------------");
+        app.storeIntByteArray();
+    }
+
+    public Unsafe getUnsafe()  {
+        try{
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return  (Unsafe) f.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * Here example of putInt(long address, int x)
+     * as you see here we can just set int value into memory address in off-heap
+     */
+    public void storeInt(){
+        Unsafe unsafe = getUnsafe();
+        long address = unsafe.allocateMemory(1);
+        int value = 99;
+        System.out.println("Put into memory: value="+value+", address="+address);
+        unsafe.putInt(address, value);
+        int savedValue = unsafe.getInt(address);
+        System.out.println("Get value from memory: value="+savedValue);
+    }
+
+    /**
+     * Here example of putInt(Object o, long offset, int x)
+     * we change memory address inside heap for given object using offset
+     */
+    public void storeIntObj() {
+        Unsafe unsafe = getUnsafe();
+        Person mike32 = new Person("Mike", 32);
+        System.out.println("mike => "+mike32);
+        int value = 99;
+        Field ageField;
+        try{
+            ageField = mike32.getClass().getDeclaredField("age");
+        } catch (NoSuchFieldException ex){
+            throw new RuntimeException(ex);
+        }
+        long offset = unsafe.objectFieldOffset(ageField);
+        System.out.println("Person age from memory: offset="+offset+", age="+unsafe.getInt(mike32, offset));
+        System.out.println("Put into memory: value="+value+", offset="+offset);
+        unsafe.putInt(mike32, offset, value);
+        System.out.println("mike => "+mike32);
+    }
+
+    /**
+     * Get value from byte array at specific offset (index)
+     */
+    public void storeIntByteArray(){
+        Unsafe unsafe = getUnsafe();
+        byte[] byteArray = new byte[10];
+        int value = 99;
+        int offset = 1;
+        System.out.println("Get value from byte array: offset="+offset+", valueInByteArray="+unsafe.getInt(byteArray, offset));
+        System.out.println("Put value into byte array: offset="+offset+", value="+value);
+        unsafe.putInt(byteArray, offset, value);
+        System.out.println("Get value from byte array: offset="+offset+", valueInByteArray="+unsafe.getInt(byteArray, offset));
+    }
+}
+
+@AllArgsConstructor
+class Person {
+    private String name;
+    private int age;
+}
+```
 
 Get object address:
 * `toString` returns `hex` of hashcode: `obj.Tostring() = {FullClassName}@{hex(hashcode)}`
@@ -1184,33 +1272,74 @@ public class App {
 }
 ```
 
-
-MethodHandle (java 7) - typed and executable reference to underlying java class method/constructor/field. It's similar but faster than Reflection API, cause there is direct support in JVM.
-```java
-public class App {
-  public static void main(String[] args) throws Throwable {
-    MethodHandles.Lookup lookup = MethodHandles.lookup();
-    MethodType methodType = MethodType.methodType(String.class, int.class);
-    MethodHandle getName = lookup.findVirtual(Person.class, "getName", methodType);
-
-    Person person = new Person();
-    String name = (String) getName.invokeWithArguments(person, 30);
-    System.out.println(name);
-
-  }
-}
-
-class Person {
-  public String getName(int age) {
-    return "John Doe, " + age;
-  }
-}
-```
-```
-John Doe, 30
-```
-
+### VarHandle
 `VarHandle` (java 9) - wrapper for a field to perform atomic operations on that field. It's very similar to `Unsafe`. And before to achieve this you have to use this class to atomically change values (look into `AtomicInteger` under-the-hood it uses `Unsafe` to atomically modify value), but now you can use `VarHandle` to achieve same results (look into `AtomicReference`, it uses `VarHandle` under-the-hood). You can achieve `volatile` features, even if field is not declared as volatile.
+
+`VarHnadle` is safer version of `Unsafe`:
+* with Unsafe you can use `Unsafe::objectFieldOffset` to obtain the offset of a field in an object, then use `Unsafe::putInt` to write an int value at that offset regardless of whether the field is an int. The standard `VarHandle` API cannot examine or manipulate objects at such a low level because it refers to fields by name and type, not by offset
+* Look into example below, with `Unsafe` you have to check bounds of array manually, otherwise you can put value into any index, but `VarHnadle` already have this logic to check array bounds
+* under-the-hood it uses `jdk.internal.misc.Unsafe` but adding additional checks (like bounds checks for array) to ensure safety
+```java
+import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.lang.reflect.Field;
+
+public class App {
+    public static void main(String[] args) {
+        AtomicArray u = new AtomicArrayUnsafe(5);
+        u.setVolatile(5, 5); // no exception, we just write value somewhere into memory position which may corrupt heap memory
+
+        AtomicArray vh = new AtomicArrayVarHandle(5);
+        vh.setVolatile(5, 5); // bounds check happens inside and exception would be thrown
+    }
+}
+
+interface AtomicArray {
+    void setVolatile(int index, int value);
+}
+class AtomicArrayVarHandle implements AtomicArray{
+    private final static VarHandle AVH = MethodHandles.arrayElementVarHandle(int[].class);
+
+    private final int[] arr;
+    public AtomicArrayVarHandle(int size) {
+        arr = new int[size];
+    }
+
+    @Override
+    public void setVolatile(int index, int value) {
+        AVH.setVolatile(arr, index, value);
+    }
+}
+class AtomicArrayUnsafe implements AtomicArray{
+    private final static Unsafe UNSAFE = getUnsafe();
+
+    private final int[] arr;
+    public AtomicArrayUnsafe(int size) {
+        arr = new int[size];
+    }
+
+    @Override
+    public void setVolatile(int index, int value) {
+        // you have to manually check bounds of array
+        UNSAFE.putIntVolatile(arr, index, value);
+    }
+
+    public static Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+```
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5
+```
+
 Below is example how before you have to use `Unsafe` and now you can use `VarHandle` for same operation. But before with `Unsafe` you have to use `offset` which is error-prone.
 ```java
 public void lazySet(V newValue) {
@@ -1265,6 +1394,34 @@ public class App {
     System.out.println(x);
   }
 }
+```
+
+### MethodHandle
+MethodHandle (java 7):
+* has nothing to do with low latency, but name is similar to `VarHandle`, so I've added it here to avoid confusion
+* typed and executable reference to underlying java class method/constructor/field. It's similar but faster than Reflection API, cause there is direct support in JVM.
+```java
+public class App {
+  public static void main(String[] args) throws Throwable {
+    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    MethodType methodType = MethodType.methodType(String.class, int.class);
+    MethodHandle getName = lookup.findVirtual(Person.class, "getName", methodType);
+
+    Person person = new Person();
+    String name = (String) getName.invokeWithArguments(person, 30);
+    System.out.println(name);
+
+  }
+}
+
+class Person {
+  public String getName(int age) {
+    return "John Doe, " + age;
+  }
+}
+```
+```
+John Doe, 30
 ```
 
 ### Linked lists
