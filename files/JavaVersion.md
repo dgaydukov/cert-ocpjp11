@@ -110,6 +110,12 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.8+12.1 (build 21.0.8+12-LT
 openjdk version "21.0.8" 2025-07-15 LTS
 OpenJDK Runtime Environment Zulu21.44+17-CA (build 21.0.8+9-LTS)
 OpenJDK 64-Bit Server VM Zulu21.44+17-CA (build 21.0.8+9-LTS, mixed mode, sharing)
+
+# Azul Zing 21
+-XX:-AccountCHeapSidebandUnderXmx -XX:+AllocOopTablesInCHeap -XX:-BestEffortElasticity -XX:C2MaxCompilerThreads=10 -XX:CIMaxCompilerThreads=10 -XX:CNCForkCompilerJobs=10 -XX:CodeCacheMinimumFreeSpace=16613376 -XX:DefensiveHeapShrinkingMinFreeBytes=249561088 -XX:-FalconCompensateForIntelMCUForErratumSKX102 -XX:FalconOSROptimizationLevel=2 -XX:+FalconUseLVBs -XX:+GPGCElasticSideband -XX:GPGCJavaHeapPoolMXBeanName=Java Heap -XX:GPGCNewGCMemoryManagerName=GPGC New Cycles -XX:GPGCNoZSTMultiPageAllocPercent=26 -XX:GPGCOldGCMemoryManagerName=GPGC Old Cycles -XX:GPGCPacingTriggerHeapOccupancyPercent=95.000000 -XX:GPGCSmallSpaceAllocateForRelocateSlots=32 -XX:GPGCSmallSpaceAllocationPages=32 -XX:-GPGCUseDensePhaseEncoding -XX:GPGCVirtualMemorySectorSize=2199023255552 -XX:HeapElasticityLogIntervalBytes=414606950 -XX:HeapElasticityTargetMaxNewGCPausePercentAtWarmup=2.000000 -XX:HeapElasticityTargetMinAvailableSystemMemory=249561088 -XX:InitialHeapSize=517996544 -XX:InitialSystemDictionarySize=320219 -XX:KlassTableSize=8388608 -XX:MaxHeapSize=8292139008 -XX:MinHeapSizeForUncommit=517996544 -XX:+MlockCodeCache -XX:+MutatorYieldAfterSelfCheckpointing -XX:+PrintCommandLineFlags -XX:ProfilePreMainTier2ExtraCompilerThreads=6 -XX:ProfileWorkerThreads=4 -XX:RdtscFrequency=0 -XX:StringTableSize=320219 -XX:-SwitchOldGCToSTW -XX:-SwitchToSTWGCDurationModel -XX:SymbolTableSize=320219 -XX:TopTierHotCompileThresholdTriggerMillis=60000 -XX:TopTierWarmCompileCpuPercent=25 -XX:TopTierWarmCompileThresholdTriggerMillis=600000 -XX:+TrivialArrayElementGetter -XX:+TrivialArrayElementSetter -XX:+TrivialArrayLengthGetter -XX:+TrivialBuilderSetter -XX:+TrivialConstValueGetter -XX:+TrivialEmptyMethod -XX:+TrivialGetter -XX:+TrivialProxyGetter -XX:+TrivialSetter -XX:+TrivialStaticValueGetter -XX:+TrivialValueGetter -XX:-UseBackgroundPageScrubbing -XX:-UseOopsInCalleeSavedRegisters -XX:-UseZST
+openjdk version "21.0.7.0.101" 2025-07-23 LTS
+OpenJDK Runtime Environment Zing25.07.0.0+2 (build 21.0.7.0.101+1-LTS)
+Zing 64-Bit Tiered VM Zing25.07.0.0+2 (build 21.0.7.0.101-zing_25.07.0.0-b2-release-linux-X86_64, mixed mode)
 ```
 
 Don't confuse: OpenJDK vs HotSpot:
