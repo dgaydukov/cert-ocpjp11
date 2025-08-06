@@ -15,6 +15,7 @@
 * 12 [Low latency collections](#low-latency-collections)
 * 13 [Java Agent](#java-agent)
 * 14 [Java Object Layout](#java-object-layout)
+* 15 [Java Flight Recorder](#java-flight-recorder)
 
 ### Basics
 When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
@@ -805,6 +806,7 @@ Don't confuse:
   * original version now in `jdk.unsupported` module, but you can access it without opening the module, because this module opens `sun.misc` package for backward compatability with pre-java9 libraries that used this class
   * all code was moved into `jdk.internal.misc.Unsafe` and now all methods are proxied into this new class
   * https://openjdk.org/jeps/471 - many methods are marked "for removal" so use modular version instead
+    * this JEP is useful to see the mapping between `Unsafe` and `VarHandle` so you can understand which replacement methods you should use
   * bottom line: don't use it, use new version from `jdk.internal.misc` package
 * `jdk.internal.misc.Unsafe`:
   * modular version within `java.base` module, to access you have to open module `--add-opens java.base/jdk.internal.misc=ALL-UNNAMED`
@@ -936,7 +938,10 @@ public class App{
     }
 }
 ```
-Pay attention that addresses from JOL and `Unsafe` are different.
+Pay attention that addresses from JOL and `Unsafe` are different:
+* under-the-hood JOL using same `sun.misc.Unsafe` with `getInt/getLong`
+* but then due to Compressed OOP it shift the address by 3 (multiply by 2**3) 
+* so VM address = 8 * unsafeAddress
 ```
 obj.hashCode => 1915910607
 System.identityHashCode => 1915910607
@@ -944,6 +949,12 @@ getAddress => 2309776649
 # WARNING: Unable to get Instrumentation. Dynamic Attach failed. You may add this JAR as -javaagent manually, or supply -Djdk.attach.allowAttachSelf
 JOL library address => 18478213192
 ```
+Compressed OOP:
+* OOP (Ordinary Object Pointer) - the way java store objects in the heap
+* JVM can compress object pointers so you can have more than 4GB using 32-bit memory addresses in 64-bit systems
+* you can enable by passing `-XX:+UseCompressedOops` - But if you print default flags, you will see that it's by default, so JVM use it by default
+* it works by shifting pointer address by 3 bits
+* That's why the output from JOL is different from raw Unsafe, it's the same address but shifted on 3 bits
 
 Basic example with class instantiation & throwing checked exception: pay attention that `final` fields get default value, because constructor is never called
 ```java
@@ -1966,8 +1977,7 @@ Jprofiler (use it as example, just to get better idea how profilers work):
 * The VM parameters `-XX:+PerfDisableSharedMem` and `-XX:+DisableAttachMechanism` must not be specified for the JVM
 * The SSH connection enables JProfiler to upload the agent package and execute the contained command line tools on the remote machine. You don't need SSH to be set up on your local machine, JProfiler ships with its own implementation. In the most straightforward setup you just define host, username and authentication.
 * memory analysis that requires references, such as solving a memory leak, is done in the heap walker. The heap walker takes a snapshot of the entire heap and analyzes it. This is an invasive operation that pauses the JVM - potentially for a long time - and requires a large amount of memory.
-* if you run `-XX:+HeapDumpOnOutOfMemoryError`, when JVM catch `OutOfMemoryError`, it would create file *.hprof file which you can open with Jprofiler and analyze
-* JFR (JDK Flight Recorder) is an event recorder built into the OpenJDK. It can be thought of as the software equivalent of a Data Flight Recorder (Black Box) in a commercial aircraft. It captures information about the JVM itself, and the application running in the JVM. There is a wide variety of data captured, for example method profiling, allocation profiling and garbage collection related events
+* if you run `-XX:+HeapDumpOnOutOfMemoryError`, when JVM catch `OutOfMemoryError`, it would create file `.hprof` file which you can open with Jprofiler and analyze
 * The garbage collector probe has different views than the other probes and also uses a different data source. It does not obtain its data from the profiling interface of the JVM, but uses JFR streaming to analyze GC-related events from the JDK flight recorder. Because of the dependency on JFR event streaming, the GC probe is only available when you profile Java 17 or higher on a Hotspot JVM
 * you can run it directly on prod and collect data, there are many comments in the internet where ppl used jprofiler for some time in prod and all is good.
 * IntelliJ has a nice profile, but it available only for ultimate version, it's not available for community edition
@@ -2023,4 +2033,46 @@ java.util.BitSet@5910e440d object externals:
         44d795028         24 java.util.BitSet                                (object)
         44d795040        144 [J               .words                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+```
+
+### Java Flight Recorder
+* JFR (JDK Flight Recorder) - called just java flight recorder - event recorder built into the OpenJDK. It can be thought of as the software equivalent of a Data Flight Recorder (Black Box) in a commercial aircraft. It captures information about the JVM itself, and the application running in the JVM. There is a wide variety of data captured, for example method profiling, allocation profiling and garbage collection related events.
+* Introduced in java11 as [JEP-328](https://openjdk.org/jeps/328) to profile JVM in the production with low overhead of 1%
+* There are 3 ways you can use it:
+  * add VM option when you run your java `-XX:StartFlightRecording=delay=10s,duration=10m,filename=recording.jfr`
+  * wire it into your java code with `jdk.jfr.Recording`
+  * attach to already running java process (you should know java PID first): `jcmd <PID> JFR.start delay=10s duration=10m filename=recording.jfr`
+    * JCMD (Diagnostic Command Tool) - part of JDK the tool to profile JVM
+* Result is `recording.jfr` file that you can review with:
+  * `jfr` command line - part of JDK so you can use it as `jfr summary recording.jfr`
+  * JMC (java mission control) - is not part of JDK, you have to download it separately - you can reid both:
+    * `.jfr` recording files
+    * `.hprof` - GC log dump
+Java code example:
+```java
+import jdk.jfr.Recording;
+import java.io.IOException;
+import java.nio.file.Path;
+
+public class App {
+    public static void main(String[] args) {
+        Recording rec = new Recording();
+        rec.start();
+        doWork();
+        rec.stop();
+        try {
+            rec.dump(Path.of("recording.jfr"));
+        } catch (IOException ex) {
+            System.err.println("Failed to save JFR recording => " + ex);
+        }
+        rec.close();
+    }
+    private static void doWork() {
+        try {
+            Thread.sleep(3_000);
+        } catch (InterruptedException ex) {
+            System.err.println("ERR => " + ex);
+        }
+    }
+}
 ```
