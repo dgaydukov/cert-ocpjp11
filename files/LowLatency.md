@@ -388,6 +388,14 @@ done => 185
 Object Resurrection - a process where you "resurrect" java object that is chosen for garbage collection. Java has two different mechanisms for reacting to the deallocation of an object. The older mechanism, using `finalize`, runs a particular method just before the object is deallocated. The new mechanism, using `PhantomReference`, instead allows you to run a particular method just after the object is deallocated. The idea is before object is garbage collected, JVM would run `finalize` where we would have access to `this` and can reassign this object to some variable, and know it's accessible once again, and can't be garbage collected. But this is not the best approach, so JVM is deprecating `finalize` method, and instead encourage to use `PhantomReference`. Here object already is removed by GC, but you merely notified about it, so you can do some clean up, but not able to actually "resurrect" the object.
 
 ### Garbage collector
+There are 2 GC approach:
+* reference count (python, perl) - for each read/write operation we count number of references, and increment/decrement it, so we know if for any object we have 0 or more references
+  * pros: memory can be reclaimed as soon as count is 0 for any object
+  * cons: all read/write operation bear overhead, count should be atomic to prevent race condition, problem with cyclic data structure
+* tracing GC (java) - GC happens when system need more memory
+  * GC traces reachable objects starting from root object
+  * mark-and-sweep is popular tracing algo
+
 You can get current default GC by running this command: `java -XX:+PrintCommandLineFlags -version` - this would print default JVM settings, including default GC that would be running with your JVM.
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 Viewing GC logs (using GCViewer tool):
@@ -592,9 +600,37 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
     * `-XX:G1MaxNewSizePercent` (60) - max size of young gen
     * `-XX:NewSize` and `-XX:MaxNewSize` - size in MB of young gen
     * `-XX:GCTimeRatio` (12) - ratio of time spent in GC compared to app running, 1 / (1 + GCTimeRatio) = ratio how much app is running
+    * `-XX:MaxTenuringThreshold` (15) - how many GC cycles objects stays in Eden, before moved to older generation
   * Z:
     * `-Xmx` - the most important part is max heap size
     * `-XX:ConcGCThreads` - number of threads GC is using (by default 6)
+
+Don't confuse - 2 GC metrics:
+* Throughput - total amound the app is running vs gc running, so 99% means that 99% time app is running and 1% time the GC is running
+* Latency (responsiveness) - duration of STW pause. So low-latency GC tries to minimize latency for overall throughput by using concurrent operations, so you have many pauses, but each pause is very short. GC pause is when the throughput is halted due to the application's garbage collector freeing up or optimizing memory. You have to try to achieve the high throughput and low latency.
+
+Let's compare 3 low latency GC:
+* Z - on average comparing to Shenandoah, generational Z perform better have lower pauses and higher throughput
+* Shenandoah - non-generational concurrent GC.
+* C4 (Azul Zing JVM) - generational form of the Pauseless GC Algorithm, uses a read barrier (LVB - loaded value barrier) to support concurrent compaction, concurrent remapping, and concurrent incremental update tracing for both young and old generations.
+
+Algos:
+* markSweepCompact (used by MajorGC for old/tenured generation) - algo that use 3 steps:
+  * mark - mark all alive objects (JVM store a list of pointers known as  “ordinary object pointer (oop) table” where it has a bit to understand if object is alive or no)
+  * sweep - release memory allocated by unused objects (sweep after completion leaves memory fragmented)
+  * compact - during mark-and-sweep, memory fragmentation happens, because initially objects allocated sequentially, but over time some deallocated, but some stay, so you have many free space between alive objects. You go and re-align all objects in the memory, kind of defragmentation
+* markAndCopy - similar to markAndSweep, but on second step, it copies alive objects into new space, and cleaning the whole space. This is mostly used in MinorGC, when we have 2 survivor spaces in Eden, and during MinorGC, alive objects moved from one space to another.
+Don't confuse:
+* generational GC - use young/old generations (from java 21 ZGC is generational: ` -XX:+UseZGC -XX:+ZGenerational`)
+  * based on the "Weak generational hypothesis" - most objects die young.
+* non-generational GC - doesn't distinguish objects by their lifetime (shenandoah originally non-generational, there is proposal to make it generational from java25 [JEP-521](https://openjdk.org/jeps/521))
+Don't confuse:
+* MinorGC - clean the young generation space (Eden)
+* MajorGC - clean the old generation space (tenured)
+* FullGC - when both MinorGC and MajorGC runs, usually happens like this:
+  * JVM need memory - it runs MinorGC, moves some object into old generation
+  * If there is space in the oldGen, JVM just move objects there an stop GC cycle
+  * If not enough space in the oldGen, JVM runs MajorGC to free up memory in the oldGen
 
 ### Encoding
 Don't confuse(endianess - the way we store bytes in memory):
