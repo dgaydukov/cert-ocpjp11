@@ -396,6 +396,73 @@ There are 2 GC approach:
   * GC traces reachable objects starting from root object
   * mark-and-sweep is popular tracing algo
 
+Safe Point:
+* well-defined point where all app threads must stop their interaction with the heap, so GC can do it work
+* app threads perform regular safe point check to decide whether they should stop
+* GC call safe point, and once app thread receive it, app thread blocks at safe point
+* safe point - some value in special memory location, which is written by GC and periodically checked by all threads
+* JVM injects safe point into every method just before execution
+* Safe points are used in several situations, including GC pauses, code deoptimization, flushing code cache, hot swapping of classes, and various debugging operations
+* once GC done its job, safe point is removed, and all app threads continue with their routine
+* TTSP(Time To Safe Point) - time taken for all app threads to stop - difference between time when safe point call is issued and when all threads stop execution
+
+GC Invariant:
+* In computer science, an invariant is a condition that must be satisfied before a procedure or operation can be executed, and it must continue to hold true after the operation has been completed
+* it ensures that the program is in a particular state both before and after a GC operation, which helps to minimize any side effects that may occur as a result of the operation
+
+Don't confuse - 2 GC metrics:
+* Throughput - total amound the app is running vs gc running, so 99% means that 99% time app is running and 1% time the GC is running
+* Latency (responsiveness) - duration of STW pause. So low-latency GC tries to minimize latency for overall throughput by using concurrent operations, so you have many pauses, but each pause is very short. GC pause is when the throughput is halted due to the application's garbage collector freeing up or optimizing memory. You have to try to achieve the high throughput and low latency.
+
+Let's compare 3 low latency GC:
+* Z - on average comparing to Shenandoah, generational Z perform better have lower pauses and higher throughput
+* Shenandoah - non-generational concurrent GC.
+* C4 (Azul Zing JVM) - generational form of the Pauseless GC Algorithm, uses a read barrier (LVB - loaded value barrier) to support concurrent compaction, concurrent remapping, and concurrent incremental update tracing for both young and old generations.
+
+Algos:
+* markSweepCompact (used by MajorGC for old/tenured generation) - algo that use 3 steps:
+    * mark - mark all alive objects (JVM store a list of pointers known as  “ordinary object pointer (oop) table” where it has a bit to understand if object is alive or no)
+    * sweep - release memory allocated by unused objects (sweep after completion leaves memory fragmented)
+    * compact - during mark-and-sweep, memory fragmentation happens, because initially objects allocated sequentially, but over time some deallocated, but some stay, so you have many free space between alive objects. You go and re-align all objects in the memory, kind of defragmentation
+* markAndCopy - similar to markAndSweep, but on second step, it copies alive objects into new space, and cleaning the whole space. This is mostly used in MinorGC, when we have 2 survivor spaces in Eden, and during MinorGC, alive objects moved from one space to another. This is used by moving collector - move objects into new memory space and change its reference address:
+  * evacuate/copy collector - copy objects into new space and reassign new address to each object (used by MinorGC)
+  * compacting collector - rearrange objects into the same space by moving them one-by-one so you free up space (used by MajorGC)
+
+Don't confuse:
+* generational GC - use young/old generations (from java 21 ZGC is generational: ` -XX:+UseZGC -XX:+ZGenerational`)
+    * based on the "Weak generational hypothesis" - most objects die young.
+* non-generational GC - doesn't distinguish objects by their lifetime (shenandoah originally non-generational, there is proposal to make it generational from java25 [JEP-521](https://openjdk.org/jeps/521))
+  Don't confuse:
+* MinorGC - clean the young generation space (Eden)
+* MajorGC - clean the old generation space (tenured)
+* FullGC - when both MinorGC and MajorGC runs, usually happens like this:
+    * JVM need memory - it runs MinorGC, moves some object into old generation
+    * If there is space in the oldGen, JVM just move objects there an stop GC cycle
+    * If not enough space in the oldGen, JVM runs MajorGC to free up memory in the oldGen
+
+There are 3 types of GC:
+* serial - issue STW and do FullGC in single thread
+* parallel - issues STW but doing FullGC in multiple threads - significant performance gain comparing to serial, but still long STW
+* concurrent - trying to do GC concurrently with running threads (all modern GC: CMS, G1, Z, Shenandoah)
+  * knows as mostly concurrent - because most of the job is done while app is running, yet small STW pause is required to do some clean up
+  * CMS - concurrent mark-and-sweep, compaction is ignored (that's why it's not used anymore)
+  * G1 - concurrent mark-and-sweep, but use STW to do compaction
+  * Z & Shenandoah - doing both concurrent mark-and-sweep and concurrent compaction
+
+Concurrent mark-and-sweep:
+* mutator thread - app thread that modify objects
+* tricolor - using 3 colors black/white/gray to perform marking:
+  * mark all root nodes as gray
+  * randomly choose gray node and mark all children as gray, then mark it as black
+  * perform until no gray objects there
+  * we have all black - alive, and white - dead objects
+* race condition - the risk is that GC thread and mutator thread modify same object, where one mark it for deletion another reassign to new value
+* to avoid race condition - GC thread and mutator thread need to coordinate via read/write barrier - special piece of code inserted into app code
+  * read barrier - detect if white object is read and mark it gray
+  * write barrier - trap modification of object reference and process - 2 types:
+    * SATB (snapshot-at-the-beginning) - all pointer modification stored in buffer to determine if white object should be deallocated
+    * incremental update - turn black node into gray, if any of it pointers were modified
+
 You can get current default GC by running this command: `java -XX:+PrintCommandLineFlags -version` - this would print default JVM settings, including default GC that would be running with your JVM.
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
 Viewing GC logs (using GCViewer tool):
@@ -601,36 +668,30 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
     * `-XX:NewSize` and `-XX:MaxNewSize` - size in MB of young gen
     * `-XX:GCTimeRatio` (12) - ratio of time spent in GC compared to app running, 1 / (1 + GCTimeRatio) = ratio how much app is running
     * `-XX:MaxTenuringThreshold` (15) - how many GC cycles objects stays in Eden, before moved to older generation
+    * `-XX:G1HeapRegionSize` - set the size of heap region (G1 divides heap into many regions and work with regions, rather that with whole heap)
   * Z:
     * `-Xmx` - the most important part is max heap size
     * `-XX:ConcGCThreads` - number of threads GC is using (by default 6)
 
-Don't confuse - 2 GC metrics:
-* Throughput - total amound the app is running vs gc running, so 99% means that 99% time app is running and 1% time the GC is running
-* Latency (responsiveness) - duration of STW pause. So low-latency GC tries to minimize latency for overall throughput by using concurrent operations, so you have many pauses, but each pause is very short. GC pause is when the throughput is halted due to the application's garbage collector freeing up or optimizing memory. You have to try to achieve the high throughput and low latency.
+G1 algo:
+* young gen - stop the world, parallel, copying GC algo
+* old gen - mostly concurrent marking algo with an incremental compacting
+* no sweeping is made (compare with CMS which have separate phase for sweeping)
+* heap is divided into small multiple regions
+* regions grouped together for GC cycle
+* uses card table to track reference between regions, and remember set to track references between generations
+* mixed collection phase - evacuate all young and old generation into new regions
 
-Let's compare 3 low latency GC:
-* Z - on average comparing to Shenandoah, generational Z perform better have lower pauses and higher throughput
-* Shenandoah - non-generational concurrent GC.
-* C4 (Azul Zing JVM) - generational form of the Pauseless GC Algorithm, uses a read barrier (LVB - loaded value barrier) to support concurrent compaction, concurrent remapping, and concurrent incremental update tracing for both young and old generations.
-
-Algos:
-* markSweepCompact (used by MajorGC for old/tenured generation) - algo that use 3 steps:
-  * mark - mark all alive objects (JVM store a list of pointers known as  “ordinary object pointer (oop) table” where it has a bit to understand if object is alive or no)
-  * sweep - release memory allocated by unused objects (sweep after completion leaves memory fragmented)
-  * compact - during mark-and-sweep, memory fragmentation happens, because initially objects allocated sequentially, but over time some deallocated, but some stay, so you have many free space between alive objects. You go and re-align all objects in the memory, kind of defragmentation
-* markAndCopy - similar to markAndSweep, but on second step, it copies alive objects into new space, and cleaning the whole space. This is mostly used in MinorGC, when we have 2 survivor spaces in Eden, and during MinorGC, alive objects moved from one space to another.
-Don't confuse:
-* generational GC - use young/old generations (from java 21 ZGC is generational: ` -XX:+UseZGC -XX:+ZGenerational`)
-  * based on the "Weak generational hypothesis" - most objects die young.
-* non-generational GC - doesn't distinguish objects by their lifetime (shenandoah originally non-generational, there is proposal to make it generational from java25 [JEP-521](https://openjdk.org/jeps/521))
-Don't confuse:
-* MinorGC - clean the young generation space (Eden)
-* MajorGC - clean the old generation space (tenured)
-* FullGC - when both MinorGC and MajorGC runs, usually happens like this:
-  * JVM need memory - it runs MinorGC, moves some object into old generation
-  * If there is space in the oldGen, JVM just move objects there an stop GC cycle
-  * If not enough space in the oldGen, JVM runs MajorGC to free up memory in the oldGen
+C4 from Azul Zing JVM:
+* pauseless, generational, region based always compacting GC
+* always concurrent - so it never does full STW for compacting
+* region is called page
+* still have small STW, like 1ms
+* zing doesn't use virtual memory from OS, but has its own kernel-level software ZST (zing system tools) which provides linux virtual memory enhancement
+* ZST is what enable C4 to optimise virtual memory usage
+* LVB (Load Value Barrier) - concurrent marking/relocation (move objects to new location)/remapping(fixing references of relocated objects)
+* colored pointer - reference take only 44 out of 64 bits to store address, other bits used by zing to store state of the pointer
+* remap phase - lazy loading, when object is accessed it traps by LVB which fix the reference into correct address
 
 ### Encoding
 Don't confuse(endianess - the way we store bytes in memory):

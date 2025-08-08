@@ -47,6 +47,11 @@ Which JDK to choose out of 3(open, oracle, amazon):
 * Use a paid JDK from Oracle or another vendor
 * Use Corretto for free, and get free updates for several years
 
+Azul:
+* initially was hardware company
+* released hardware Vega - big PC with hundreds GB of RAM and thousands CPU
+* Vega was tailored to run multiple java apps
+* hardware business was not successful and the company pivoted into JVM using their insight in hardware
 
 ### Check your Java version
 If you run this code:
