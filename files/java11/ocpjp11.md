@@ -8,6 +8,7 @@
 * 1.5 [String and StringBuilder](#string-and-stringbuilder)
 * 1.6 [Arrays](#-arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
+* 1.8 [Pre/Post Increment](#prepost-increment)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
@@ -487,6 +488,15 @@ got it
 b => true
 ```
 
+Binary XOR can't be short circuit because it needs to evaluate both expression - return true if operands are different, so it needs to evaluate both expression to understand their value, and only in this case it can evaluate the expression, this is the reason why short circuit can't be applied here.
+```
+A   B   A^B
+0   0   0
+0   1   1
+1   0   1
+1   1   0
+```
+
 ###### Wrapper classes
 ```java
 public class App{
@@ -662,8 +672,7 @@ true
 
 `String` & `StringBuilder` method `.substring(start, end)`, throws `StringIndexOutOfBounds` exception if start < end or start < 0 or end > length()
 
-String will concatenate with `+` only if one of them is string.
-That’s why first statement compiled correctly, cause it works like Object + String => Object.toString + String. But second failed, cause it works like Object + Integer, which can’t work
+String will concatenate with `+` only if one of them is string. That’s why first statement compiled correctly, cause it works like `Object + String => Object.toString + String`. But second failed, cause it works like `Object + Integer`, which can’t work. When concatenate with `null`, it checks object and if it null, then it converted into `null` string.
 ```java
 Object obj = 1;
 obj += "2";
@@ -1210,6 +1219,42 @@ arr1 => [1, 2, 9], arr2 => []
 Arrays.compare => 3
 compareTo => 3
 Arrays.mismatch => 0
+```
+
+###### Pre/Post Increment
+post-increment execute 2 statement at once, but return original value. Look into this code:
+```java
+int i = 1;
+int x = i++;
+```
+Second statement executed in 2 steps:
+* first `i` is incremented
+* then old value of `i` is returned
+So you can rewrite it into
+```java
+int j = i;
+i = i + 1;
+int x = j;
+```
+Now you can see, why the output value is 1, not 2:
+* first `i` is incremented and holds value 2
+* then old value of `i` is returned, which is 1
+* `i` is assigned old value and now equals 1
+```java
+int i = 1;
+i = i++;
+System.out.println(i);
+```
+Evaluation of increment is immediate and have effect on the same line:
+* `i` is incremented to 2, but return 1
+* `j` is decremented to 1 and return 1
+* so `(i++ + --j)` is evaluated to 1+1 = 2
+* now i=2, j=1, so we have 2 * 2 * 1 =4
+* result is `2, 1, 4`
+```java
+int i = 1, j = 2;
+int x = (i++ + --j) * i * j;
+System.out.println(i + ", " + j + ", " + x);
 ```
 
 #### Classes and Objects
