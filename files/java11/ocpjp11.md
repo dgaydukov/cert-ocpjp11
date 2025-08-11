@@ -1074,7 +1074,7 @@ So if we have 6 length hex string then:
 * hex array - length 3
 * decimal array - length 6
 computer terminology:
-* octet - 8 bits, basically a byte, but used if byte is ambiguous
+* octet - 8 bits, basically a byte, but used if byte is ambiguous. Byte historically meant number of bits to encode a character of text. And in some system, it was 6 bit to encode such char, so byte is not always 8 bit, but can be 6 for example. That's why if you want to specify exactly 8 bit, you should use octet. Yet nowadays, in modern computing byte is mostly referred to 8 bits.
 * nibble/semi-octet/quadbit - half-byte, or 4 bits
 ```java
 import java.nio.charset.StandardCharsets;
