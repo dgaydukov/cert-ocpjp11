@@ -688,6 +688,25 @@ Object obj = null;
 System.out.println(obj + "hello"); // compile and print "nullhello"
 ```
 That’s the reason, why we can concatenate with null, cause when stringify null became just `null` string.
+
+String and number concatenation:
+* if string the first we just concatenate from left to right
+* if we have number which take priority we just add them first then concatenate with string
+```java
+String str = "1" + 2 + 3; // same as "1" + "2" + "3"
+System.out.println(str);
+str = "1" + (2 + 3); // same as "1" + "5"
+System.out.println(str);
+str = 3 + 2 + "1"; // same as "5" + 1
+System.out.println(str);
+```
+And so we have different output, because if numeric addition take precedence we don't just concatenate but run numeric addition first
+```
+123
+15
+51
+```
+
 String interning - capture the link to string pool object.
 ```java
 String s1 = "hello";
@@ -4373,6 +4392,23 @@ String x = list.get(0);
 List list = new ArrayList();
 list.add("Hi");
 String x = (String) list.get(0);
+```
+
+
+generic casting: due to type erasure JVM not aware of exact type on runtime, this is way responsibility to check is lay on compilator which is not compiling such code.
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        Number n = 10;
+        Integer i = (Integer) n;
+
+        List<Number> numbers = new ArrayList<>();
+        List<Integer> integers = (List<Integer>) numbers; // won't compile
+    }
+}
 ```
 
 ###### PECS (producer extends consumer super)
@@ -12313,7 +12349,90 @@ Warning:(13, 16) java: print() in com.java.test.at.Printer has been deprecated
 Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
 Information:java: Recompile with -Xlint:unchecked for details.
 ```
-There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`.
+There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`:
+* `unchecked` - suppress compiler warnings related to "unchecked" operations, primarily those involving generics (can be used for statement, method, class)
+```java
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List legacyList = null;
+        @SuppressWarnings("unchecked")
+        List<String> strings = (List<String>) legacyList;
+    }
+}
+```
+If you comment out the suppress annotation and compile, you get following warning - code would compile, just show warning:
+```
+javac App.java
+Note: App.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+javac -Xlint:unchecked App.java
+App.java:9: warning: [unchecked] unchecked cast
+        List<String> strings = (List<String>) legacyList;
+                                              ^
+  required: List<String>
+  found:    List
+1 warning
+```
+Yet if you compile with this annotation, no warning is shown
+* `deprecation` - suppress warning relating to using methods that marked as `@Deprecated` (only used for methods, classes, you can't use it like `unchecked` for code statements)
+```java
+public class App {
+    @SuppressWarnings("deprecation")
+    public static void main(String[] args) {
+        Printer printer = new Printer();
+        printer.print("Hello World");
+    }
+}
+
+class Printer {
+    @Deprecated
+    void print(String str) {
+        System.out.println(str);
+    }
+}
+```
+If you comment out the suppress annotation and try to compile you will get following warnings:
+```                                                            
+javac App.java 
+Note: App.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+                                                                 
+javac -Xlint:deprecation App.java 
+App.java:6: warning: [deprecation] print(String) in Printer has been deprecated
+        printer.print("Hello World");
+               ^
+1 warning
+```
+With this annotation no compilation warning is shown
+* `removal` - suppress warning if you try to call method marked `forRemoval`. By default, annotation `@Deprecated` has property `forRemoval=false`. But if you make it `true`, then calling this method would generate warning.
+```java
+public class App {
+    @SuppressWarnings("removal")
+    public static void main(String[] args) {
+        Printer printer = new Printer();
+        printer.print("Hello World");
+    }
+}
+
+class Printer {
+    @Deprecated(forRemoval = true)
+    void print(String str) {
+        System.out.println(str);
+    }
+}
+```
+If you comment out suppress annotation, you will get following warning: pay attention, here immediately warning is shown, where for previous 2 they asked to recompile with `-Xlint` for more details
+```
+javac App.java 
+App.java:7: warning: [removal] print(String) in Printer has been deprecated and marked for removal
+        printer.print("Hello World");
+               ^
+1 warning
+```
+
 For unchecked compilation fires mostly when we insert, cause there is the possibility to corrupt collection.
 ```java
 void doElements(List l) {

@@ -374,3 +374,61 @@ record Person(String name, int age) {
   * during deserialization canonical constructor is called
   * `serialVersionUID` is 0L by default
   * can't be customized with `writeObject/readObject/readObjectNoData/writeExternal/readExternal`
+
+###### instanceof
+There were several enhancement to this expression in java 16, 21:
+* flow scoping - variable scope is within the flow it's declared. In this example we use inversion, so variable `str` would be available in the `else` clause, but not inside `if` 
+```java
+Object obj = null;
+if (!(obj instanceof String str)) {
+    
+} else {
+    System.out.println(str);
+}
+```
+Here we have to use `return` to make sure that if `obj` is `String` we would exit, and not proceed. Otherwise, the scope for `str` would end, but you call it after. Basically without `return` code won't compile, because in this case if you jump into `if`, then you can call `str` outside, which should not be possible.
+```java
+Object obj = null;
+if (!(obj instanceof String str)) {
+    return;
+}
+System.out.println(str);
+```
+* To avoid potential problems for reassign local variable, use `final`
+```java
+Object obj = null;
+if(obj instanceof final String str){
+}
+```
+* record deconstruction - because records have predefined set of instance variables on compile time, you can write code like this to get access to record values
+```java
+public class App {
+    public static void main(String[] args) {
+        Object obj = null;
+        if (obj instanceof Person(int age, FullName(String firstName, String lastName))) {
+            System.out.println(age + ", " + firstName + ", " + lastName);
+        }
+    }
+}
+
+record FullName (String firstName, String lastName) {}
+record Person (int age, FullName fullName) {}
+```
+* generic records - first condition won't compile, because we don't know that it's type of `String`, but for second record, it's explicitly stated that `Address` would be type of `String`, so adding string works
+```java
+public class App {
+    public static void main(String[] args) {
+        Object address = new Address<>("street");
+        Object person = new Person("John", new Address<>("street"));
+        if (address instanceof Address<String>(var value)) { // won't compile
+            System.out.println(value);
+        }
+        if (person instanceof Person(var name, Address<String>(var value))) {
+            System.out.println(name+", "+value);
+        }
+    }
+}
+
+record Address<T> (T value){}
+record Person(String name, Address<String> address){}
+```
