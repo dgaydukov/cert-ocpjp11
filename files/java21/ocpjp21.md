@@ -99,6 +99,16 @@ public class App {
     }
 }
 ```
+* New syntax for multi-line string
+```java
+String json = """
+{
+  "data": {
+    "key": "value"
+  }
+}        
+""";
+```
 
 
 ###### Assignment rules

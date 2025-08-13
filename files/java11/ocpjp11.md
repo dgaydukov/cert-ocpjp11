@@ -9,6 +9,7 @@
 * 1.6 [Arrays](#-arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 * 1.8 [Pre/Post Increment](#prepost-increment)
+* 1.9 [Statement vs. Expression](#statement-vs-expression)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
@@ -707,6 +708,11 @@ And so we have different output, because if numeric addition take precedence we 
 51
 ```
 
+JVM store strings:
+* string pool - string literals that are available in compile time (`String s = "hello"`)
+* heap - all other strings created with new `String s = new String("hello")` - to be precise 2 strings are created one inside string pool, and another in the heap for this object
+We can use `intern` method on any string to add this string into string pool - so this method adding a string to string pool and return reference, but if string already exist in string pool - it just return reference
+
 String interning - capture the link to string pool object.
 ```java
 String s1 = "hello";
@@ -799,32 +805,34 @@ length => 11
 
 We can also set:
 * capacity with `ensureCapacity` - if new capacity is bigger than old, new array is allocated with new capacity length
+    * if new capacity is less than existing - nothing happens
 * length with `setLength` - call to `ensureCapacity` + fill underlying `byte[]` with 0 bytes
+  * if new len is less than existing - underlying string is trimmed
 ```java
 class App {
     public static void main(String[] args) {
         StringBuilder sb = new StringBuilder();
-        System.out.println(sb.length() + " " + sb.capacity());
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
         sb.append("hello world");
-        System.out.println(sb.length() + " " + sb.capacity());
-        sb.setLength(50);
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
         sb.ensureCapacity(50);
-        System.out.println(sb.length() + " " + sb.capacity());
-        System.out.println(sb);
-        sb.setLength(5);
-        System.out.println(sb);
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
+        sb.setLength(50);
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
         sb.ensureCapacity(5);
-        System.out.println(sb.length() + " " + sb.capacity());
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
+        sb.setLength(5);
+        System.out.println("len="+sb.length()+", capacity="+sb.capacity()+", sb="+sb);
     }
 }
 ```
 ```
-0 16
-11 16
-50 50
-hello world                                       
-hello
-5 50
+len=0, capacity=16, sb=
+len=11, capacity=16, sb=hello world
+len=11, capacity=50, sb=hello world
+len=50, capacity=50, sb=hello world                                       
+len=50, capacity=50, sb=hello world                                       
+len=5, capacity=50, sb=hello
 ```
 Pay attention, that we can only increase capacity, so setting value less than current, will not affect capacity. We can also use `trimToSize()` to trim StringBuilder to current length. Setting capacity in no way affect `StrinbBuilder` you can set it to improve performance. Setting length affect the `StrinbBuilder`. If it more than current length it fills `StrinbBuilder` with empty data, if less it trims sb to set value.
 ```java
@@ -900,6 +908,15 @@ public class App{
 A => 65, a => 97
 difference between a & A => 32
 difference between 9 & 6 => 3
+```
+
+Replace/delete philosophy is: start index is always inclusive and end index is always exclusive for both `String/StringBuilder`
+```java
+StringBuilder sb = new StringBuilder("hello");
+// replace the first 3 starting from 0, up to 3, but not inclusive, so replace only 0-2
+// notice that we can put bigger amount in this case it would act as remove first 3 chars + insert 5 chars into position 0
+sb.replace(0, 3, "abcde"); // produce: abcdelo
+sb.delete(0, 3); // produce: delo
 ```
 
 ###### Arrays
@@ -1274,6 +1291,29 @@ Evaluation of increment is immediate and have effect on the same line:
 int i = 1, j = 2;
 int x = (i++ + --j) * i * j;
 System.out.println(i + ", " + j + ", " + x);
+```
+
+###### Statement vs. Expression
+Don't confuse:
+* expression - must have a return value, it does not form a valid line of code, and not compile with error: `not a statement`
+* statement - complete line of code that may or may not have any value of its own.
+
+Let's check a few examples:
+* Ternary operations - it's expression, while `if/else` is statement
+```java
+boolean flag = true;
+if (flag) System.out.println("Hello");
+else System.out.println("World");
+
+flag ? System.out.println("Hello") : System.out.println("World"); // won't compile, because expression should have a value
+
+flag ? 1 : 2; // not compile, because it's not a statement
+```
+* ternary operator can return multiple types - based on values `a & b` type of `obj` would be either `Double` or `String`:
+```java
+int a = 1, b = 2;
+Object obj = a == b ? 5.0 : "hello";
+System.out.println(obj.getClass().getName());
 ```
 
 #### Classes and Objects
