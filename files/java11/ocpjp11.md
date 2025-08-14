@@ -103,7 +103,6 @@
 * 12.4 [Java 21](#java-21)
 * 12.5 [Java 25](#java-25)
 
-
 #### Basics
 ###### Variable Declarations
 Line separator. Java allows as many underscores as you want when separating digits. But you can't put underscore in the begginin or in the end.
@@ -246,28 +245,6 @@ max values:
 * double => 2**1023 ≈ 10**307
   * 11 bit for exponent => 2**-1022...2**1023, so max value `2**1023 = 2**(10*102.3) = 1024**102.3 ≈ 10**(3*102.3) ≈ 10**308`
 So we can assign int/long to float/double without actual cast, but vice versa - compile error
-
-Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile-time constants. The reason is that Java/C++/C implement switch as jump (branch) table, `TABLESWITCH` instruction in Java, where the location to jump to is effectively looked up in a table. Switch can be empty-bodied (not labels & default). `long` can't be used in:
-* array index - because it's too much for continuous array, and max array size in java is `Integer.MAX_VALUE`
-* label in case statement - again problem is that long is too long, even int is too high value, but it's used because int is default value in java
-Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
-```java
-public class App {
-    static public final void main(String[] args) {
-        int x = 1;
-        switch (x) {
-            case 0:
-                int a = 1;
-                b = 2; // won't compile
-                break;
-            case 1:
-                int b = 1;
-                a = 2;
-                break;
-        }
-    }
-}
-```
 
 Naming convention. Following code is valid
 ```java

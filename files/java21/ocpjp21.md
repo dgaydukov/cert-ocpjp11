@@ -110,6 +110,155 @@ String json = """
 """;
 ```
 
+###### Switch statement
+Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile-time constants. The reason is that Java/C++/C implement switch as jump (branch) table, `TABLESWITCH` instruction in Java, where the location to jump to is effectively looked up in a table. Switch can be empty-bodied (not labels & default). `long` can't be used in:
+* array index - because it's too much for continuous array, and max array size in java is `Integer.MAX_VALUE`
+* label in case statement - again problem is that long is too long, even int is too high value, but it's used because int is default value in java
+  Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
+```java
+public class App {
+    static public final void main(String[] args) {
+        int x = 1;
+        switch (x) {
+            case 0:
+                int a = 1;
+                b = 2; // won't compile
+                break;
+            case 1:
+                int b = 1;
+                a = 2;
+                break;
+        }
+    }
+}
+```
+Rules:
+* switch variable can't be `null`, otherwise you'll get NPE
+* `default` can be anywhere even as first label - it's a good practice to put it the last
+* fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
+    * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
+    * if `i==3` then `case 3` would be entered and only 3 would be printed
+    * if `i` is any value except 1,2,3, then `default` block would be entered, and because there is no `break` default,1,2,3 would be printed - that's why you should always put `default` into last statement in `switch`
+```java
+switch (i) {
+    default: System.out.println("default");
+    case 1: System.out.println("1");
+    case 2: System.out.println("2");
+    case 3: System.out.println("3");
+}
+```
+To avoid fall through there is new syntax since java14 (with old syntax you have to add `break`)
+```java
+switch (i) {
+    default -> System.out.println("default");
+    case 1 -> System.out.println("1");
+    case 2 -> System.out.println("2");
+    case 3 -> System.out.println("3");
+}
+```
+Compare syntax different between old and new:
+```java
+switch (i) {
+    case 1,2,3 -> System.out.println(i);
+    default -> System.out.println("default");
+}
+switch (i) {
+    case 1:
+    case 2:
+    case 3:
+        System.out.println(i);
+        break;
+    default: System.out.println("default");
+}
+```
+* `yield` - keyword in java14 to return value from `switch expression` : if we want to use `yield` with new syntax, we have to add curly braces
+  * since it's expression it must return value always, that's why without `default` below code won't compile with following error: `the switch expression does not cover all possible input values`
+```java
+public class App {
+    public static void main(String[] args) {
+        int i = 3;
+        // old syntax with yield
+        int v1 = switch (i) {
+            case 1:
+            case 2:
+            case 3:
+                yield 5;
+            default: yield 10;
+        };
+        // new syntax
+        int v2 = switch (i) {
+            case 1,2,3 -> 5;
+            default -> 10;
+        };
+        // new syntax with yield
+        int v3 = switch (i) {
+            case 1,2,3 -> {
+                yield 5;
+            }
+            default -> {
+                yield 10;
+            }
+        };
+        System.out.println("v1 = " + v1+", v2 = " + v2 + ", v3 = " + v3);
+    }
+}
+```
+* patten matching with `switch`:
+  * you have old and new syntax to use patten matching
+  * `break` is required for old syntax - if you miss first `break` code won't compile with error `illegal fall-through to a pattern`, yet you can miss last `break` before `default`
+  * exhaustive - such switch should include all possible use-cases or `default` keyword
+  * order of `case` - it should be in growing order `Integer => Number => Object` if you change the order you get compilation error: `this case label is dominated by a preceding case label`
+  * `null` case is allowed in any place but must come before `default`
+```java
+public class App {
+    public static void main(String[] args) {
+        Object obj = 10.0;
+        switch (obj) {
+            case Integer i:
+                System.out.println("i");
+                break;
+            case Double d:
+                System.out.println("double value=" + d);
+                break;
+            default:
+                System.out.println("default value=" + obj);
+        }
+        switch (obj) {
+            case Integer i -> System.out.println("int value=" + i);
+            case Double d -> System.out.println("double value=" + d);
+            default -> System.out.println("default value=" + obj);
+        }
+    }
+}
+```
+* pattern matching with guard:
+  * `when` - special condition knows as `guard` is put into `case` statement to guard it:
+```java
+Object obj = 10;
+switch (obj) {
+    case Integer i when (i > 0 && i < 10) -> System.out.println("0 < i < 10");
+    case Integer i when i >= 10 -> System.out.println("i > 10");
+    case Object o -> System.out.println("Object=" + o);
+}
+```
+* you can combine `record` with `switch`
+```java
+public class App {
+    public static void main(String[] args) {
+        Object obj = new Person(30, "John");
+        switch (obj) {
+            case Person(int age, String name) -> System.out.println(age + " " + name);
+            default -> System.out.println(obj);
+        }
+    }
+}
+record Person(int age, String name) {}
+```
+* switch with pattern matching must be:
+  * exhaustive
+  * follow the rule on dominance of case labels
+  * not exhibit fall through
+* if switch statement is expression (return some value) - it must be exhaustive
 
 ###### Assignment rules
 * `widening conversion` - assigning smaller type to larger type
@@ -442,3 +591,11 @@ public class App {
 record Address<T> (T value){}
 record Person(String name, Address<String> address){}
 ```
+
+###### Inheritance
+There are 3 types of inheritance:
+* inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
+* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. Although you can implement multiple interfaces 
+* inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
+
+Constructors, static/instance initializers - are not inherited
