@@ -1369,6 +1369,11 @@ p1.equals(clone) => true
 ```
 
 ###### Classes
+There are 3 types of inheritance:
+* inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
+* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. Although you can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited)
+* inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
+
 Type vs state: classes, interfaces and enums - types. Since java support multiple interface implementation => java support multiple inheritance of types. 
 State - instance variables of class, so only class can have state. Since java support only one class inheritance => java support one state inheritance. 
 One reason why the Java programming language does not permit you to extend more than one class is to avoid the issues of multiple inheritance of state, 
@@ -1388,6 +1393,47 @@ _____________________________________________________________
 |private    │   +   │         │          │          │        |
 |___________|_______|_________|__________|__________|________|
  + : accessible         blank : not accessible
+```
+
+Class itself can have modified:
+* no modifier - that means class can only be accessible from the same package
+* public - class accessible from anywhere
+
+Inheritance of `private` state:
+* `private` fields are actually inherited and JVM allocate memory to store it - but they are not accessible
+* we can use reflection to access it
+* in below code, instance of `Child` store inside `private` field for `value` of its parent and you can access it value and even modify it with reflection API
+```java
+import java.lang.reflect.Field;
+
+public class App {
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
+        Child obj = new Child();
+        // get private field of Child
+        {
+            Field f = Child.class.getDeclaredField("value");
+            f.setAccessible(true);
+            System.out.println("Child.value => " + f.get(obj));
+        }
+        // get private field of Parent
+        {
+            Field f = Parent.class.getDeclaredField("value");
+            f.setAccessible(true);
+            System.out.println("Parent.value => " + f.get(obj));
+        }
+    }
+}
+
+class Parent {
+    private int value = 1;
+}
+class Child extends Parent {
+    private int value = 2;
+}
+```
+```
+Child.value => 2
+Parent.value => 1
 ```
 
 Immutable class - is a class without setters. We can still set values in constructor, the idea is that we can’t change values after instantiation. One caveat is when dealing with complex object, create and return value using new or unmodifiable objects. Otherwise, initial values can be changed using values passed to constructor or get from `get` method, by changing them.
@@ -1447,7 +1493,7 @@ class B extends A{
 ```
 
 Method overriding vs method hiding: 
-* overriding - override non-static method
+* overriding - override instance method
 * hiding - override static method
 The difference is - when we override method it’s overridden in both child and parent class, but when we hide it - it’s only for child class. 
 Notice when we call `printA`, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
@@ -2211,7 +2257,7 @@ class A implements I{}
 ```
 
 Interfaces can have 2 methods:
-* `default` - can be only called on instance of class that implements interface. Were added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compile until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
+* `default` - can be only called on instance of class that implements interface. Was added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compile until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
 * `static` - can only be called on interface itself.
 ```java
 public class App {
@@ -2299,7 +2345,7 @@ class C implements A, B{} // won't compile
 ```
 
 method signature:
-* inclde only `name` + `ordered list of arguments`
+* include only `name` + `ordered list of arguments`
 * all other like modifier, return type, name of params not counted as signature
 * all the below 4 methods have the same signature
 ```java

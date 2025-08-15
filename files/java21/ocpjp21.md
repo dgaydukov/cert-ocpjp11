@@ -591,11 +591,3 @@ public class App {
 record Address<T> (T value){}
 record Person(String name, Address<String> address){}
 ```
-
-###### Inheritance
-There are 3 types of inheritance:
-* inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
-* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. Although you can implement multiple interfaces 
-* inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
-
-Constructors, static/instance initializers - are not inherited
