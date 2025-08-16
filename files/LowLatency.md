@@ -445,7 +445,7 @@ There are 3 types of GC:
 * parallel - issues STW but doing FullGC in multiple threads - significant performance gain comparing to serial, but still long STW
 * concurrent - trying to do GC concurrently with running threads (all modern GC: CMS, G1, Z, Shenandoah)
   * knows as mostly concurrent - because most of the job is done while app is running, yet small STW pause is required to do some clean up
-  * CMS - concurrent mark-and-sweep, compaction is ignored (that's why it's not used anymore)
+  * CMS - concurrent mark-and-sweep, compaction is ignored (that's why it's not used anymore) - once memory is fragmented to the point where you can't allocate new object, it runs FullGC with big STW pause and compacts memory
   * G1 - concurrent mark-and-sweep, but use STW to do compaction
   * Z & Shenandoah - doing both concurrent mark-and-sweep and concurrent compaction
 
@@ -462,6 +462,16 @@ Concurrent mark-and-sweep:
   * write barrier - trap modification of object reference and process - 2 types:
     * SATB (snapshot-at-the-beginning) - all pointer modification stored in buffer to determine if white object should be deallocated
     * incremental update - turn black node into gray, if any of it pointers were modified
+* concurrent mark - 2 pauses: init mark & final mark
+
+Don't confuse:
+* memory barrier (used in concurrent programming) - special instruction that prevent CPU re-ordering of memory operations, also known as memory fence
+* read/write barrier (used in GC for marking phase) - special piece of code inserted into app to track or control access to objects
+* load reference barrier (used in GC for evacuation phase) - Ensures that any read of an object reference by the application always sees the correct (possibly relocated) object
+
+GC friendly data structures:
+* linked list - not GC friendly, cause each node has pointer to next node, so if you remove one node, you still have pointer to it, so it can't be garbage collected
+* arrays (and all derivatives like hash tables) - GC friendly, cause once you remove reference to array, it can be garbage collected
 
 You can get current default GC by running this command: `java -XX:+PrintCommandLineFlags -version` - this would print default JVM settings, including default GC that would be running with your JVM.
 in JLS there is no info about garbage collection, so it totally depends upon VM implementation
@@ -548,7 +558,7 @@ Viewing GC logs (using GCViewer tool):
 * `-XX:+UseShenanodoahGC` -
   SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running. So if we don't do this, while we run, app may change reference and we can accidentally remove used object. Example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking. When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
   we have read/write barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
-  Don't confuse:
+Don't confuse:
 * serial GC - use one thread to run GC
 * parallel GC - use multiple threads to run GC
   Yet both of them cause `stop-the-world` pause to run GC, parallel pause would be a bit shorter
@@ -626,7 +636,7 @@ java -XX:+UseShenandoahGC --version
 Error occurred during initialization of VM
 Option -XX:+UseShenandoahGC not supported
 
-# work for Adoptium JDK 21
+# work for Adoptium JDK 21 (because RedHat is contributor, and shenandoah originally developed by RedHat)
 java -XX:+UseShenandoahGC --version
 
 openjdk 21.0.8 2025-07-15 LTS
@@ -672,6 +682,13 @@ OpenJDK 64-Bit Server VM Temurin-21.0.8+9 (build 21.0.8+9-LTS, mixed mode, shari
   * Z:
     * `-Xmx` - the most important part is max heap size
     * `-XX:ConcGCThreads` - number of threads GC is using (by default 6)
+
+Shenandoah algo:
+* regional GC - heap is divided into multiple regions, each region is 1MB (similar to G1)
+* collects most garaged regions first
+* phase 1 - concurrent marking (happens while app runs), where it marks all reachable objects
+* phase 2 - concurrent evacuation, where it evacuates all reachable objects into new regions
+* phase 3 - concurrent update references, where it updates all references to objects to point to new regions
 
 G1 algo:
 * young gen - stop the world, parallel, copying GC algo
