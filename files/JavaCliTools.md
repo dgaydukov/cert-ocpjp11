@@ -1,7 +1,7 @@
 # Java Command Line Tools
 
 ### Description
-Here we would talk about command line tools for java that resides under `bin` directory of JDK installation.
+Here we would talk about command line tools for java that resides under `bin` directory of JDK installation. Some tools are not part of JDK anymore, so I would specifically mention them. They are mostly GUI tools.
 
 ### List of JDK Tools
 1. Compilation & Code Generation
