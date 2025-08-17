@@ -24,14 +24,14 @@ Here we would talk about command line tools for java that resides under `bin` di
 
 4. Monitoring & Profiling
 * `jconsole` – GUI for JVM monitoring (memory, threads, CPU)
-* `jcmd` – Send diagnostic commands to a running JVM
+* `jcmd` – Send diagnostic commands to a running JVM: you can attach gc logs, or jfr recording to already running application without the need to restart it
 * `jstat` – JVM statistics monitoring
 * `jstatd` – Remote JVM statistics daemon
 * `jfr` – Start/record Java Flight Recorder sessions
-* `jhsdb` – Java HotSpot Debugger (debug core dumps and live JVMs)
-* `jinfo` – Show JVM configuration info
+* `jhsdb` – Java HotSpot Debugger (debug core dumps and live JVMs): used in combination with `jstack/jmap/iinfo/jsnap` to get more details.
+* `jinfo` – Show JVM configuration info: like system properties, JVM flags for running application. You can also modify JVM flags dynamically, but only some of them.
 * `jmap` – Print memory usage / heap info / generate heap dumps
-* `jstack` – Print thread stack traces
+* `jstack` – Print thread stack traces: useful to understand if you have deadlocks or long-running threads
 
 5. Debugging & Analysis
 * `jdb` – Command-line debugger
