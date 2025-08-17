@@ -1251,71 +1251,77 @@ class OffHeapByteArray implements AutoCloseable{
     }
 }
 ```
-You can create multi-threading locking using `AtomicInteger.compareAndSet` function, which return boolean and change value only if initial value is same as first argument. Here we use CAS to imitate locking, because CAS is faster than java thread locking:
+lock-free implementation: you can create multi-threading locking using `AtomicInteger.compareAndSet` function, which return boolean and change value only if initial value is same as first argument. Here we use CAS to imitate locking, because CAS is faster than java thread locking:
 ```java
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class App{
-    public static void main(String[] args) {
-        MyWorkerCache cache = new MyWorkerCache(4);
-        cache.start();
-    }
+  public static void main(String[] args) {
+    MyWorkerCache cache = new MyWorkerCache(4);
+    cache.start();
+  }
 }
 
 class MyWorker implements Runnable{
-    private int threadId;
-    private AtomicInteger sharedValue;
-    public MyWorker(int threadId, AtomicInteger sharedValue){
-        this.threadId = threadId;
-        this.sharedValue = sharedValue;
+  private int threadId;
+  private AtomicInteger sharedValue;
+  private static final int DEFAULT_VALUE = 0;
+  public MyWorker(int threadId, AtomicInteger sharedValue){
+    if (threadId == DEFAULT_VALUE) {
+      throw new IllegalArgumentException("Thread ID must not be equal to " + DEFAULT_VALUE);
     }
+    this.threadId = threadId;
+    this.sharedValue = sharedValue;
+  }
 
-    @Override
-    public void run() {
-        System.out.println("Thread " + threadId + " acquiring lock...");
-        acquireLock();
-        System.out.println("Thread " + threadId + " running");
-        try{
-            Thread.sleep(1000);
-        } catch (InterruptedException ex){
-            System.out.println("ERROR: Thread " + threadId + ", ex=" + ex);
-        }
-        System.out.println("Thread " + threadId + " releasing lock...");
-        releaseLock();
-        System.out.println("Thread " + threadId + " released");
+  @Override
+  public void run() {
+    System.out.println("Thread " + threadId + " acquiring lock...");
+    acquireLock();
+    System.out.println("Thread " + threadId + " running");
+    try{
+      Thread.sleep(1000);
+    } catch (InterruptedException ex){
+      System.out.println("ERROR: Thread " + threadId + ", ex=" + ex);
     }
+    System.out.println("Thread " + threadId + " releasing lock...");
+    releaseLock();
+    System.out.println("Thread " + threadId + " released");
+  }
 
-    public void acquireLock(){
-        while (!sharedValue.compareAndSet(0, threadId)){
-            // spin CPU
-        }
+  public void acquireLock(){
+    while (!sharedValue.compareAndSet(DEFAULT_VALUE, threadId)){
+      // spin CPU
+      Thread.onSpinWait();
     }
-    public void releaseLock(){
-        while (!sharedValue.compareAndSet(threadId, 0)){
-          // spin CPU
-        }
+  }
+  public void releaseLock(){
+    while (!sharedValue.compareAndSet(threadId, DEFAULT_VALUE)){
+      // spin CPU
+      Thread.onSpinWait();
     }
+  }
 }
 
 class MyWorkerCache{
-    private int threadNumber;
-    private MyWorker[] arr;
-    private AtomicInteger shareNumber = new AtomicInteger();
-    public MyWorkerCache(int threadNumber){
-        this.threadNumber = threadNumber;
-        build();
+  private int threadNumber;
+  private MyWorker[] arr;
+  private AtomicInteger shareNumber = new AtomicInteger();
+  public MyWorkerCache(int threadNumber){
+    this.threadNumber = threadNumber;
+    build();
+  }
+  private void build(){
+    arr = new MyWorker[threadNumber];
+    for(int i = 0; i < threadNumber; i++){
+      arr[i] = new MyWorker(i+1, shareNumber);
     }
-    private void build(){
-        arr = new MyWorker[threadNumber];
-        for(int i = 0; i < threadNumber; i++){
-            arr[i] = new MyWorker(i+1, shareNumber);
-        }
+  }
+  public void start(){
+    for(int i = 0; i < threadNumber; i++){
+      new Thread(arr[i]).start();
     }
-    public void start(){
-        for(int i = 0; i < threadNumber; i++){
-            new Thread(arr[i]).start();
-        }
-    }
+  }
 }
 ```
 ```
@@ -1343,7 +1349,7 @@ ABA problem:
 * the edge case is that value is changed twice by other thread, but second change return value to original state - by this first thread see that value still holds original value, and proceed with CAS, but in reality this value is not old but new value after 2 changes.
 * this problem is scenario based, because sometimes we don't care as long as A=A, but sometimes, it's important, cause if value was modified twice and returned to previous value, it's not the same as value wasn't modified at all
 * Imagine a lock-free linked list where nodes are added or removed using CAS operations on pointers. If a node is removed and then a new node is added at the exact same memory address, a thread that had previously read the pointer to the old node might still believe it's referencing the correct, original node when it attempts a CAS operation
-* To conclue this ABA problem is only applicable to kind-of linked list implementations, and in many cases for lock-free it's not a problem (for example balance update)
+* To conclude this ABA problem is only applicable to kind-of linked list implementations, and in many cases for lock-free it's not a problem (for example balance update)
   How to resolve:
 * use of GC - when GC run it clean links and modified object may have new address
 * Tagged Pointers or double CAS - where we use 2 variables for CAS, the value itself + its version. In this case version would be increased on 2, and CAS would fail - 2 ways:
