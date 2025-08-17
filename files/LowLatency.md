@@ -482,9 +482,7 @@ Viewing GC logs (using GCViewer tool):
 * `-Xlog:gc:gc.log` - send logs to file where `gc.log` - filename, you can specify other path to file
 * `-Xlog:gc*::time` - add timestamp to gc logs
 * `-Xlog:safepoint` - as combination of `-XX:+PrintGCApplicationConcurrentTime` and `XX:+PrintGCApplicationStoppedTime`
-* you can use https://github.com/chewiebug/GCViewer tools to visualize GC `java -jar gcviewer-1.36.jar`
-* you can use this tool https://visualvm.github.io/features.html
-  You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
+You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
   GC throughput:
 * the percentage of app running vs. gc running (for example 98% GC throughput means that app code running 98% of time and GC running 2% of total time)
 * to calculate such throughput you need determine the time spent in garbage collection versus the time spent running the application
