@@ -358,13 +358,38 @@ class App {
 }
 ```
 
-Return type promotion - same rules applied for return types:
+Return type promotion - same rules applied for return types (this rules for returning from method, not for overriding, because for overriding different rules applied):
 * for numeric return type:
   * numeric - you can return smaller type: for `long` return type you can return `int/short/char/byte`
   * wrapper - you can return smaller type: for `long` return type you can return `Integer/Short/Character/Byte`
 * for wrapper return type:
   * numeric - only same value: for `Integer` return type you can return only `int`
   * wrapper - only same value: for `Integer` return type you can return only `Integer`
+
+Don't confuse this rules with overriding:
+* if your method return `long` from inside this method you can return actual subtype like `int/short/char/byte`
+```java
+class A{
+    public long getValue(){
+        int value = 1;
+        return value;
+    }
+}
+```
+* for overriding of primitive types, only exact type is allowed
+```java
+class A{
+    public long getValue(){
+        return 0;
+    }
+}
+class B extends A{
+    @Override
+    public short getValue(){ // won't compile
+        return 0;
+    }
+}
+```
 
 The key here is that `final` is the reference to memory, not the value itself, so rules with constants don't apply here.
 ```java
@@ -1585,7 +1610,7 @@ class B extends A {
 }
 ```
 There are 2 types of polymorphism:
-* compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is an argument, that there is no strict compile-time polymorphism in java, so method overloading we can count as compile-time polymorphism.
+* compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is an argument, that there is no strict compile-time polymorphism in java, yet we can count method overloading as compile-time polymorphism.
 * runtime polymorphism (overriding) - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, because we can change it dynamically during execution. 
 That's why we can say that java supports both:
 * compile-time polymorphism - when we overload methods
@@ -1602,6 +1627,28 @@ public class App {
 }
 class A{}
 class B extends A{}
+```
+
+interface casting:
+* because class can have subclass which potentially may implement any interface, casting to interface always work
+* yet if class is `final` we know that it won't have any subclasses in this case compiler can know if a class can implement such interface
+* below example is `String` which is final class so we can't cast it to interface
+* same true for `instanceof`, because final class can't have subclasses can't implement interfaces, it's known on compile-time that such class can't implement this interface
+* this is why records which are `final` won' compile if you try to use `instanceof` with interface that such record doesn't implement
+```java
+public class App {
+    public static void main(String[] args) {
+        A a = new A();
+        X x = (X) a;
+        String str = "";
+        X x2 = (X) str; // won't compile
+
+        if (a instanceof X) {}
+        if (str instanceof X) {} // won't compile
+    }
+}
+interface X{}
+class A{}
 ```
 
 If 2 classes extend from same base class, or implement same interface, we can cast them with so-called "double cast"
@@ -2177,7 +2224,20 @@ class ConsolePrinter implements Printer{
 class A{}
 class B extends A{}
 ```
-2. return type should be identical or subtype - called covariance in java
+2. return type should be identical or subtype - called covariance in java: but for primitive should be exact value
+```java
+class A{
+    public long getValue(){
+        return 0;
+    }
+}
+class B extends A{
+    @Override
+    public int getValue(){ // won't compile, because for primitives should return exactly the same value
+        return 0;
+    }
+}
+```
 3. exception - overridden method can throw fewer/narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
 
 If you necessarily have to use overriding with subtype param, you can use generics
@@ -2445,7 +2505,11 @@ interface X{
 }
 ```
 
-When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call this method of interface.
+When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call this method of interface:
+* fundamental rule of java inheritance - classes win over interfaces
+* class inheritance was since java1, but interface default methods were added in java8 - if you allow interface to override - many old code may exhibit wrong behavior. For the same reason if you force to recompile, a lot of older code may get broken. This is the main reason, why it was decided to give class methods priority over interface, and don't throw compilation error
+* based on this you can deduce if class extends another, and implement multiple interface with same default method, no compilation error because method from parent class will take priority and effectively overwrite other implementations
+* for the same reason `extends` should always go before `implements` - so the order is important for these 2 keywords
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2511,7 +2575,12 @@ interface Y{
 }
 ```
 
-You can override final variables, but not methods
+You can override final variables, but not methods:
+* when `final` applied to field - it has nothing to do with inheritance, it just means that this field can only be initialized in constructor
+* hiding/shadowing of filed - when you redeclare field in a subclass you don't override it but hide, overriding is applied only for methods, not for fields
+* so we have 2 types of inheritance:
+  * polymorphism - only for instance methods - replace original method with its own implementation
+  * hiding - for instance fields, for static fields and methods, hide original version, but it still lives inside object, and we can access it by casting
 ```java
 class A{
     public static final int i = 1;
@@ -2526,6 +2595,56 @@ class B extends A{
 
     public static final void m1(){} // won't compile can't hide final
     public final void m2(){} // won't compile, can't override final
+}
+```
+
+Overriding vs. hiding:
+* overriding always call method on instance of actual object, object may refer to anything, but method called on object itself
+* hiding - calls on type, so below we have type `A` but object `B`, and for all hiding, we get result from type `A`
+```java
+public class App {
+    public static void main(String[] args) {
+        A a = new B();
+        System.out.println(a.i + ", " + a.i2 + ", " + a.getName());
+        B b = (B) a;
+        System.out.println(b.i + ", " + b.i2 + ", " + b.getName());
+    }
+}
+class A{
+    int i = 1;
+    static int i2 = 1;
+    static String getName() {
+        return "A";
+    }
+}
+class B extends A{
+    int i = 2;
+    static int i2 = 2;
+    static String getName() {
+        return "B";
+    }
+}
+```
+```
+1, 1, A
+2, 2, B
+```
+Below code print `null` because of hiding:
+```java
+public class App {
+    public static void main(String[] args) {
+        RedCar redCar = new RedCar();
+        System.out.println(redCar.getColor());
+    }
+}
+class Car{
+    protected String color;
+    String getColor() {
+        return color;
+    }
+}
+class RedCar extends Car{
+    protected String color = "red";
 }
 ```
 

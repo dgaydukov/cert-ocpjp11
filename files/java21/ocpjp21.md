@@ -453,7 +453,9 @@ record Person (String name, int age) {
     }
 }
 ```
-If record doesn't implement interface, if you try to check if it's instance of interface, the code won't compile
+If record doesn't implement interface, if you try to check if it's instance of interface, the code won't compile:
+* this make sense because `record` is always `final` class
+* since for `final` class we know that it will not have any subclasses that can in theory implement this interface - it's knows on compile-time that record doesn't implement ths interface
 ```java
 public class App {
     public static void main(String[] args) {
