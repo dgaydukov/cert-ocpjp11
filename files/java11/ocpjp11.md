@@ -2629,23 +2629,31 @@ class B extends A{
 1, 1, A
 2, 2, B
 ```
-Below code print `null` because of hiding:
+Now you can understand the output of below code - there is no overriding here only hiding:
+* when we call `color` on `Car` we get null, but when we call on `RedCar` we got `red` => pure field hiding
+* but when we call `getColor` it's called on `Car` instance, and inside it called `color` from `Car` - that's why even on `RedCar` value still `null`
 ```java
 public class App {
     public static void main(String[] args) {
+        Car car = new RedCar();
+        System.out.println("color => " + car.color+", getColor => "+car.getColor());
         RedCar redCar = new RedCar();
-        System.out.println(redCar.getColor());
+        System.out.println("color => " + redCar.color+", getColor => "+ redCar.getColor());
     }
 }
-class Car{
-    protected String color;
-    String getColor() {
+class Car {
+    public String color;
+    public String getColor() {
         return color;
     }
 }
-class RedCar extends Car{
-    protected String color = "red";
+class RedCar extends Car {
+    public String color = "red";
 }
+```
+```
+color => null, getColor => null
+color => red, getColor => null
 ```
 
 If class extends other class and implement interface with same final static variable we got compile error. The same true if class implement 2 interfaces with same variable.
@@ -2701,6 +2709,41 @@ interface Y extends X{
     static void m1(){} // won't compile
     default void m2(){}
 }
+```
+
+interface inheritance:
+* interface can extend one or more interfaces
+* interface only inherits abstract and default methods
+* interface doesn't inherit static methods - there is no way you can call static methods of parent interface - this is different from classes. But with classes you can inherit only 1 class, but with interface you can extend multiple interfaces, and in this case if 2 interfaces has same static method, which one would you inherit. The problem with default method is simpler, because default methods stored inside instance, but static methods are global. So inherit and storing static methods on the interface would be problematic.
+* interface inherits fields (they only static final) and you can access them from both the interface and it's instance - but if you have 2 variables with the same name, just like with classes such code would compile, but if you try to access such variable you get compilation error
+* if interface extends 2 interfaces with same default method or one default and one abstract - same rules as for class are applied. You have to remove ambiguity by redeclare such method either as abstract or default. Here different from concrete class, if you have 2 interfaces with same default - you can redeclare it as abstract.
+```java
+public class App {
+    public static void main(String[] args) {
+        Z obj = null;
+        int sum = obj.v1 + obj.v2;
+        int sum2 = Z.v1 + Z.v2;
+        obj.m1();
+        obj.m2();
+        obj.m4();
+        obj.m5();
+        Z.m3(); // won't compile
+        Z.m6(); // won't compile
+    }
+}
+interface X{
+    int v1 = 10;
+    void m1();
+    default void m2(){}
+    static void m3(){}
+}
+interface Y {
+    int v2 = 10;
+    void m4();
+    default void m5(){}
+    static void m6(){}
+}
+interface Z extends X, Y {}
 ```
 
 Interface can have private static and instance methods, but not private default
@@ -3178,7 +3221,7 @@ As you can see when we throw `throw new RuntimeException();` it won’t be caugh
 
 When you overriding method that throws checked exception you are allowed:
 * not to throw any exception
-* throw any unchecked exception or error, but not `Throwable` - because it's parent for checked exception class `Exception`
+* throw any unchecked exception or error (because they are "unchecked" exception and not enforced by compilator), but not `Throwable` - because it's parent for checked exception class `Exception`
 * throw itself or any child of itself
 ```java
 class MyException extends Exception {}
@@ -3217,7 +3260,7 @@ class Exception1 extends RuntimeException{}
 class Exception2 extends RuntimeException{}
 class Exception3 extends RuntimeException{}
 ```
-Beware that exceptions should be unrelated, if you try to declare child and parent, it won’t compile
+Beware that exceptions should be unrelated, if you try to declare child and parent, it won’t compile - this is due to inheritance, you can catch all children with parent, so adding children to parent doesn't make much sense.
 ```java
 public class App {
   public static void main(String[] args) {
@@ -3232,6 +3275,27 @@ You get this compilation error:
 ```
 Alternatives in a multi-catch statement cannot be related by subclassing
   Alternative com.java.test.UncheckedException is a subclass of alternative java.lang.RuntimeException
+```
+Yet multiple `catch` blocks with parent-child are permitted - below code compiles, although issue warning, because second `catch` block is unreachable. This code would never throw `IOException`, but JLS allows for this - so no compilation error here.
+```java
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+public class App {
+    public static void main(String[] args) {
+        try{
+            open();
+        } catch (FileNotFoundException ex) {
+
+        } catch (IOException ex){
+
+        }
+    }
+    public static void open() throws FileNotFoundException {
+        throw new FileNotFoundException();
+    }
+}
+
 ```
   
 If you have multiple catch you can't reassign ex, because the type is the OR of several exceptions
@@ -3324,7 +3388,7 @@ class B extends A{
 }
 ```
 
-When overriding constructor you can also throw from child any other unrelated checked & unchecked exceptions, but for method - only checked
+When overriding constructor you can also throw from child any other unrelated checked & unchecked exceptions, but for method - only checked - again the difference how method and constructor are called.
 ```java
 class A{
     public A() throws IOException{}
@@ -3358,7 +3422,7 @@ class B extends A{
     public void getValue(){}
 }
 ```
-*Although we override method without exception, and when we call, we call it from B (dynamic binding - polymorphism), it works as static binding during compilation, and compiler thinks that we invoke `A.getValue`, and since it throw exception, compile force you to catch this exception.
+Although we override method without exception, and when we call, we call it from B (dynamic binding - polymorphism), but during compilation, due to static binding, compiler thinks that we invoke `A.getValue`, and since it throw exception, compile force you to catch this exception.
 
 We can `throw null` is just the same as `throw new NullPointerException()`.
 ```java
@@ -3378,8 +3442,35 @@ class App {
 java.lang.NullPointerException
 ```
 
-Try with resources guarantees that resources would be closed. In order to work with try-with-resource your class should implement either `Closeable` or `AutoCloseable`. The Java 7 team wanted a mechanism to label objects as be auto-closeable for the "try with resources" construct. Unfortunately the API spec for the Closeable.close() method is too strict. It requires the close() method to be idempotent(if you call it twice result should be the same) but this is not necessary in the "try with resources" use-case. So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`.                                                        
-When variable declared inside try with resource it becomes final.
+`try-with-resources`:
+* guarantees that resources would be closed
+* to be eligible your class should implement either `Closeable` or `AutoCloseable`
+* Java7 team wanted a mechanism to label objects as be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
+* it works by inserting `try/finally` and wrapping your code inside `try` block with it - below is example where I showed how JVM handle closing the resources.
+* resources closed in reverse order of declaration, `catch/finally` are executed after resources closed
+```java
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class App {
+    public static void main(String[] args) {
+        try (BufferedReader br = new BufferedReader(new FileReader("...path"))) {
+            try {
+                // your code
+            } finally {
+                // JVM insert code to close all resources
+            }
+        } catch (IOException ex){
+            
+        }
+    }
+}
+```
+
+When variable declared inside try with resource:
+* such variable become final
+* you can also use variable already inside - but it should be either final or effectively final
 ```java
 import java.io.Closeable;
 
@@ -3398,7 +3489,7 @@ public class App {
     }
 
     Resource r4 = new Resource();
-    try(r4){} // won't compile, since r4 is not effectively final
+    try(r4){} // won't compile, since r4 is not effectively final. Yet if you remove next line, r4 would be effectively final and the code would compile
     r4 = new Resource();
   }
 }
@@ -3482,7 +3573,7 @@ Exception in thread "main" java.lang.RuntimeException: something went wrong with
 ```
 In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way simpler. In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code. Pay attention, that by default try-with-resources closes resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
 
-Suppressed exception - exception that is thrown in try-with-resources. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
+Suppressed exception - exception that is thrown in `try-with-resources`. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
 ```java
 import java.util.Arrays;
 
@@ -3593,6 +3684,65 @@ finally
 MyResource created
 MyResource closed
 finally
+```
+
+return value:
+* you can return from inside catch block - if finally present, it would evaluate `finally` first then return from catch
+* you can return from `finally`
+* if you return from both `catch` and `finally` then because `finally` should always execute, before return `finally` would execute and return - so you get value from `finally` block
+```java
+public class App {
+    public static void main(String[] args) {
+        System.out.println("value => " + getValue(-1));
+    }
+    public static int getValue(int value){
+        try {
+            if (value < 0) {
+                throw new IllegalArgumentException("value < 0");
+            }
+            return 1;
+        } catch (IllegalArgumentException ex) {
+            System.out.println("inside catch");
+            return 2;
+        } finally {
+            System.out.println("inside finally");
+            return 3;
+        }
+    }
+}
+```
+```
+inside catch
+inside finally
+value => 2
+```
+
+Adding `throw` to method declaration:
+* you can add but not actually throw anything - it would compile - this maybe useful for `future-proof`, if you believe that method may throw exception in the future, you may add it now. Because otherwise, if you leave it and add later, then users of your code would have to recompile their codebase, otherwise it won't compile with new version.
+* you can define both parent and child in `throw` - although redundant but still compiles
+```java
+class Test{
+    void m1() throws Exception{}
+    void m2() throws Exception, IOException {}
+}
+```
+
+Exceptions in initializers:
+* for static - you are not allowed to throw checked exception - such code won't compile
+* for instance - you can, but you have to catch such exception in all constructors
+```java
+class Test{
+    Test() throws Exception{
+    }
+    static {
+        if (true)
+            throw new Exception(); // won't compile
+    }
+    {
+        if (true)
+            throw new Exception();
+    }
+}
 ```
 
 ###### Nested Types
