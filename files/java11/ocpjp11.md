@@ -1033,7 +1033,7 @@ public class App {
         objects[0] = new Object(); // throws java.lang.ArrayStoreException
         List<Integer> list = new ArrayList<>(List.of(1));
         List<Object> objectList = list; // won't compile
-        // for the same reason you can't create array of generics
+        // for the same reason you can't create array of generics - because if you could you could reassign it to another type array
         List<String> genericArr[] = new List<String>[10]; // won't compile
         List arr[] = new List[10];
     }
@@ -3514,19 +3514,19 @@ public class App implements AutoCloseable {
         throw new RuntimeException("something went wrong with " + name);
     }
     public static void main(String[] args) {
-        tryFinally();
+        oldWayTryFinally();
         System.out.println();
         tryWithResources();
     }
     public static void tryWithResources() {
         try (
-            App app1 = new App("app1");
-            App app2 = new App("app2");
+                App app1 = new App("app1");
+                App app2 = new App("app2");
         ) {
             System.out.println("done tryWithResources");
         }
     }
-    public static void tryFinally() {
+    public static void oldWayTryFinally() {
         App app1 = null;
         App app2 = null;
         try {
@@ -3534,16 +3534,16 @@ public class App implements AutoCloseable {
             app2 = new App("app2");
             System.out.println("done tryFinally");
         } finally {
-            if (app1 != null) {
+            if (app2 != null) {
                 try {
-                    app1.close();
+                    app2.close();
                 } catch (RuntimeException ex) {
                     System.out.println(ex);
                 }
             }
-            if (app2 != null) {
+            if (app1 != null) {
                 try {
-                    app2.close();
+                    app1.close();
                 } catch (RuntimeException ex) {
                     System.out.println(ex);
                 }
@@ -3554,26 +3554,28 @@ public class App implements AutoCloseable {
 ```
 ```
 done tryFinally
-closing app1
-java.lang.RuntimeException: something went wrong with app1
 closing app2
 java.lang.RuntimeException: something went wrong with app2
+closing app1
+java.lang.RuntimeException: something went wrong with app1
 
 done tryWithResources
 closing app2
 closing app1
 Exception in thread "main" java.lang.RuntimeException: something went wrong with app2
-	at com.java.test.App.close(App.java:16)
-	at com.java.test.App.tryWithResources(App.java:32)
-	at com.java.test.App.main(App.java:22)
+	at com.java.test.App.close(App.java:11)
+	at com.java.test.App.tryWithResources(App.java:24)
+	at com.java.test.App.main(App.java:16)
 	Suppressed: java.lang.RuntimeException: something went wrong with app1
-		at com.java.test.App.close(App.java:16)
-		at com.java.test.App.tryWithResources(App.java:27)
-		... 1 more
 ```
 In the old way, we have to write finally and close resources manually, moreover we had to close every resource in separate try-catch to ensure, that if one close throw exception, another would be executed. With try-with-resources it’s way simpler. In order to be compiled in try-with-resources, class should implement `AutoClosable` or  `Closeable` interface. The diff is that auto - is new one, and all new classes better to start with it. `Closable` is done to work for better compatibility with pre java7 code. Pay attention, that by default try-with-resources closes resources from bottom-to-up and then execute finally if this block is present. So basically closing happens right after try, before any `catch` or `finally` in case they are present.
 
-Suppressed exception - exception that is thrown in `try-with-resources`. If both try and close throws exception, exception from try would be thrown with suppressed exception from close.
+Suppressed exception:
+* exception that is thrown in inside `try-with-resources` when it's trying to close resources
+* so if both `try` and `close` method throws exception, java would throw exception from `try` and add into it's `Throable[]` all exception it caught during closing rehouses: if you have 1 exception in try and 2 while closing, java would throw exception inside `try` block and attach 2 into array of suppressed exceptions that you can get with `ex.getSuppressed()`
+* if there is no exception in `try` but only when closing resources - java would throw first exception, and all others add to suppressed: - the goal is to throw only 1, and all other just add into this array so you can iterate over it later
+* Although close method throws CloseResourceException after getConnection, this exception is not propagated, but instead appends as suppressed exception
+* if we throw exception in finally, it will overwrite getConnection exception
 ```java
 import java.util.Arrays;
 
@@ -3616,33 +3618,6 @@ closing...
 ERR: com.java.test.GetConnectionException
 suppressed: [com.java.test.CloseResourceException]
 ```
-Although close method throws CloseResourceException after getConnection, this exception is not propagated, but instead appends as suppressed exception. All suppressed exception are stored in `ex.getSuppressed()` - which returns a `Throwable[]`.
-**Pay attention that if we throw exception in finally, it will overwrite getConnection exception.
-Resource are closed before catch/finally
-```java
-public class App implements AutoCloseable{
-    public static void main(String[] args) {
-        try(App app = new App()){
-            System.out.println("start");
-            throw new RuntimeException();
-        } catch (RuntimeException ex){
-            System.out.println("catch block");
-        } finally {
-            System.out.println("finally block");
-        }
-    }
-    @Override
-    public void close(){
-        System.out.println("close");
-    }
-}
-```
-```
-start
-close
-catch block
-finally block
-```
 
 Resource closing happens before catch or finally
 ```java
@@ -3678,8 +3653,7 @@ MyResource closed
 catch: java.lang.RuntimeException: xxx
 finally
 ```
-
-**If we didn't call `run` method, and no exception in try block, so only resources would be closed, and after finally would run
+If we didn't call `run` method, and no exception in try block, so only resources would be closed, and after finally would run
 ```
 MyResource created
 MyResource closed
@@ -4712,6 +4686,28 @@ public class App{
 
 
 #### Generics
+* interface/class/record can be generic, but enum can't.
+* type parameter - the letter inside `<>` - can be:
+  * E - Element (used extensively by the Java collections' framework)
+  * K - Key
+  * V - Value
+  * N - Number
+  * T - Type
+  * A - accumulator
+  * R - return
+Valid and invalid declarations:
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        var list1 = new ArrayList<String>(); // valid declaration of List<String>
+        var list2 = new ArrayList<>(); // valid declaration of List<Object>
+        List<?> list3 = new ArrayList<>(); // valid declaration, but you can't add anything here but can extract object
+    }
+}
+```
 ###### Type erasure
 Type erasure - java by default remove types from generics and change it for object, and later make class casts like
 ```java
@@ -4726,6 +4722,13 @@ list.add("Hi");
 String x = (String) list.get(0);
 ```
 
+Don't confuse:
+* upper bound `<T extends Number>` - we can define any class with its upper bound, where we can use anything up to `Number`
+* lower bound `<T super Number>` - doesn't exist in java, maybe because it's not too useful
+```java
+class UpperBound<T extends Number> {}
+class LowerBound<T super Number> {} // won't compile
+```
 
 generic casting: due to type erasure JVM not aware of exact type on runtime, this is way responsibility to check is lay on compilator which is not compiling such code.
 ```java
@@ -5003,6 +5006,28 @@ Covariant return:
 * `ArrayList<String>` <= `List<String>`
 * `List<B> <= List<? extends B> <= List<? extends A>`
 * `List<A> <= List<? super A> <= List<? super B>`
+* `B[]` <= `A[]` - array different from generics: compare below examples between arrays and generics:
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        B[] arr = new B[3];
+        A[] arr2 = arr;
+        B[] arr3 = (B[]) arr;
+        
+        List<B> list = new ArrayList<>();
+        List<A> list2 = list; // won't compile
+        List<A> list3 = (List<A>) list; // won't compile
+        List<B> list4 = (List<B>) list2; // won't compile
+    }
+}
+class A{}
+class B extends A{}
+```
+* so with array you can pollute array with other values which would throw `ArrayStoreException` on runtime - that's why generics add compile-time check to make sure you will have less runtime errors. Because of type erasure JVM can't throw `ArrayStoreException`, and if code could compile, you would successfully add wrong type to generic, and ony when you get it you will get `ClassCastException`.
+* invariant - for the above reason, because compare to array you can reassuring generic to supertype, they are considered invariant
 Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from JVM it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
 Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a placeholder for whatever type is actually used while invoking the method. For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
 T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
@@ -5145,8 +5170,7 @@ class CustomQueue<T>{
     }
 }
 ```
-Same with instantiation, we can't do just `T t = new T[]`, we should call something like `T t = (T)clz.newInstance()`
-First you need to make sure that T is class, that why `Class<T> clz` is required, then you can use reflection to instantiate the class.
+Same with instantiation, we can't do just `T t = new T[]`, we should call something like `T t = (T)clz.newInstance()`. First you need to make sure that T is class, that why `Class<T> clz` is required, then you can use reflection to instantiate the class.
 
 #### Collections
 `Vector` - is synchronized array (almost all methods has `syncronized` keyword), only one thread at a time can use it. `ArrayList` - is not synchronized.
@@ -5348,8 +5372,7 @@ immutableList => [a, b]
 fromArray.add("c") => java.lang.UnsupportedOperationException
 ```
 
-`List.sublist` create view of original list, so all changes are reflected in original list. 
-Yet if you modify (add/remove) original list and then try to traverse sublist you will get `ConcurrentModificationException`.
+`List.sublist` create view of original list, so all changes are reflected in original list. Yet if you modify (add/remove) original list and then try to traverse sublist you will get `ConcurrentModificationException`.
 ```java
 import java.util.*;
 
