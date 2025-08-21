@@ -27,7 +27,7 @@ Lets closer look into this example, we would convert 100:
 
 ### Converting negative numbers
 There are 4 ways to store signed numbers:
-* sing-magnitude - the most simple to understand. We just use most-significant-bit to store sign, so bit representation of positive and negative is almost the same:
+* sign-magnitude - the most simple to understand. We just use most-significant-bit to store sign, so bit representation of positive and negative is almost the same:
     * problems:
         * 2 ways to represent 0
         * addition and subtraction require different behavior

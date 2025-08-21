@@ -4729,6 +4729,116 @@ Don't confuse:
 class UpperBound<T extends Number> {}
 class LowerBound<T super Number> {} // won't compile
 ```
+Since you can implement multiple interfaces, your upper bound may be an intersection of several interfaces
+```java
+interface X{}
+interface Y{}
+class UpperBound<T extends X, Y>{}
+```
+but not classes, yet it can be an intersection of 1 class and multiple interfaces
+```java
+class A{}
+class B{}
+class UpperBound<T extends A & B>{} // won't compile
+```
+If you look into below code you will understand the power of extending:
+* use it when you want to pass the subtype
+* due to PECS you can't insert anything into such extended list - but it can be good in certain conditions
+* not allowing insertion make sense, since you can have any subtype like `List<Integer>` or `List<Double>` compiler doesn't know the exact type, and to avoid possible runtime issues, compiler just prohibit insertion at all. Otherwise, you could add `Double`, but your list would be `Integer` - so you would have runtime error.
+* so in below example you can fetch `Double/Integer` but both can be treated like `Number`, but to add you have to know the exact type - this is the trick, to fetch due to upcasting, you don't need to know exact type to fetch because `Number n = (Integer) 10;` but vice versa you have to add explicit casting.
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List<Integer> list = new ArrayList<>();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+        System.out.println(average2(list));
+        System.out.println(average1(list)); // won't compile because List<Integer> is not a subtype for List<Number>
+    }
+
+    public static double average1(List<Number> list){
+        double sum = 0;
+        for (Number number : list) {
+            sum += number.doubleValue();
+        }
+        return sum/list.size();
+    }
+    public static <E extends Number> double average2(List<E> list){
+        double sum = 0;
+        for (Number number: list) {
+            sum += number.doubleValue();
+        }
+        return sum/list.size();
+    }
+}
+```
+
+Don't confuse:
+* type parameter - letter used in `<>`. For example `<E extends Number>`, here `E` is type parameter
+* wildcard - question mark used in `extends/super` like `<? extends Number>`. We may use it, when we don't need actual type. Foe example if you producer and only get elements, you may not need actual type, but cast to upper/bound type. If our code is `<E extends Number>`, you may not need to use `E` at all inside your code, in this case you use wildcard. Below 2 methods are identical: the only difference you can't refer to `E` in the second method. But if you don't need you can use it.
+```java
+public static <E extends Number> void print(List<E> list){}
+public static void print2(List<? extends Number> list){}
+```
+Yet for variable declaration wildcard are required: you can't create variable with type parameter, only methods
+```java
+List<? extends Number> numbers = new ArrayList<>();
+List<E extends Number> nums = new ArrayList<>(); // won't compile
+```
+
+Lower bound:
+* can be used in variable declaration and in methods
+* can't be used with type parameter and inside classes
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List<? super Integer> list = new ArrayList<>();
+    }
+    public static void print(List<? super Integer> list){}
+    public static <E super Integer> void print2(List<E> list){} // won't compile
+
+}
+class LowerBound<E super Integer>{} // won't compile
+```
+rules for lower bound:
+* you can get only the most upper class - in most cases object
+* you can insert only the lowest class - the lower bound
+* int our example you can add `Integer` and get `Object`
+```java
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+    }
+    public static void print(List<? super Integer> list){
+        Integer i = list.get(0); // won't compile: incompatible types: capture#1 of ? super java.lang.Integer cannot be converted to java.lang.Integer
+        Number n = list.get(0); // won't compile: incompatible types: capture#1 of ? super java.lang.Integer cannot be converted to java.lang.Number
+        Object o = list.get(0);
+
+        list.add (Integer.valueOf(1));
+        list.add ((Number) 10); // won't compile: incompatible types: capture#1 of ? super java.lang.Integer cannot be converted to java.lang.Number
+        list.add (new Object()); // won't compile: incompatible types: java.lang.Object cannot be converted to capture#1 of ? super java.lang.Integer
+    }
+}
+```
+
+Wildcard usage:
+* upper bound `<? extends Number>` - everything below type including the type itself
+  * add - nothing - because you can add any child of `Number` but you don't know which one exactly, so fo safety reason you better not to add anything
+  * get - Number itself - you can get any child, which you can implicitly upcast to `Number` that's why you get it
+* lower bound `<? super Number>` - everything above the type including the type itself
+  * add - Number - you can add `Number` or its superclass, but at least the Number
+  * get - Object - you can get `Number` or its superclass, so we upcast to the Object
+* unbounded `<?>` - same as `<? extends Object>` and `<? super Object>` - use it when you only need to get value (for example for logging) but need to be able to pass any value
+  * add - nothing
+  * get - Object
 
 generic casting: due to type erasure JVM not aware of exact type on runtime, this is way responsibility to check is lay on compilator which is not compiling such code.
 ```java
@@ -5000,13 +5110,17 @@ class B extends A{
     public void m1() {} // overriding method
 }
 ```
-For one method to correctly override another they should have the same signature (method name + params) and covariant return type. Covariant return (let's use <=) - return of the same type, or it's subtype.
+For one method to correctly override another they should have the same signature (method name + params) and covariant return type. Covariant/subtype return (let's use `<--`) - return of the same type, or it's subtype.
 Covariant return:
-* `B` <= `A`
-* `ArrayList<String>` <= `List<String>`
-* `List<B> <= List<? extends B> <= List<? extends A>`
-* `List<A> <= List<? super A> <= List<? super B>`
-* `B[]` <= `A[]` - array different from generics: compare below examples between arrays and generics:
+* `B` <-- `A`
+* `ArrayList<String>` <-- `List<String>`
+* `List<B>` <-- `List<? extends B>` <-- `List<? extends A>`
+  * `List<A>` is subtype of `<List<? extends A>`
+  * but `List<B>` or `List<? extends B>` not a subtype of `List<A>`
+* `List<? super Object>` <-- `List<Object>`  <-- `List<? super A>` <-- `List<A>`<-- `List<? super B>`
+  * `List<B>` is subtype for `List<? super B>`
+  * `List<?>` - is not a supertype for anything, so you can't pass it as return value
+* `B[]` <-- `A[]` - array different from generics: compare below examples between arrays and generics:
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -5059,7 +5173,7 @@ class Y extends X {
     }
 
     @Override
-    public void m2(List<A> ls, A t) { // compile error, params not matching List<A> (list of concrete class) is not the same as List<T> (list of any class)
+    public void m2(List<A> ls, A t) { // compile error: params should match exactly, List<A> (list of concrete class) is not the same as List<T> (list of any class)
     } 
 }
 
@@ -6547,6 +6661,9 @@ class ArraySimpleQueue<T> implements SimpleQueue<T>{
 
 #### Functional Programming and Stream API
 ###### Functional interfaces
+Lambda rules:
+* you can miss or put lambda type for each param
+* if you want to use annotation for lambda param - you must specify the type
 Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block). Instance & static variables shouldn't be effectively final in order to be used inside lambda.
 ```java
 class Scope{
@@ -6883,9 +7000,9 @@ len: 5
 ```
 
 ###### Method reference
-Lambda double colon `::`, also called method reference.
-If you have static method you can call it only from class => MyClass::staticMethod,
-if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should use Function and pass instance of that object
+Lambda double colon `::`, also called method reference:
+* If you have static method you can call it only from class => MyClass::staticMethod,
+* if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should use Function and pass instance of that object
 ```java
 import java.util.function.Function;
 import java.util.function.Supplier;
