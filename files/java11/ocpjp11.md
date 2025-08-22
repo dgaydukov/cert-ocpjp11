@@ -5758,6 +5758,10 @@ So below is rule:
     * if 2 objects has same `hashcode` - 2 objects in same bucket
     * if 2 objects has same `equals` - 2 objects in 2 different buckets (cause `hashcode` is different)
     * if 2 object has same `hashcode` & `equals` - 1 object in 1 bucket
+General rule:
+* if 2 objects `equals` than their `hashcode` should return the same `int` value
+* if you override the `equals` - you must override `hashcode`
+* if you override `compareTo` you have to override `equals/hashcode` to be consistent
 ```java
 import java.util.HashMap;
 import java.util.Map;
@@ -6318,7 +6322,7 @@ how to remember: What people in the United States commonly call a line, as in th
 So if we have a queue[1,2,3], 1 - is head, 3 - tail. If we add 4, it would be added to tail, after 3
 If you want to implement queue(FIFO) - use `Queue` interface or `Deque`, if you want to implement stack(LIFO) - use `Deque` interface. `Deque` is child of `Queue` it extends it to work from both ends.
 All methods divide on 2 types. Some throws exception, others just return null/false
-6 basic method of `Queue` interface (actually there are 3 and they duplicated with one which throws exception):
+6 basic method of `Queue` interface (actually there are 3, and they duplicated with one which throws exception):
 * boolean add(IllegalStateException)/offer(false) - add to the tail
 * T remove(NoSuchElementException)/poll(null)     - remove from the head
 * T element(NoSuchElementException)/peek(null)    - view element from the head
@@ -7002,7 +7006,28 @@ len: 5
 ###### Method reference
 Lambda double colon `::`, also called method reference:
 * If you have static method you can call it only from class => MyClass::staticMethod,
-* if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should use Function and pass instance of that object
+* if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should have the instance as first argument
+* In below example you have instance method `isSpouse` so to call it properly you have to pass 2 instances. If you already have instance you can call it `p1::isSpouse` in this case you have to pass only 1 instance, because original is already there. But if you call `Person::isSpouse` this assumes you have to pass 2 instances, were the first would be the instance and the second would be the argument. That's why the code is not compiled for single `Predicate` but works fine with `BiPredicate`
+* static call on instance method - first param should be instance itself, then it works.
+```java
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+
+public class App {
+    public static void main(String[] args) {
+        Person p1 = new Person("John", "Doe");
+        Predicate<Person> isSpouse1 = Person::isSpouse; // won't compile: when instance called on class you should expect first param to be instance itself
+        Predicate<Person> isSpouse2 = p1::isSpouse;
+        BiPredicate<Person, Person> isSpouse3 = Person::isSpouse;
+    }
+}
+record Person(String firstName, String lastName) {
+    boolean isSpouse(Person person) {
+        return lastName.equals(person.lastName);
+    }
+}
+```
+More examples:
 ```java
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -7140,7 +7165,7 @@ shuffled => [a, A,  , , 1]
 sorted => [,  , 1, A, a]
 ```
 Don't confuse:
-* `Comparable` - just interface with one method `int compareTo(T var1)`.
+* `Comparable` - just interface with one method `int compareTo(T var1)`. Although technically it's a functional interface, logically it's not, because it describe inherent behavior of implementing class.
 * `Comparator` - functional interface with method `int compare(T var1, T var2)`
 `Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
 Since `Comparator` is functional interface we can pass lambda that takes 2 params.

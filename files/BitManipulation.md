@@ -103,6 +103,18 @@ AND   0100 => 4 # so flag 4 is inside 16
 ```
 You can use this code in java `n & flag > 0`
 
+Can be used to convert between signed and unsigned numbers:
+* in java all primitive types are signed, except for `char`
+* for `byte` it's in -128 => +127
+* If you want to convert you need to use some smart logic, and the easiest way is to `& 0xFF`
+* for short we can use `0xffff`
+* under-the-hood methods like `Byte.toUnsignedInt` and `Short.toUnsignedInt` use this conversion to convert between signed and unsigned value
+```java
+for (int b = -128; b <= 127; b++) {
+    System.out.println(b+" => "+(b & 0xff));
+}
+```
+
 ##### XOR
 This operation has several properties that can be reused:
 * `x ^ y = z  => x ^ z = y`
