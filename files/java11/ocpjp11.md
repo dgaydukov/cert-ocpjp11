@@ -5436,7 +5436,6 @@ true
 `List.of` & `List.copyOf` - static methods that create unmodifiable (can’t add, remove, change) list, and can’t take null (they throw NPE if any element passed is null), `List.of` can takes 0 to n params, varags (so you can pass array). If you pass list there it will be treated as regular object - list of 1 list will be created. `List.copyOf` - can take only collection.
 Immutable vs Unmodifiable. Unmodifiable - is just a view, although you can't modify it directly, if underlying collection, has been modified, this view will reflect changes. 
 Immutable - completely separate unmodifiable collection. It can't be modified, and it doesn't reflect changes in case of modification of underlying collection.
-`Arrays.asList` - you can't add new values to list, but can modify existing. The reason is that list still backed by array, and array has a fixed size.
 ```java
 import java.util.*;
 
@@ -5485,6 +5484,26 @@ unmodifiableList => [a, b, c]
 immutableList => [a, b]
 fromArray.add("c") => java.lang.UnsupportedOperationException
 ```
+
+
+`Arrays.asList`:
+* you can't add new values to list, but can modify existing. The reason is that list still backed by array, and array has a fixed size (so you can update elements, but can't call `add/remove`)
+* changes made in array are visible in the list, and changes made to the list are visible to array
+* you have to pass array of objects, passing primitive array won't compile
+```java
+import java.util.Arrays;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        int[] arr = {1,2,3,4,5};
+        Integer[] arr2 = Arrays.stream(arr).boxed().toArray(Integer[]::new);
+        // another way to convert primitive to boxed array
+        Arrays.setAll(arr2, i -> arr[i]);
+        List<Integer> list = Arrays.asList(arr); // won't compile: incompatible types: inference variable T has incompatible bounds
+        List<Integer> list2 = Arrays.asList(arr2);
+    }
+}```
 
 `List.sublist` create view of original list, so all changes are reflected in original list. Yet if you modify (add/remove) original list and then try to traverse sublist you will get `ConcurrentModificationException`.
 ```java
@@ -6086,6 +6105,7 @@ collectorMap => {1=30, 2=20, 3=10}
 
 ###### binarySearch
 `Collections.binarySearch` and `Arrays.binarySearch` when element not found, doesn’t return just -1 (yet it can). It returns  -(possiblePosition+1), where possiblePosition is the position inside sorted list if element would be inside. So in case searching element could be inserted at position 0, result would be -1. Pay attention there is no such method as search or linearSearch, only binarySearch. Possible range of answers for array/list length of n is from -(n+1) to (n-1). So if we have 5 elements, possible results are from -6 to 4. e can pass `Comparator` into both `sort` and `binarySearch` - and it should be the same comparator, otherwise - unpredictable result. And objects inside list or array should implement `Comparable` or you should pass `Comparator` (if you pass null as comparator, natural sort would be used, no NPE) otherwise `ClassCastException`.
+To work correctly list/array must be sorted in ascending order. If it's not the output is unpredictable
 ```java
 import java.util.*;
 
@@ -6144,6 +6164,29 @@ public class App{
 ```
 [1, 2]
 Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String
+```
+
+We can pass comparator to `binarySearch` method, in this case, search is happen according to comparator equality:
+```java
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        List<String> names = new ArrayList(List.of("a", "bb", "ccc", "dddd"));
+        Comparator<String> lenComparator = (a, b) -> a.length() - b.length();
+        Collections.sort(names, lenComparator);
+        System.out.println("binarySearch (normal) => " + Collections.binarySearch(names, "xx"));
+        System.out.println("binarySearch (comparator) => " + Collections.binarySearch(names, "xx", lenComparator));
+    }
+}
+```
+In the first line we get normal result, because expected position of `xx` would be 4, in the last. so the result is -(4+1) = -5. But in second case we get 1, this is because it compares not by equality, but by equality of string length. In this case our len is 2, and we have on position 1, the string with len of 2. That's why with custom comparator you need to pay attention to the logic of this comparator.
+```
+binarySearch (normal) => -5
+binarySearch (comparator) => 1
 ```
 
 ###### Order and duplicates
@@ -7144,7 +7187,7 @@ class TooSmallValidator implements Validator{
 ```
 
 ###### Comparator and Comparable
-Remember Java sort order `empty > space > number > uppercase > lowercase` (natural sorting)
+Remember Java sort order `empty > space > > negativeNumber > number > uppercase > lowercase` (natural sorting)
 ```java
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7166,7 +7209,10 @@ sorted => [,  , 1, A, a]
 ```
 Don't confuse:
 * `Comparable` - just interface with one method `int compareTo(T var1)`. Although technically it's a functional interface, logically it's not, because it describe inherent behavior of implementing class.
-* `Comparator` - functional interface with method `int compare(T var1, T var2)`
+* `Comparator` - functional interface with method `int compare(T var1, T var2)`:
+  * if we have 2 values, `a` and `b` when we need:
+    * increasing order - we should return `a-b`: if `a` less than `b` then `a-b` would be negative, so we would have increasing order, because `a` is first, and it's less then second element which is `b`
+    * decreasing order - we should return `b-a`: same rule as above but in reverse
 `Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
 Since `Comparator` is functional interface we can pass lambda that takes 2 params.
 ```java
@@ -10918,8 +10964,11 @@ As you see, again we constructing object from json, we call no-arg constructor. 
 There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
 but `Reader/Writer` works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
 `StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
-If we try to open non-existing file with `FileInputStrem/FileReader` we will got `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
+If we try to open non-existing file with `FileInputStrem/FileReader` we will get `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
 This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
+Don't confuse `InputStream` method:
+* `read()` read and return single byte, but return type is `int`, because it may return one extra value of -1 signify end-of-file. Since byte holds only 256, and we need 257 values, it was decided to return int (although `short` is enough, to be compatible with C it was decided to use `int`)
+* `read(byte[] arr)` - read multiply byte into `arr` and return the number of read bytes
 ```java
 import java.io.File;
 import java.io.FileInputStream;
