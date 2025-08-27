@@ -10273,16 +10273,11 @@ Get exception: message => Unknown column 'ids' in 'where clause', SQLState => 42
 
 #### Serialization
 ###### Java serialization
-When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called.
-Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object.
-It searches all parents until it found one that doesn't implement `Serializable` and have default constructor,
-(if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), 
-and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor.
-Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`.
-Always use serialVersionUID variable, if doubt just set `private static final long serialVersionUID = 1;`.
-Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and you deserialization will fail.
-Java serialization is binary serialization, so your file would have binary content (compare to xml/json).
-You can decode this binary file for one of below example with following command
+Today Java serialization not used, because other types of serialization exits:
+* web development and microservice architecture - json/xml
+* low latency app - protobuf/SBE/chronicle
+There is a [good article](https://www.infoworld.com/article/2164139/the-java-serialization-algorithm-revealed-2.html) but it's from 2009, things have changed a bit for the last 15 years. Yet both java11 and java21 exam still has questions for serialization. Apparently knowing the basics will help understand other third-party popular tools.
+When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called. Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object. It searches all parents until it found one that doesn't implement `Serializable` and have default constructor, (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor. Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`. Always use `serialVersionUID` variable, if doubt just set `private static final long serialVersionUID = 1;`. Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and your deserialization will fail. Java serialization is binary serialization, so your file would have binary content (compare to xml/json). You can decode this binary file for one of below example with following command
 ```
 $ hexdump -C text
 
@@ -10314,17 +10309,21 @@ Using command line
 serialver -classpath target/classes com.java.test.Person
 #com.java.test.Person:    private static final long serialVersionUID = 1733576120003020849L;
 ```
-Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail
-You can also get serial number from binary data itself
+When you create instance of `ObjectOutputStream` you can pass either `BufferedOutputStream` or `FileOutputStream`: both would work fine, but it's recommended to always pass buffered instance, because it would be faster due to internal buffer. Yet passing just file stream would work. This is why some examples below pass file stream and others buffered stream.
+Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail. You can also get serial number from binary data itself:
 ```java
-/**
- * https://www.javaworld.com/article/2072752/the-java-serialization-algorithm-revealed.html
- */
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
+import java.io.Serializable;
 
 public class App {
     public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
         Person p1 = new Person("Jack", 30);
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
             out.writeObject(p1);
@@ -10365,7 +10364,7 @@ public class App {
     }
 }
 
-class Person implements Serializable{
+class Person implements Serializable {
     private static final long serialVersionUID = 9999;
     private String name;
     private int age;
@@ -10381,8 +10380,16 @@ class Person implements Serializable{
 ```
 We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
 ```java
-import java.util.*;
-import java.io.*;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class App {
     public static void main(String[] args) {
@@ -10391,16 +10398,16 @@ public class App {
     }
 
     private static void serializeSingleObject(){
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
             Person p1 = new Person("Mike", 30);
             out.writeObject(p1);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
 
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             Person p2 = (Person) in.readObject();
             System.out.println("p2 => " + p2);
         } catch (IOException | ClassNotFoundException ex) {
@@ -10409,7 +10416,7 @@ public class App {
     }
 
     private static void serializeList() {
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         List<Person> people = new ArrayList<>();
         people.add(new Person("Jack", 25));
@@ -10419,7 +10426,7 @@ public class App {
 
         List<Person> deserialized = new ArrayList<>();
 
-        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
             for (var person : people) {
                 out.writeObject(person);
             }
@@ -10427,7 +10434,7 @@ public class App {
             System.out.println("write ERR: " + ex);
         }
 
-        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             while (true) {
                 Object obj = in.readObject();
                 if (obj instanceof Person) {
@@ -10462,11 +10469,10 @@ p2 => Person[name=Mike,age=30]
 end of file
 deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
 ```
-If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise we would get error.
-Since Body object inside Person doesn't implement `Serializible` we got error trying to serialize. 
-If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
-If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`.
-If body inside person is null, we won't get serialization error.
+If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise, we would get error. Since `Body` object inside `Person` doesn't implement `Serializible` we got error trying to serialize:
+* If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
+* If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`.
+* If body inside person is null, we won't get serialization error.
 ```java
 import java.io.*;
 
@@ -10520,16 +10526,16 @@ class Body{
 Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableException: com.java.test.Body
 ```
 There are 3 ways we can customize serialization:
-* 1. define `serialPersistentFields` array with fields to be serialized
-* 2. define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
-* 3. implement `Externalizable` interface
+* define `serialPersistentFields` array with fields to be serialized
+* define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
+* implement `Externalizable` interface
 Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
 ```java
 import java.io.*;
 
 public class App {
     public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
             Person p1 = new Person("Mike", 30, 80);
@@ -10574,7 +10580,7 @@ Person [name=Mike, age=30, weight=0]
 Define custom `writeObject` and `readObject`
 By default java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
 Order of reading should correspond with order of writing. weight was written first so it should be read first.
-By default in every class that implements `Serializable` java inserts 2 methods 
+By default, in every class that implements `Serializable` java inserts 2 methods 
 ```java
 private void writeObject(ObjectOutputStream out) throws IOException{
     out.defaultWriteObject();
@@ -10583,14 +10589,13 @@ private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundE
     in.defaultReadObject();
 }
 ```
-If you need more custom logic, you should implement them in your code and add any logic. 
-If you want to prevent serialization just implement them and throw `NotSerializableException`.
+If you need more custom logic, you should implement them in your code and add any logic. If you want to prevent serialization just implement them and throw `NotSerializableException`.
 ```java
 import java.io.*;
 
 public class App {
     public static void main(String[] args) {
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
             Person p1 = new Person("Mike", 30);
@@ -10650,7 +10655,7 @@ import java.io.*;
 
 public class App {
     public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
             Person p1 = new Person("Mike", 30);
@@ -10702,7 +10707,7 @@ import java.io.*;
 
 public class App {
     public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
             Person p1 = new Person("Mike", 30);
@@ -10754,7 +10759,7 @@ class Person implements Externalizable {
 Person no-arg constructor called
 Person [name=Mike, age=30]
 ```
-**The interesting note is although you can change state in no-arg constructor
+The interesting note is, although you can change state in no-arg constructor
 ```java
 public Person() {
     System.out.println("Person no-arg constructor called");
@@ -10771,7 +10776,7 @@ import java.io.*;
 
 public class App {
     public static void main(String[] args){
-        File file = new File("src/main/java/com/java/test/text");
+        File file = new File("src/main/java/com/java/test/data.ser");
 
         try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
             Person p1 = new Person("Mike", 30);
@@ -10811,24 +10816,25 @@ class Person extends Human implements Serializable {
 }
 ```
 Rules of changing serialized classes:
-* if you don't set serial version and  doing something innocuous (like adding new field) when deserialized you will get error, cause once you change your class, jvm will regenerate serial number
+* if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, jvm will regenerate new serial number
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
 * if some fields are removed from new class version, they just ignored during deserialization.
+* no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
+* if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
+* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`
 Don't confuse:
 * java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
-* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, Protobuffer/Thrift/Avro - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streamig data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
+* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, `Protobuffer/Thrift/Avro` - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streaming data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
 SBE design:
 * xml schema - set layout & data type of message (which fields would be used)
-* compiler take the schema and generate optimized java file with java code, you use SBEtool to generate encoder/decoder java classes, that would convert binary back and forth
+* compiler take the schema and generate optimized java file with java code, you use `SBEtool` to generate encoder/decoder java classes, that would convert binary back and forth
 * message - generated on runtime based on java file
 * no garbage - sbe use direct buffer, so no GC happening during message creation
 * use array as underlying storage, so cpu cache prefetching can expedite the process
-SBE better then java serialization:
-* no extra work to serialize parent classes, pay attention to transient, class initializers and so on
-Here we just have simple set of fields as message, and all fields need to be serialized
-* When deserizlise, we create many objects, then GC may start to clean
-Here we use non-heap memory, so no GC pause
-* Here we use best java practices like prefetching so it expedite overall serialize/deserialize process
+SBE better than java serialization:
+* no extra work to serialize parent classes, pay attention to transient, class initializers and so on - we just have simple set of fields as message, and all fields need to be serialized
+* During deserialization, we create many objects, then GC may start to clean - we use non-heap memory, so no GC pause
+* Here we use the best java practices like prefetching so it expedite overall serialize/deserialize process
 
 ###### XML serialization
 JAXB - java architecture xml binding - ability to dump object into xml and construct object from xml first add following into your pom.xml
@@ -10961,11 +10967,9 @@ As you see, again we're constructing object from json, we call no-arg constructo
 
 #### IO and NIO
 ###### InputStream/OutputStream and Reader/Writer
-There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), 
-but `Reader/Writer` works only with characters and strings. There is an advantage to use Reader/Writer streams when working with strings, cause you can use writer class to put string into file without worrying underlying encoding logic.
+There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), but `Reader/Writer` works only with characters and strings. There is an advantage to use `Reader/Writer` streams when working with strings, cause you can use writer class to put string into file without worrying about underlying encoding logic.
 `StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
-If we try to open non-existing file with `FileInputStrem/FileReader` we will get `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file.
-This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
+If we try to open non-existing file with `FileInputStrem/FileReader` we will get `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file. This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
 Don't confuse `InputStream` method:
 * `read()` read and return single byte, but return type is `int`, because it may return one extra value of -1 signify end-of-file. Since byte holds only 256, and we need 257 values, it was decided to return int (although `short` is enough, to be compatible with C it was decided to use `int`)
 * `read(byte[] arr)` - read multiply byte into `arr` and return the number of read bytes
@@ -11639,7 +11643,10 @@ public class App {
 old time => 2019-11-22T11:08:55.116953Z
 new time => 2019-11-22T11:10:59.370485Z
 ```
-We can also get `BufferedReader` directly from `Files.newBufferedReader`, and work with string lines instead of bytes. We can also read all lines into memory all at once with `Files.readAllLines`.
+We can:
+* `Files.readString` - read whole file into string
+* `Files.readAllLines` - read whole file into list of strings
+* `Files.newBufferedReader` - get `BufferedReader` directly and work with string lines instead of bytes
 ```java
 import java.util.List;
 import java.io.BufferedReader;
@@ -11651,7 +11658,7 @@ import java.nio.file.Paths;
 
 public class App {
     public static void main(String[] args) {
-        Path path = Paths.get("src/main/java/com/java/test/text");
+        Path path = Paths.get("./data.txt");
         try(BufferedReader in = Files.newBufferedReader(path, StandardCharsets.UTF_8)){
             String s;
             while((s = in.readLine()) != null){
@@ -11665,6 +11672,8 @@ public class App {
             for(var s: allLines){
                 System.out.println(s);
             }
+            String str = Files.readString(path);
+            System.out.println("str => " + str);
         } catch (IOException ex) {
             System.out.println("ERR: " + ex);
         }

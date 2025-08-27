@@ -404,7 +404,9 @@ record Person(String name, int age) {
     static int v2;
 }
 ```
-* it implicitly extends `java.lang.Record` but not allowed to have explicit `extend`.
+* it implicitly extends `java.lang.Record` but not allowed to have explicit `extend`:
+  * since java doesn't support multiple inheritance, `record` already `extends java.lang.Record`, so it can't extend second class
+  * since `record` is immutable data structure - enabling inheritance may add mutable fields into record, also it may add unnecessary complex logic
 ```java
 record Person(int id) extends Object{} // won't compile
 ```
