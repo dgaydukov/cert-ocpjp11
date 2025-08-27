@@ -10956,7 +10956,7 @@ class Person{
 Person no-arg constructor
 Person [name=John, age=30]
 ```
-As you see, again we constructing object from json, we call no-arg constructor. Yet here we can comment no-arg constructor and it will work fine.
+As you see, again we're constructing object from json, we call no-arg constructor. Yet here we can comment no-arg constructor and it will work fine.
 
 
 #### IO and NIO
@@ -10969,6 +10969,34 @@ This is very logical, cause input stream - for reading, you need file first to r
 Don't confuse `InputStream` method:
 * `read()` read and return single byte, but return type is `int`, because it may return one extra value of -1 signify end-of-file. Since byte holds only 256, and we need 257 values, it was decided to return int (although `short` is enough, to be compatible with C it was decided to use `int`)
 * `read(byte[] arr)` - read multiply byte into `arr` and return the number of read bytes
+Don't confuse write method:
+* `write(byte[] arr)` - write whole byte array into output stream
+* `write(byte[] arr, int offset, int length)` - write part of byte array limited with offset and length into output stream - always use this method to avoid any incorrect writes. For example you have a file with 12 bytes, but your buffer is 5. So you will read 3 times: 5, 5, 2. But buffer would contain 3 remaining from previous read, and would write totally 15 bytes, what would be incorrect.
+```java
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class App {
+    public static void main(String[] args) throws IOException {
+        byte[] buff = new byte[5];
+        try(InputStream is = new FileInputStream("./data.txt"); // contains: hello world!
+            OutputStream os = new FileOutputStream("./data2.txt")){
+            int count = 0;
+            while( (count=is.read(buff)) != -1) {
+                os.write(buff); // would write: hello world!orl
+                // correct way
+                //os.write(buff, 0, count);
+            }
+        }
+    }
+}
+```
+`InputStreamReader/OutputStreamWriter` classes act as a converter between a byte stream and a character stream. They convert a byte stream to a character stream (and vice versa) by using the specified (or the default) character encoding.
+`BufferedReader/BufferedWriter` - require instance of converter as constructor param
+`FileReader/FileWriter/PrintWriter` - don't require constructor param, because they internally create intermediate instance of converter class
 ```java
 import java.io.File;
 import java.io.FileInputStream;
@@ -11289,7 +11317,9 @@ root => /
 11 => text
 ```
 
-`relativize` - is inverse of `resolve`
+`relativize` - is inverse of `resolve`:
+* `path1.relativize(path2)` - means what should we add to `path1` to get `path2`
+* treat both file/directory as directory, so if `path1=/home/user/file.txt` and `path2=/home/user/newfile.txt` then result would be `../newfile.txt`. Although you may think that original path is `/home/user` because `file.txt` is not folder it's file, but you should treat it as path, no matter is it folder or file.
 ```java
 import java.nio.file.*;
 
@@ -11313,7 +11343,8 @@ a/b/d
 There are a few methods to move `InputStream` back or forward:
 * `mark(int limit)` - mark the current point with number of bytes to save
 * `reset()` - return to the marked point
-* `skip(int n)` - skip n bytes 
+* `skip(int n)` - skip n bytes
+* IO streams are one-way, you can't rewind them. But if you are using a buffer, you can imitate rewind operation. These 3 are using internally buffer to imitate rewind behavior. Keep in mind that you have to pass buffered stream. If you try to call these operations on `FileInputStream` code would compile and run, because those methods on `InputStream` but it would throw: `java.io.IOException: mark/reset not supported`. You can also call `markSupported` to check if the stream supports rewind operations.
 ```java
 import java.io.File;
 import java.io.BufferedInputStream;
@@ -11349,6 +11380,46 @@ BCDE
 B
 F
 -1
+```
+This is useful if you are writing a parser, and for example want to find all quotes in text enclosed between `<>`:
+```java
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        final int MAX_QUOTE_SIZE = 256;
+        List<String> quotes = new ArrayList<>();
+        try (InputStream is = new BufferedInputStream(new FileInputStream("./data.txt"))) {
+            System.out.println("markSupported => " + is.markSupported());
+            int read = -1, counter = 0;
+            while ((read = is.read()) != -1) {
+                if ((char) read == '<') {
+                    is.mark(MAX_QUOTE_SIZE);
+                    counter = 0;
+                }
+                if ((char) read == '>') {
+                    is.reset();
+                    byte[] buffer = new byte[counter-1];
+                    is.read(buffer);
+                    quotes.add(new String(buffer));
+                    is.skip(1);
+                }
+                counter++;
+                if (counter == MAX_QUOTE_SIZE) {
+                    throw new RuntimeException("Quote length exceeded");
+                }
+            }
+        } catch (IOException ex) {
+            System.out.println("ERR => "+ ex);
+        }
+        System.out.println("quotes => "+quotes);
+    }
+}
 ```
 
 ###### Files copy, move, delete
@@ -11778,7 +11849,7 @@ readBytes => is very im
 pointer => 15
 final text => This is very imabchello world                 
 ```
-If file doesn't exists and:
+If file doesn't exist and:
 * you are trying to open file for reading with InputStream/Reader/RandomAccessFile(r) - it will throw `FileNotFoundException`
 * you are trying to open it for writing with OutputStream/Writer/RandomAccessFile(rw) - it will try to create it, and if can't throw `FileNotFoundException` (the reason can be if parent directory doesn't exists or app has no rights to write to directory).
 If you want to be sure that file always exist you can use following code
