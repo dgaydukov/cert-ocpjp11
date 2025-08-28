@@ -10579,7 +10579,7 @@ Person [name=Mike, age=30, weight=80]
 Person [name=Mike, age=30, weight=0]
 ```
 Define custom `writeObject` and `readObject`:
-* they should be declared `private` - otherwise it won't be invoked
+* they should be declared `private` - otherwise they won't be invoked
 * java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
 * order of reading should correspond with order of writing. weight was written first so it should be read first.
 * in every class that implements `Serializable` java inserts 2 methods 
@@ -10636,6 +10636,7 @@ class Person implements Serializable {
     private void writeObject(ObjectOutputStream out) throws IOException {
         // utilize default serialization
         out.defaultWriteObject();
+        // serialize 2 fields: static & transient
         out.writeInt(weight);
         out.writeInt(currentObject);
     }
@@ -10817,13 +10818,42 @@ class Person extends Human implements Serializable {
     }
 }
 ```
+enum example:
+```java
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class App {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
+            DayOfWeek sun = DayOfWeek.SUN;
+            os.writeObject(sun);
+        }
+        try(ObjectInputStream is = new ObjectInputStream(new FileInputStream("./data.ser"))) {
+            DayOfWeek day = (DayOfWeek) is.readObject();
+            System.out.println("day => "+day);
+    }
+    }
+}
+enum DayOfWeek{
+    MON,TUE,WED,THU,FRI,SAT,SUN;
+}
+```
+```
+day => SUN
+```
 Rules of changing serialized classes:
 * if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, jvm will regenerate new serial number
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
 * if some fields are removed from new class version, they just ignored during deserialization.
 * no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
 * if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
-* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance intitializer and no-arg constructor are called.
+* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance initializer and no-arg constructor are called.
+* enum - implicitly extends `ava.lang.Enum` which is `Serializable` so all enums can be serialized
+* record - serialized differently (see ocpjp21)
 Don't confuse:
 * java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
 * SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, `Protobuffer/Thrift/Avro` - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streaming data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)

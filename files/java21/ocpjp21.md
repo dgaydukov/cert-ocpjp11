@@ -595,3 +595,91 @@ public class App {
 record Address<T> (T value){}
 record Person(String name, Address<String> address){}
 ```
+* serialization rules:
+  * record can be serialized but it also needs to implement `Serializable`
+  * you can't customize serialization rule. Compare to the class where you can customize by implementing `Serializable` and add private `writeObject/readObject` or implement `Externalizable` - for record those methods just won't be called - this is because record are immutable and state can't change after it was created. So adding custom methods may tamper with immutability.
+  * canonical constructor is called - basically java create new record from scratch, just like you would create it with `new ...`. This is different from class, for which serialization rules are different.
+```java
+import java.io.Externalizable;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+
+public class App {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
+            Person person = new Person("John", 35);
+            PersonRec rec = new PersonRec("John", 35);
+            os.writeObject(person);
+            os.writeObject(rec);
+        }
+        System.out.println("reading...");
+        try(ObjectInputStream is = new ObjectInputStream(new FileInputStream("./data.ser"))) {
+            Person person = (Person) is.readObject();
+            PersonRec rec = (PersonRec) is.readObject();
+            System.out.println("person => "+person);
+            System.out.println("rec => "+rec);
+        }
+    }
+}
+class Person implements Externalizable {
+    private String name;
+    private int age;
+    public Person(String name, int age) {
+        System.out.println("class main constructor: name="+name+", age="+age);
+        this.name = name;
+        this.age = age;
+    }
+    public Person() {
+        System.out.println("class no-arg constructor");
+    }
+    @Override
+    public String toString() {
+        return "Person(name="+name+", age="+age+")";
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        System.out.println("Person class writeExternal");
+    }
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        System.out.println("Person class readExternal");
+
+    }
+}
+record PersonRec(String name, int age) implements Externalizable {
+    public PersonRec(String name, int age) {
+        System.out.println("record canonical constructor: name=" + name + ", age=" + age);
+        this.name = name;
+        this.age = age;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        System.out.println("Person record writeExternal");
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        System.out.println("Person record readExternal");
+
+    }
+}
+```
+For class, we have implemented custom serialization, but because methods are empty, no fields are saved and deserialized, that's why values are null. For record custom serialization methods are not called, and record just serialized like it never implemented those custom methods.
+```
+class main constructor: name=John, age=35
+record canonical constructor: name=John, age=35
+Person class writeExternal
+reading...
+class no-arg constructor
+Person class readExternal
+record canonical constructor: name=John, age=35
+person => Person(name=null, age=0)
+rec => PersonRec[name=John, age=35]
+```
