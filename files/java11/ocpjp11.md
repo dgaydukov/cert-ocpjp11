@@ -7050,8 +7050,8 @@ len: 5
 Lambda double colon `::`, also called method reference:
 * If you have static method you can call it only from class => MyClass::staticMethod,
 * if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should have the instance as first argument
-* In below example you have instance method `isSpouse` so to call it properly you have to pass 2 instances. If you already have instance you can call it `p1::isSpouse` in this case you have to pass only 1 instance, because original is already there. But if you call `Person::isSpouse` this assumes you have to pass 2 instances, were the first would be the instance and the second would be the argument. That's why the code is not compiled for single `Predicate` but works fine with `BiPredicate`
-* static call on instance method - first param should be instance itself, then it works.
+* In below example you have instance method `isSpouse` so to call it properly you have to pass 2 instances. If you already have instance, you can call it `p1::isSpouse` in this case you have to pass only 1 argument, because first argument is already there. But if you call `Person::isSpouse` this assumes you have to pass 2 instances, were the first would be the instance and the second would be the argument. That's why the code is not compiled for single `Predicate` but works fine with `BiPredicate`
+* static call on instance method - first param should be the instance itself, then it works.
 ```java
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -7080,8 +7080,9 @@ public class App {
         // constructor reference
         Supplier<My> s1 = My::new;
         My my = s1.get();
-        // static reference
+        // static method reference
         Supplier<Integer> s2 = My::staticMethod;
+        // 2 examples of instance method reference
         Supplier<Integer> s3 = my::instanceMethod;
         Supplier<Integer> s4 = (new My())::instanceMethod;
 
@@ -10527,7 +10528,7 @@ Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableEx
 ```
 There are 3 ways we can customize serialization:
 * define `serialPersistentFields` array with fields to be serialized
-* define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
+* define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`) - these fields should be `private`, otherwise they won't be invoked during serialization/deserialization
 * implement `Externalizable` interface
 Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
 ```java
@@ -10577,10 +10578,11 @@ class Person implements Serializable {
 Person [name=Mike, age=30, weight=80]
 Person [name=Mike, age=30, weight=0]
 ```
-Define custom `writeObject` and `readObject`
-By default java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
-Order of reading should correspond with order of writing. weight was written first so it should be read first.
-By default, in every class that implements `Serializable` java inserts 2 methods 
+Define custom `writeObject` and `readObject`:
+* they should be declared `private` - otherwise it won't be invoked
+* java serialize all non-static and non-transient fields. If we want to serialize them too, or just have a custom logic we should implement 2 methods.
+* order of reading should correspond with order of writing. weight was written first so it should be read first.
+* in every class that implements `Serializable` java inserts 2 methods 
 ```java
 private void writeObject(ObjectOutputStream out) throws IOException{
     out.defaultWriteObject();
@@ -10821,7 +10823,7 @@ Rules of changing serialized classes:
 * if some fields are removed from new class version, they just ignored during deserialization.
 * no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
 * if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
-* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`
+* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance intitializer and no-arg constructor are called.
 Don't confuse:
 * java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
 * SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, `Protobuffer/Thrift/Avro` - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streaming data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
@@ -10835,6 +10837,54 @@ SBE better than java serialization:
 * no extra work to serialize parent classes, pay attention to transient, class initializers and so on - we just have simple set of fields as message, and all fields need to be serialized
 * During deserialization, we create many objects, then GC may start to clean - we use non-heap memory, so no GC pause
 * Here we use the best java practices like prefetching so it expedite overall serialize/deserialize process
+Genric example:
+```java
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
+public class App {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
+            Person person = new Person("John", 35);
+            os.writeObject(person);
+        }
+        System.out.println();
+        try(ObjectInputStream is = new ObjectInputStream(new FileInputStream("./data.ser"))) {
+            Person person = (Person) is.readObject();
+            System.out.println("person => "+person);
+        }
+    }
+}
+
+class Human{
+    public Human() {
+        System.out.println("human no-args constructor");
+    }
+    {
+        System.out.println("Human instance initialization");
+    }
+    public Human(String name, int age) {
+        System.out.println("human 2 args constructor");
+    }
+}
+final class Person extends Human implements Serializable {
+    public Person(String name, int age) {
+        super(name, age);
+    }
+}
+```
+```
+Human instance initialization
+human 2 args constructor
+
+Human instance initialization
+human no-args constructor
+person => com.java.test.Person@64a294a6
+```
 
 ###### XML serialization
 JAXB - java architecture xml binding - ability to dump object into xml and construct object from xml first add following into your pom.xml
