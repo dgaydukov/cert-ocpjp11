@@ -10818,56 +10818,8 @@ class Person extends Human implements Serializable {
     }
 }
 ```
-enum example:
-```java
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
-public class App {
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
-            DayOfWeek sun = DayOfWeek.SUN;
-            os.writeObject(sun);
-        }
-        try(ObjectInputStream is = new ObjectInputStream(new FileInputStream("./data.ser"))) {
-            DayOfWeek day = (DayOfWeek) is.readObject();
-            System.out.println("day => "+day);
-    }
-    }
-}
-enum DayOfWeek{
-    MON,TUE,WED,THU,FRI,SAT,SUN;
-}
-```
-```
-day => SUN
-```
-Rules of changing serialized classes:
-* if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, jvm will regenerate new serial number
-* if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
-* if some fields are removed from new class version, they just ignored during deserialization.
-* no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
-* if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
-* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance initializer and no-arg constructor are called.
-* enum - implicitly extends `ava.lang.Enum` which is `Serializable` so all enums can be serialized
-* record - serialized differently (see ocpjp21)
-Don't confuse:
-* java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
-* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, `Protobuffer/Thrift/Avro` - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streaming data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
-SBE design:
-* xml schema - set layout & data type of message (which fields would be used)
-* compiler take the schema and generate optimized java file with java code, you use `SBEtool` to generate encoder/decoder java classes, that would convert binary back and forth
-* message - generated on runtime based on java file
-* no garbage - sbe use direct buffer, so no GC happening during message creation
-* use array as underlying storage, so cpu cache prefetching can expedite the process
-SBE better than java serialization:
-* no extra work to serialize parent classes, pay attention to transient, class initializers and so on - we just have simple set of fields as message, and all fields need to be serialized
-* During deserialization, we create many objects, then GC may start to clean - we use non-heap memory, so no GC pause
-* Here we use the best java practices like prefetching so it expedite overall serialize/deserialize process
-Genric example:
+Example of serializable child and non-serializable parent:
 ```java
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10915,6 +10867,76 @@ Human instance initialization
 human no-args constructor
 person => com.java.test.Person@64a294a6
 ```
+
+enum example:
+```java
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class App {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
+            DayOfWeek sun = DayOfWeek.SUN;
+            sun.setYear(2025);
+            sun.setMonth("June");
+            sun.setDay(15);
+            os.writeObject(sun);
+        }
+        try(ObjectInputStream is = new ObjectInputStream(new FileInputStream("./data.ser"))) {
+            DayOfWeek day = (DayOfWeek) is.readObject();
+            System.out.println("day => "+day);
+        }
+    }
+}
+@Getter
+enum DayOfWeek{
+    MON,TUE,WED,THU,FRI,SAT,SUN;
+
+    @Setter
+    private int year;
+    @Setter
+    private String month;
+    @Setter
+    private int day;
+
+    @Override
+    public String toString() {
+        return this.name()+" [DayOfWeek("+year+" ,"+month+" ,"+day+")]";
+    }
+}
+```
+As you see all internal state, including enum value itself - serialized
+```
+day => SUN [DayOfWeek(2025 ,June ,15)]
+```
+Rules of changing serialized classes:
+* if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, jvm will regenerate new serial number
+* if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
+* if some fields are removed from new class version, they just ignored during deserialization.
+* no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
+* if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
+* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance initializer and no-arg constructor are called.
+* enum - implicitly extends `ava.lang.Enum` which is `Serializable` so all enums can be serialized
+* record - serialized differently (see ocpjp21)
+Don't confuse:
+* java serialization - native serialization out-of-the-box designed by java (all you need is to implement `Serializable`). Convert object into binary representation.
+* SBE (simple binary encoding) - low-latency high-speed custom serialization library. Also stores objects in binary format. There are other options available (XML/JSON - text based, `Protobuffer/Thrift/Avro` - binary), yet SBE is faster low-latency apps. It's specifically designed for financial streaming data, where most fields are either int/log or enums, and it's best for this purpose where all fields have fixed size. We can store Strings, but they stored in the end of the message (and if your message contains mostly strings of variables sizes, then SBE doesn't give you much speed improvements)
+SBE design:
+* xml schema - set layout & data type of message (which fields would be used)
+* compiler take the schema and generate optimized java file with java code, you use `SBEtool` to generate encoder/decoder java classes, that would convert binary back and forth
+* message - generated on runtime based on java file
+* no garbage - sbe use direct buffer, so no GC happening during message creation
+* use array as underlying storage, so cpu cache prefetching can expedite the process
+SBE better than java serialization:
+* no extra work to serialize parent classes, pay attention to transient, class initializers and so on - we just have simple set of fields as message, and all fields need to be serialized
+* During deserialization, we create many objects, then GC may start to clean - we use non-heap memory, so no GC pause
+* Here we use the best java practices like prefetching so it expedite overall serialize/deserialize process
 
 ###### XML serialization
 JAXB - java architecture xml binding - ability to dump object into xml and construct object from xml first add following into your pom.xml
@@ -11052,7 +11074,7 @@ There are 2 types of streams in java. Those with name `InputStream/OutputStream`
 If we try to open non-existing file with `FileInputStrem/FileReader` we will get `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file. This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
 Don't confuse `InputStream` method:
 * `read()` read and return single byte, but return type is `int`, because it may return one extra value of -1 signify end-of-file. Since byte holds only 256, and we need 257 values, it was decided to return int (although `short` is enough, to be compatible with C it was decided to use `int`)
-* `read(byte[] arr)` - read multiply byte into `arr` and return the number of read bytes
+* `read(byte[] arr)` - read multiply byte into `arr` and return the number of read bytes. Return value would never be 0, unless array size is 0, in all other cases at least 1 byte would be read, but if no bytes available -1 would be returned.
 Don't confuse write method:
 * `write(byte[] arr)` - write whole byte array into output stream
 * `write(byte[] arr, int offset, int length)` - write part of byte array limited with offset and length into output stream - always use this method to avoid any incorrect writes. For example you have a file with 12 bytes, but your buffer is 5. So you will read 3 times: 5, 5, 2. But buffer would contain 3 remaining from previous read, and would write totally 15 bytes, what would be incorrect.
@@ -11079,8 +11101,10 @@ public class App {
 }
 ```
 `InputStreamReader/OutputStreamWriter` classes act as a converter between a byte stream and a character stream. They convert a byte stream to a character stream (and vice versa) by using the specified (or the default) character encoding.
-`BufferedReader/BufferedWriter` - require instance of converter as constructor param
-`FileReader/FileWriter/PrintWriter` - don't require constructor param, because they internally create intermediate instance of converter class
+`BufferedReader/BufferedWriter` - require instance of converter as constructor param, yet `BufferedReader` has nice methods `readLine` to read one line or `lines` that return `Stream<String>`. But you can pass instance of `FileReader/FileWriter` into constructor to avoid passing 2 classes:
+    * create with input stream reader:  `BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(PATH_TO_FILE)))`
+    * create with file reader:          `BufferedReader in = new BufferedReader(new FileReader(PATH_TO_FILE))`
+`FileReader/FileWriter/PrintWriter` - don't require constructor param, because it extends `InputStreamReader/OutputStreamWriter`, so they internally create intermediate instance of converter class. But for convenience it's better to use buffered reader/writer wrapped around file reader/writer.
 ```java
 import java.io.File;
 import java.io.FileInputStream;
@@ -11136,7 +11160,11 @@ Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java
 * `mkdirs` - create all non-existent parent directories
 
 ###### Console
-`Console` method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
+* only one object exists, that you can call by `System.console()`
+* maybe null if app is run with `javaw` (run app without command line prompt)
+* also null when you run from IDE, because IDE redirect input/output into its own built-in window
+* available if you run with `java App.java`
+*  method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
 Pay attention that `Console` object is null when execute from IDE. You need to run it manually from console. In order for `Console` to work, java should be run from interactive console without redirecting input/output.
 With `Console` you can both read and write to/from console.
 ```java
@@ -11723,9 +11751,10 @@ public class App {
 old time => 2019-11-22T11:08:55.116953Z
 new time => 2019-11-22T11:10:59.370485Z
 ```
-We can:
-* `Files.readString` - read whole file into string
-* `Files.readAllLines` - read whole file into list of strings
+3 ways to read string from file:
+* `Files.readString` - read whole file into string - may not be good if file too large
+* `Files.readAllLines` - read whole file into `List<String>` - may not be good if file too large
+* `Files.lines` - read whole file into `Stream<String>` - due to stream lazy loading is good from performance perspective - because it's lazy loading from file while you are consuming the stream
 * `Files.newBufferedReader` - get `BufferedReader` directly and work with string lines instead of bytes
 ```java
 import java.util.List;
