@@ -5,9 +5,10 @@
 * [Mockito basics](#mockito-basics)
 * [Mockito multiple returns](#mockito-multiple-returns)
 * [Mockito: throw exception for all other calls](#mockito-throw-exception-for-all-other-calls)
+* [2 ways to capture void method arguments](#2-ways-to-capture-void-method-arguments)
 
 ###### Junit Parametrized Tests
-* you can test interface directly by providing it's implementations
+* you can test interface directly by providing its implementations
 * You just create instances of the interface and feed them to your test
 * Check below code - as you see we create 2 instances of `Car` class but instead of creating 2 separate tests, we create single parametrized test that covers both scenarios.
 ```java
@@ -145,6 +146,42 @@ class Printer {
     private void doWork() {
         // hidden call to method not explicitly defined in the mock
         random.nextDouble();
+    }
+}
+```
+
+###### 2 ways to capture void method arguments
+There are 2 ways you can capture arguments of void method:
+* first of all, you can't use `Mockito.when` with `void` method - such code just won't compile, this construct expect method with returned value
+* solution 1 - use `Mockito.doNothing()`:
+  * use it before you call the method
+  * make sure you call the method at least once - if you want access captured elements
+  * this call won't ensure that method was called - it's just a statement like `if method is called - capture its argument`
+* solution 2 - use `Mockito.verify`:
+  * use it after the method was called
+  * this call verify number of calls - 1, 2 or many times (you can get exact number of how many times method was called)
+So the bottom line is - use `Mockito.verify` because it has more fine-tuning where you can check how many times the method was called. Because when you are using `Mockito.doNothing()` - you don't force anything, just state that if method is called capture it params.
+```java
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+public class AppTest {
+    @Test
+    public void test(){
+        Printer mock = Mockito.mock(Printer.class);
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        Mockito.doNothing().when(mock).print(captor.capture());
+        mock.print("hello");
+        Mockito.verify(mock, Mockito.times(1)).print(captor.capture());
+        Assertions.assertEquals("hello", captor.getValue(), "Wrong argument captured");
+    }
+}
+
+class Printer{
+    void print(String msg){
+        System.out.println("printing: "+msg);
     }
 }
 ```
