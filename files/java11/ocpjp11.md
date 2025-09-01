@@ -7987,7 +7987,10 @@ max2 => Optional[5]
 
 #### Concurrency
 ###### Threads
-Constructor is thread-safe, and it's guranteed by JVM.
+Basics:
+* you can't make any assumptions on the order of execution - even if 1 thread takes 5 sec, and another 1, it may happen that OS thread scheduler will schedule 10 sec for thread1 and then 10 sec for thread2
+* java program comprises all threads - that's why java waits until all threads finish their execution (unless it's a daemon thread - in this case java would exit without waiting it).
+Constructor is thread-safe, and it's guaranteed by JVM.
 Extending `Thread` vs implementing `Runnable`. Generally it's better to implement interface, cause you have to override one method `run` to run it. If you extend from `Thread`, but don't implement `run`, and then start new thread, nothing would be executed.
 ```java
 public class App {

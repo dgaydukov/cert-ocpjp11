@@ -683,3 +683,31 @@ record canonical constructor: name=John, age=35
 person => Person(name=null, age=0)
 rec => PersonRec[name=John, age=35]
 ```
+
+###### Virtual Threads
+Before java21:
+* JMV thread are called - platform threads
+* JVM called OS to create new thread, OS would create new thread and assign it to JVM
+* each thread in JVM is basically a wrapper in OS thread
+* OS decided when each thread would actually run (thread scheduling is done by OS, where multiple threads scheduled to run on the same CPU)
+* problem: OS thread creation is cost memory and CPU + creating many threads cause OS to do a lot of context switching which slows down the OS
+* if you create several thousands threads - OS will run out of memory and kill the app - so the model thread-per-task is good but not practical - java apps like Tomcat, create pool of threads and reuse them, rather then creating new thread for new request. It's so common that it became part of JDK: `Executors.newFixedThreadPool`
+From java21:
+* you can create virtual thread - they are virtual because OS doesn't aware of it, they are created & managed by JVM
+* creation of virtual thread doesn't cost anything - comparing to creation of platform thread - which requires actual thread creation by OS
+* OS thread scheduler - schedules platform threads to run on top of CPU
+* JVM thread scheduler - schedules virtual threads to run on top of platform threads created by OS
+* carrier thread - platform thread on which virtual thread is running
+* you can create millions of virtual thread - but only a handful of platform threads would be created and all your virtual threads would be scheduled to run on top of these platform threads
+* if virtual thread waits for IO it doesn't block OS platform thread
+* now you can fully utilize thread-per-task programming approach
+* GC thread - good example of daemon thread, this thread should run only as app is running. and it's utility thread, so if app not running you don't need it anymore
+* virtual thread always a daemon, calling `setDaemon(false)` throws `IllegalArgumentException` - because you are supposed to create millions of virtual threads for short-lived tasks, they should run as daemon threads only
+* platform thread by default is not daemon, but you can set it as daemon by calling `setDaemon(true)`
+Example of virtual and platform threads:
+```java
+Thread.Builder platformThread = Thread.ofPlatform();
+Thread.Builder virtualThread = Thread.ofVirtual();
+platformThread.start(()-> System.out.println("platformThread"));
+virtualThread.start(()-> System.out.println("virtualThread"));
+```
