@@ -247,6 +247,119 @@ Don't confuse:
    Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
+Thread class has 2 methods to ensure visibility of shared object:
+* `join` (throws `InterruptedException`) - after you call this method, all changes made by thread would be visible to calling thread, even without using `volatile`
+* `isAlive` - once it returns false, all changes made by thread would be visible to calling thread, even without using `volatile`, the call itself is `volatile` so you can use it inside `while` loop
+```java
+public class Test {
+    static class Holder {
+        public int value;
+    }
+
+    public static void main(String[] args) {
+        joinVisibility();
+        isAliveVisibility();
+        noVisibility();
+    }
+
+    public static void noVisibility() {
+        System.out.println("noVisibility...");
+        Holder holder = new Holder();
+        Thread t = getThread(holder);
+        t.start();
+        // wait until we get updated value
+        while (holder.value == 0) {
+        }
+        System.out.println(holder.value);
+    }
+
+    public static void joinVisibility() {
+        System.out.println("joinVisibility...");
+        Holder holder = new Holder();
+        Thread t = getThread(holder);
+        t.start();
+        try {
+            // wait until we get updated value
+            t.join();
+        } catch (InterruptedException ex) {
+            System.out.println("ERR => " + ex);
+        }
+        System.out.println(holder.value);
+    }
+
+    public static void isAliveVisibility() {
+        System.out.println("isAliveVisibility...");
+        Holder holder = new Holder();
+        Thread t = getThread(holder);
+        t.start();
+        while (t.isAlive()) {
+        }
+        System.out.println(holder.value);
+    }
+
+    public static Thread getThread(Holder holder) {
+        return Thread.ofPlatform().unstarted(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                System.out.println("ERR => " + ex);
+            }
+            holder.value = 1;
+        });
+    }
+}
+```
+You can see that when we use `join/isAlive` after call, we have full visibility. But without it, no visibility and thread is stuck forever. You can add `volatile` then third function would work. But the point here is that `join/isAlive` ensures memory visibility without `volatile`.
+```
+joinVisibility...
+1
+isAliveVisibility...
+1
+noVisibility...
+```
+Memory guarantee by interruption:
+* when you call `interrupt` any changes made on calling thread would be visible to called thread
+```java
+public class Test {
+    static class Holder {
+        public int value;
+    }
+
+    public static void main(String[] args) {
+        Holder holder = new Holder();
+        Thread t = getThread(holder);
+        t.start();
+        holder.value = 1;
+        t.interrupt();
+        System.out.println("thread="+Thread.currentThread().getName()+", value="+holder.value);
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("thread="+Thread.currentThread().getName()+", value="+holder.value);
+    }
+
+    public static Thread getThread(Holder holder) {
+        return Thread.ofPlatform().unstarted(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                System.out.println("ERR => " + ex);
+            }
+            System.out.println("thread="+Thread.currentThread().getName()+", value="+holder.value);
+            holder.value = 2;
+        });
+    }
+}
+```
+Changes made by main thread, before calling `interrupt` immediately visible in `Thread-0`, yet for other way around, we have to use `join`, otherwise if we rewrite code without `join`, value still be 1 in the main thread
+```
+ERR => java.lang.InterruptedException: sleep interrupted
+thread=main, value=1
+thread=Thread-0, value=1
+thread=main, value=2
+```
 
 ### GC and Weak References
 GC - happens, when no links point to the object. It happens by java in background process, but can be forced by using `System.gc()`. Pay attention that this method ask java to run GC, but not ensures that it would actually run.

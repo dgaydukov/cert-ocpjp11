@@ -8147,7 +8147,7 @@ Exception in thread "main" java.lang.IllegalArgumentException
 	at com.java.test.App.main(App.java:21)
 ```
 Don't confuse:
-* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed, and it behaves differently for windows/linux, you should avoid using it , yield just suspend thread and notify OS scheduler that it would like to resume ASAP, hence it's non-deterministic, while sleep, always suspend thread for specified amount of time. That's wy you should never use it, cause it behaviour non-deterministic and can't be used correctly
+* `Thread.yield()` - suspends current thread and gives way to another. As with `setPriority` it doesn't guarantee to execute. Since it's not guaranteed, and it behaves differently for windows/linux, you should avoid using it, `yield` just suspend thread and notify OS scheduler that it would like to resume ASAP, hence it's non-deterministic, while `sleep`, always suspend thread for specified amount of time. That's wy you should never use it, cause it behaviour non-deterministic and can't be used correctly
 * `Thread.onSpinWait()` - useful inside `while(!get()){}` blocking types. Empty while called spin wait (cause it spinning processor millions of time per sec). Adding this inside `while` would notify that processor shouldn't spin that fast, so saving cycles & electricity
 * `Thread.sleep(1000)` - force scheduler to suspend execution of current thread for specified amount of time (compare to yield which would suspend for brief moment, but ask scheduler to resume it ASAP)
 * wait - can be invoked only inside `synchronized` block, can be awakened by calling `notify/notifyAll`

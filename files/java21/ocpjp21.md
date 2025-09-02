@@ -704,6 +704,7 @@ From java21:
 * GC thread - good example of daemon thread, this thread should run only as app is running. and it's utility thread, so if app not running you don't need it anymore
 * virtual thread always a daemon, calling `setDaemon(false)` throws `IllegalArgumentException` - because you are supposed to create millions of virtual threads for short-lived tasks, they should run as daemon threads only
 * platform thread by default is not daemon, but you can set it as daemon by calling `setDaemon(true)`
+* virtual thread has the same priority of `Thread.NORM_PRIORITY`, call to `setPriority` just ignored
 Example of virtual and platform threads:
 ```java
 Thread.Builder platformThread = Thread.ofPlatform();
