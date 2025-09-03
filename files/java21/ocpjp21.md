@@ -712,3 +712,4 @@ Thread.Builder virtualThread = Thread.ofVirtual();
 platformThread.start(()-> System.out.println("platformThread"));
 virtualThread.start(()-> System.out.println("virtualThread"));
 ```
+* thread pinning - virtual thread pinned to the OS thread on which they run, that means if your thread is taking too long, it may starve the system, so virtual thread are designed to run small/fast jobs

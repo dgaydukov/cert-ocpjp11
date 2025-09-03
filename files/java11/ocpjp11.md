@@ -8279,6 +8279,82 @@ interrupted on => 275567377
 done thread
 ```
 
+Thread state:
+* enum from `java.lang.Thread.State`
+* There are 5 states:
+  * NEW - thread is not started (before calling `start` on a thread)
+  * RUNNABLE - thread is running and executing the code
+  * BLOCKED - thread is waiting to acquire the lock:
+    * when you use `synchronized` - you get this state immediately
+    * when you use `ReentrantLock` - state would be `WAITING` - when thread tries to acquire the lock, hold by another thread, it will not be blocked immediately. Instead, it will be added to a queue of waiting threads, and its state will be set to `WAITING` or `TIMED_WAITING`. this is because `ReentrantLock` internal implementation - to allow features like fairness and timeouts - it uses queue to manage waiting threads which is a bit more efficient then just block the thread.
+  * WAITING - thread is waiting to `Object.wait` or `join` from another thread
+  * TIMED_WAITING - thread is sleeping
+  * TERMINATED - thread finished execution, either the `run` function completed or `interrupted` was called
+interrupt method:
+* if thread in `RUNNABLE/BLOCKED` - it sets flag `interrupted=true`
+* if thread in `WAITING/TIMED_WAITING` - it throws `InterruptedException` and change thread state to `RUNNABLE`
+```java
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class Test {
+    public static void main(String[] args) {
+        Object obj = new Object();
+        Lock lock = new ReentrantLock();
+        Thread t = Thread.ofPlatform().start(()->{
+            Thread t2 = Thread.ofPlatform().start(() -> {
+                sleep(2100);
+            });
+            try {
+                t2.join();
+            } catch (InterruptedException ex) {
+                System.out.println("ERR => " + ex+", thread="+Thread.currentThread().getName());
+            }
+            Thread t3 = Thread.ofPlatform().start(() -> {
+                synchronized (obj) {
+                    sleep(2100);
+                }
+            });
+            // use timeout to ensure that t3 is executed first, before we call synchronized
+            sleep(50);
+            synchronized (obj) {
+                sleep(50);
+            }
+            sleep(3100);
+        });
+        for (int i = 0; i < 10; i++) {
+            System.out.println(t.getState());
+            sleep(1000);
+        }
+    }
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            System.out.println("ERR => " + ex+", thread="+Thread.currentThread().getName());
+        }
+    }
+}
+```
+Below you can see 4 outputs:
+* first thread t1 is runnable
+* second state is waiting, because t1 is waiting another thread t2 until it completes with `t2.join`
+* third state is blocked, because it try to acquire lock on `obj`, yet thread `t3` already holding the lock
+* fourth state is TIMED_WAITING - because our thread is sleeping
+* finally thread is terminated
+```
+RUNNABLE
+WAITING
+WAITING
+BLOCKED
+BLOCKED
+TIMED_WAITING
+TIMED_WAITING
+TIMED_WAITING
+TERMINATED
+TERMINATED
+```
+
 ###### ExecutorService
 Has 3 versions of submit:
 * `submit(Runnable)` - take nothing, return `Future<?>`
@@ -8514,7 +8590,18 @@ Runnable finish pool-1-thread-3
 If we remove `service.shutdown();` they will run forever.
 
 ###### wait/notify and await/signal
-`wait/notify` is the old way to build concurrency, but `await/signal` is new one from `java.util.concurrent.locks` package. We can implement BlockingQueue using old and new way
+Basics:
+* only thread that acquired a lock associated with this monitor can call these method, otherwise you will get `IllegalMonitorStateException`
+* `wait/notify` is the old way to build concurrency - inside `Object`
+* `await/signal` is new one from `java.util.concurrent.locks` package
+when you call `wait` - 3 things happens:
+* thread is put into waiting list
+* monitor of the object on which this method called is unlocked (to be able to call `wait` you have to lock the object first)
+* thread state is changed to `WAITING`
+when you call `notify/notifyAll`:
+* waiting thread is moved into `RUNNABLE`
+* if multiple threads waiting, and you call `notify` - JVM will select 1 thread and move it to runnable state
+We can implement BlockingQueue using old and new way
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -9389,7 +9476,7 @@ There are several access pattern for concurrent app:
 * single writer - single reader: no problem here, just use `mutex`, only 1 thread can access resource
 * many writers - single reader: no problem, just use `mutex`, only 1 thread can access resource
 * single/many writers - many readers: here we may have a problem - if we have many readers, it doesn't make sense for them to wait each other. Because they only read, they can all access the object at the same time.
-To resave this problem with multiple readers we have come up with 3 solutions. But before we goes deeper, let's set up 2 constraints:
+To resave this problem with multiple readers we have come up with 3 solutions. But before we go deeper, let's set up 2 constraints:
 * writing is exclusive operation - when a thread is writing, nobody can write/read
 * reading is shared with other reading but exclusive to writing - many threads can read at the same time, but if at least one is reading not writes are possible. Important point here is that read-write are exclusive. This is done to avoid partial reading. Imagine a thread writing and another thread reading or vice-versa. In this case reading thread may read partial/incomplete data.
 3 ways to solve readers-writers problem:
@@ -9402,7 +9489,7 @@ To resave this problem with multiple readers we have come up with 3 solutions. B
   * java `ReadWriteLock` with Non-fair mode use this design pattern
 * Writer preference:
   * similar concept as first one, but now writes has priority
-  * the code is similar with 4 locks, where all writes write first then readers can read
+  * the code is similar with 4 locks, where all writes should write first then readers can read
   * may lead to reader starvation, because writes always have the priority
 * Fair preference (no thread shall be allowed to starve):
   * both readers and writes access the resource fair
@@ -9653,6 +9740,11 @@ B
 ```
 
 ###### ReentrantLock/ReentrantReadWriteLock/StampedLock
+reentrant - means same thread can acquire the lock it already acquired:
+* if you have `synchronized (this)` inside several functions, and they all called by the same thread - thread will not be blocked, because he already acquired and holding the lock on `this`, so it can enter any method with that lock
+* this is the meaning of reentrant - if a thread has already locked the monitor, it can lock the same monitor again 
+* without it - we would have many problems of splitting complex code into several functions, because once thread enter another `synchronized` on the same monitor - it would be permanently blocked
+* internally - it has a lock count, and each entrance into lock increase the counter, and each exit the lock block is decreasing it - by the end the counter=0
 There are 3 main class to work with `Lock` interface:
 * ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. Reentrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
 * ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface). This can be same as using `synchronized` + `volatile` and not synchronized read. We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock), and also readLock ensure that once writeLock is happening no read should be possible

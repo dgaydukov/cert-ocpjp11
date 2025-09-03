@@ -247,7 +247,70 @@ Don't confuse:
    Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
-Thread class has 2 methods to ensure visibility of shared object:
+
+Memory visibility:
+* official way is to use `volatile` - this ensures memory visibility
+* there are several functions which are not officially ensure memory visibility - but have it as side effect - if you uncomment any of the 3 lines, you will have practical visibility and the code would not stuck forever:
+  * System.out.println - due to its internal implementation of `println` which acquires lock on `PrintStream` object to ensure correctness when several thread try to log, it ensures that all read made before this call, would be visible after the call
+  * `Thread`
+    * `Thread.onSpinWait` - due to internal implementation of `onSpinWait` which calls `nop` instruction which flush CPU cache - you may observe memory visibility as side effects
+    * `Thread.yield` - force CPU to run other threads, which may force CPU cache flush and prevent reordering - and as side effect you may observe memory visibility
+    * `Thread.sleep` - because JVM called memory barriers and cache flushing operations, while the thread was sleeping, when the thread wakeup, it will see all the latest changes made by other threads
+    * `Thread.join` - this is granted by JVM, when thread would wait for another thread, it would see all the changes.
+      * You can look into [JLS-17.4.4] => `The join method waits for the thread to die, and then returns. This method is a synchronization point, and is used to ensure that changes made by the thread are visible to other threads`
+  * `Object.wait`, `Object.notify`, `Object.notifyAll`, `Condition.await`, `Condition.signal`
+  * `System.gc` - during GC cycle, JVM stop all threads, scan the heap, collect garbage - during these phases JVM call some memory barriers - this has memory visibility as side effect
+  * `Unsafe` of `loadFence/storeFence/fullFence` and a few other - because some unsafe method under-the-hood force CPU cache flush and prevent reordering
+* Never rely on above methods, because observable memory visibility is not guaranteed by JVM, it's more like side effect due to internal implementation - in fact internal implementation may change at some point, and if you rely on it, your code would behave differently. But for now yes, if you use any of the above 3, you may observe memory visibility without using `volatile`
+```java
+import sun.misc.Unsafe;
+import java.lang.reflect.Field;
+
+public class Test {
+    static class Holder {
+        public int value;
+    }
+
+    public static void main(String[] args) {
+        Holder holder = new Holder();
+        Thread t = getThread(holder);
+        t.start();
+        // wait until we get updated value
+        while (holder.value == 0) {
+            // System.out.println();
+            // Thread.onSpinWait();
+            // Thread.yield();
+            // System.gc();
+            // UNSAFE.fullFence();
+        }
+        System.out.println(holder.value);
+    }
+
+    public static Thread getThread(Holder holder) {
+        return Thread.ofPlatform().unstarted(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                System.out.println("ERR => " + ex);
+            }
+            holder.value = 1;
+        });
+    }
+
+    private static final Unsafe UNSAFE = getUnsafe();
+    public static Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException ex){
+            throw new RuntimeException(ex);
+        }
+    }
+}
+```
+
+Memory visibility on `Thread` object:
 * `join` (throws `InterruptedException`) - after you call this method, all changes made by thread would be visible to calling thread, even without using `volatile`
 * `isAlive` - once it returns false, all changes made by thread would be visible to calling thread, even without using `volatile`, the call itself is `volatile` so you can use it inside `while` loop
 ```java
@@ -317,7 +380,7 @@ isAliveVisibility...
 1
 noVisibility...
 ```
-Memory guarantee by interruption:
+Memory visibility by interruption:
 * when you call `interrupt` any changes made on calling thread would be visible to called thread
 ```java
 public class Test {
