@@ -8356,10 +8356,15 @@ TERMINATED
 ```
 
 ###### ExecutorService
+Don't confuse:
+* `shutdown` - shutdown the service, but doesn't terminate running threads, you wait until all threads finish execution and terminated.
+* `shutdownNow` - shutdown the service and terminate all running thread, by calling `interrupt`, all threads are interrupted and exit execution
+* `close` (added in java19) - since service also extends `AuoClosable`, if you wrap creation into `try-with-resources`, it would automatically call `close` which under-the-hood calls `shutdown` and wait for termination of all running threads. Previous 2 don't block current thread, but this one would block and wait until all threads are terminated.
 Has 3 versions of submit:
 * `submit(Runnable)` - take nothing, return `Future<?>`
 * `submit(Runnable, T)` - return `Future<T>` when done
 * `submit(Callable<T>)` - return `Future<T>` from callable
+* one version of submit from parent interface `Executor` with 1 method only: `void execute(Runnable)`. All 3 above method, under-the-hood call `execute`
 ```java
 import java.util.concurrent.*;
 
@@ -8715,9 +8720,11 @@ Getting highLevelQueue value
 Putting 1 into highLevelQueue
 highLevelQueue value: 1
 ```
-It’s better to use new API, cause you can set additional methods like `awaitUntil` - wait for some time and `awaitUninterruptibly` - to wait until signal, even if someone interrupted process.
-`lockInterruptibly` will throw `lockInterruptibly`, while simple `lock` can be interrupted, but won't throw exception.
-`SynchronousQueue` - special type of queue with one element. put - is waiting until take is done. Useful when you have 2 threads that need to change data and continue.
+It’s better to use new API, cause you can set additional methods:
+* `await/await(long time, TimeUnit unit)/awaitUntil/awaitNanos` - wait for some time, all 4 throws InterruptedException
+* `awaitUninterruptibly` - doesn't throw any exception, and would wait until `signal/signalAll`, even if someone interrupted process. In case of `interrupt` it would wait until signal, and only after received signal it would move flag to interrupted.
+
+* `SynchronousQueue` - special type of queue with one element. put - is waiting until take is done. Useful when you have 2 threads that need to change data and continue.
 ```java
 import java.util.concurrent.*;
 
@@ -9188,6 +9195,12 @@ How to resolve deadlock problem:
   * we can refactor our code based on `hashcode` - see example below
 * use `tryLock` or `tryLock(long time, TimeUnit unit)` from the `Lock` interface - this is non-blocking version of `lock`, it returns immediately (or wait for timeout). So you have to add `if/else` condition, but using it would prevent deadlock, because if thread is busy, then it would just return false, and you may proceed forward. This code is non-blocking, so you don't wait.
 * If your app stuck in deadlock - the only way is to restart (assuming you fixed the code, otherwise after restart, the app would be stuck again)
+
+Why using explicit locking with `Lock` interface is better - you have more flexibility and more methods like:
+* `void lock()` - just lock, wait if can't lock now
+* `void lockInterruptibly() throws InterruptedException` - trying to acquire the lock until the thread is interrupted
+* `boolean tryLock()` - try to lock and return result if can't lock now
+* `boolean tryLock(long time, TimeUnit unit) throws InterruptedException` - try to lock for some time, and return if can't lock during this time
 
 Global order of calling to avoid deadlock
 ```java
@@ -9747,7 +9760,15 @@ reentrant - means same thread can acquire the lock it already acquired:
 * internally - it has a lock count, and each entrance into lock increase the counter, and each exit the lock block is decreasing it - by the end the counter=0
 There are 3 main class to work with `Lock` interface:
 * ReentrantLock - basic implementation of `Lock` interface. This is same as using `synchronized` on each method. All locks in java including locks created by `synchronized` keyword are reentrant. That means same thread can re-acquire the lock several times, but in this case thread would need to release it exact number of times as it acquired it. Reentrancy achieved by JVM which maintain internal counter for each lock per thread, and if thread try to acquire lock second time, counter increased. If thread release lock, counter decreased, if counter == 0, then lock is released. This is done on purpose, so you don't get exception, otherwise if you call `synchronized` method from another `synchronized` method for the same thread you would get exception. But since all locks are reentrant you don't get it.
-* ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface). This can be same as using `synchronized` + `volatile` and not synchronized read. We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock), and also readLock ensure that once writeLock is happening no read should be possible
+* ReentrantReadWriteLock - implementation of `ReadWriteLock` with 2 locks for read & write (implemented as inner static classes and implementing `Lock` interface). This can be same as using `synchronized` + `volatile` and not synchronized read. We need readLock - to ensure multiple readers can read at the same time (compare to `synchronized` keyword where each reader would wait another reader until it release lock), and also readLock ensure that once writeLock is happening no read should be possible. Under-the-hood it's the first solution to Readers–writers problem. Features:
+  * upgrade is not possible - thread holding read lock can't acquire write lock. because write lock is exclusive and read lock is shared, accessing write lock from read lock may lead to deadlock. such thread must release read lock first, then try to acquire write lock.
+  * downgrade is possible - thread holding write lock can acquire read lock - but he had to explicitly release both read & write locks. Practically you will never do this, because if thread has acquired a write lock, it can read all the latest data due to JMM guarantees. So such thread already will see all up-to-date data, and doesn't need to acquire read lock while holding write lock - but just keep in mind that it's possible.
+  * useful functions:
+    * `getReadHoldCount` - number of locks hold by current thread. since read lock is reentrant a thread can acquire lock multiple times
+    * `getReadLockCount` - number of locks hold by all threads
+    * `getWriteHoldCount` - number of write locks held by current thread. since write lock can be held by only 1 thread, there is no method like `getWriteLockCount`
+    * `isWriteLocked` - check if write lock held by any other thread
+    * `isWriteLockedByCurrentThread` - check if write lock held by current thread
 * StampedLock - same as ReentrantReadWriteLock, but using a few additional methods:
     * `tryConvertToWriteLock` - convert read lock to write lock
     * `tryOptimisticRead` - use optimistic read

@@ -712,4 +712,4 @@ Thread.Builder virtualThread = Thread.ofVirtual();
 platformThread.start(()-> System.out.println("platformThread"));
 virtualThread.start(()-> System.out.println("virtualThread"));
 ```
-* thread pinning - virtual thread pinned to the OS thread on which they run, that means if your thread is taking too long, it may starve the system, so virtual thread are designed to run small/fast jobs
+* thread pinning - virtual thread with `synchonized` pinned to the platform thread on which they run, that means if your thread is taking too long, it may starve the system, so virtual thread are designed to run small/fast jobs. But if you use `ReentrantLock` it won't be pinned - this is one more advantage to use explicit locking.
