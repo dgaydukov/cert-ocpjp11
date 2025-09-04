@@ -8842,19 +8842,25 @@ Don't confuse:
 * `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you count down, and then all threads are released
 you don't need to wait until threads reach some point, you can count down on any algo, but once you count down to 0, all your threads proceed further
 ```java
-import java.util.concurrent.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         int threads = 10;
         ExecutorService service = Executors.newFixedThreadPool(threads);
+
         CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < threads; i++) {
             final int index = i;
             service.submit(() -> {
                 try {
                     latch.await();
-                    System.out.print(index);
+                    System.out.print(index+", ");
                 } catch (InterruptedException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -8872,7 +8878,7 @@ public class App {
             service.submit(() -> {
                 try {
                     semaphore.acquire();
-                    System.out.print(index);
+                    System.out.print(index+", ");
                 } catch (InterruptedException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -8884,14 +8890,16 @@ public class App {
         sleep(1);
         System.out.println();
 
-        CyclicBarrier barrier = new CyclicBarrier(threads);
+        CyclicBarrier barrier = new CyclicBarrier(threads, ()->{
+            System.out.println("all threads reached barrier");
+        });
         for (int i = 0; i < threads; i++) {
             final int index = i;
             service.submit(() -> {
                 try {
                     barrier.await();
-                    System.out.print(index);
-                } catch (InterruptedException|BrokenBarrierException ex) {
+                    System.out.print(index+", ");
+                } catch (InterruptedException | BrokenBarrierException ex) {
                     throw new RuntimeException(ex);
                 }
             });
@@ -8912,46 +8920,12 @@ public class App {
 ```
 ```
 countdown...
-0254731869
+7, 8, 5, 1, 9, 3, 4, 2, 0, 6, 
 semaphore release all...
-1230897645
+2, 6, 9, 0, 5, 1, 3, 4, 7, 8, 
 barrier run...
-9012345678
-```
-We can pass second param `Runnable` to `CyclicBarrier`, if we need to run some code, after barrier has been passed. Notice that this runnable will run exactly once by final thread that would reach barrier.
-```java
-import java.util.concurrent.*;
-
-public class App{
-    public static void main(String[] args) {
-        int threads = 3;
-        ExecutorService service = Executors.newFixedThreadPool(threads);
-        Runnable r = () -> {
-            System.out.println(Thread.currentThread().getName()  + ": finish work");
-        };
-        CyclicBarrier barrier = new CyclicBarrier(threads, r);
-        for(int i = 0; i < threads; i++){
-            service.submit(()->{
-                try{
-                    System.out.println(Thread.currentThread().getName()  + ": starting...");
-                    barrier.await();
-                    System.out.println(Thread.currentThread().getName()  + ": done");
-                } catch (InterruptedException|BrokenBarrierException ex){
-                    throw new RuntimeException(ex);
-                }
-            });
-        }
-    }
-}
-```
-```
-pool-1-thread-2: starting...
-pool-1-thread-1: starting...
-pool-1-thread-3: starting...
-pool-1-thread-3: finish work
-pool-1-thread-2: done
-pool-1-thread-3: done
-pool-1-thread-1: done
+all threads reached barrier
+0, 5, 1, 9, 2, 6, 4, 3, 8, 7, 
 ```
 You can also implement your own synchronizer logic using `AtomicInteger` and round-robin design
 ```java
