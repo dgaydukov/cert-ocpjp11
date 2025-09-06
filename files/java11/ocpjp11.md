@@ -11764,7 +11764,9 @@ App.java
 ```
 
 ###### BasicFileAttributes
-Can be useful when you want to access a few attributes at the same time, so you don’t have to call `Files.isAttr` a few times (every time you access attribute with Files.get... it read file from filesystem). Moreover there are a few properties that are system attributes and there is no comparable methods in `Files.` api.
+Can be useful when you want to access a few attributes at the same time:
+* every time you access attribute with `Files` it reads file from filesystem
+* there are a few properties that are system attributes and there is no comparable methods in `Files` API
 ```java
 import java.io.IOException;
 import java.nio.file.Files;
