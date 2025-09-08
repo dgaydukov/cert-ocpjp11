@@ -6710,7 +6710,9 @@ class ArraySimpleQueue<T> implements SimpleQueue<T>{
 ###### Functional interfaces
 Lambda rules:
 * you can miss or put lambda type for each param
+* for one param you don't need brackets, but if you want to add type, even for single param - you still need brackets
 * if you want to use annotation for lambda param - you must specify the type
+* lambda has no standalone type, because of this you can't assign `var` to it. For the same reason you can't assign lambda to `Object`
 Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block). Instance & static variables shouldn't be effectively final in order to be used inside lambda.
 ```java
 class Scope{
@@ -6718,7 +6720,7 @@ class Scope{
     static int globalStatic = 1; // static variable
     public void print() {
         final int local1 = 1; // final automatic variable
-        int local2 = 1; // effectively final automatic variable (cause we don't explicitly change it's value)
+        int local2 = 1; // effectively final automatic variable (cause we don't explicitly change its value)
         int local3 = 1; // automatic variable
         global = 2;
         local3 = 2;
@@ -6817,7 +6819,7 @@ mandarin: 8
 hello world
 hello world
 ```
-Although NewCounter is valid functional interface (has only one abstract method doIt), we call not doIt, but count method => which is default and already defined. So that's why in second `forEach` we calling not lambda defined in newCounter, but default method. If you declare count `static` it won't compiled, cause static can be called from interface object directly.
+Although `NewCounter` is valid functional interface (has only one abstract method `doIt`), we call not `doIt`, but count method => which is default and already defined. So that's why in second `forEach` we're calling not lambda defined in newCounter, but default method. If you declare count `static` it won't compile, cause static can be called from interface object directly.
 
 You can use annotation `@FunctionalInterface` to check whether `interface` is functional or not
 ```java
@@ -6904,7 +6906,7 @@ public class App {
 hello world
 My name is Jack, my age is 24
 ```
-**Pay attention, that types of arguments for lambda should match arguments of functional interface. In case functional interface doesn't directly state its type, lambda params should be Object
+Pay attention, that types of arguments for lambda should match arguments of functional interface. In case functional interface doesn't directly state its type, lambda params should be Object
 ```java
 import java.util.*;
 import java.util.function.Consumer;
@@ -6984,16 +6986,16 @@ public class App {
 ```
 If we don't want to autobox/unbox value we can use functions that work directly with primitives. In some cases working with these functions can speed up your program, cause no need to spend time for autoboxing/unboxing.
 There are 5 types of functions that work with primitives. `xxx` - can be int, long, double (not byte,short,char,float,boolean).
-`XxxUnaryOperator` - takes xxx, returns xxx, call - applyAsInt
-`XxxBinaryOperator` - takes 2 xxx, returns xxx, call - applyAsInt
+`XxxUnaryOperator` - takes xxx, returns xxx, call - applyAsXxx
+`XxxBinaryOperator` - takes 2 xxx, returns xxx, call - applyAsXxx
 `XxxFunction<T>` - takes xxx, returns T, call - apply
-`ToXxxFunction<T>` - takes T, return xxx, call - applyAsInt
-`ToXxxBiFunction<T, U>` - takes 2 params T and U, returns xxx, call - applyAsInt
+`ToXxxFunction<T>` - takes T, return xxx, call - applyAsXxx
+`ToXxxBiFunction<T, U>` - takes 2 params T and U, returns xxx, call - applyAsXxx
 We have 4 types of primitive supplier: `XxxSupplier`, you can call it as `getAsXxx`, (xxx - int, long, double, boolean)
 We have 3 types of primitive consumer `XxxConsumer`, you can call it as `accept`. (xxx - int, long, double)
 we have 3 types of object-&-primitive consumer `ObjXxxConsumer<T>`, it accepts 2 params (T, xxx), you can call it as `accept`. (xxx - int, long, double). Can be useful when you need BiConsumer with one object and one primitive.
 We have 3 types of primitive predicate `XxxPredicate`, you can call it as `test`, (xxx - int, long, double)
-we have 3 types of primitive-to-primitive functions `XxxToYyyFunction`, you can call it with `getAsYyy`. (xxx, yyy - int, long, double).
+we have 3 types of primitive-to-primitive functions `XxxToYyyFunction`, you can call it with `getAsYyy`. (xxx/yyy - int, long, double).
 ```java
 import java.util.function.*;
 
@@ -7020,7 +7022,7 @@ toIntFunction => 5
 toIntBiFunction(hello, world) => 10
 ```
 
- `addThen` and `compose` are equivalent. In other words: `x.andThen(y)` is the same as `y.compose(x)`.
+`addThen` and `compose` are equivalent. In other words: `x.andThen(y)` is the same as `y.compose(x)`.
 For `BiFunction` we also have `addThen` only, which combine BiFunction & Function, and return BiFunction
 ```java
 import java.util.function.BiFunction;
@@ -7047,9 +7049,9 @@ len: 5
 ```
 
 ###### Method reference
-Lambda double colon `::`, also called method reference:
-* If you have static method you can call it only from class => MyClass::staticMethod,
-* if you have instance method you can call it from instance variable => my::instanceMethod, but also from static context, but in this case you should have the instance as first argument
+Lambda double colon `::` - called method reference:
+* If you have static method you can call it only from class => `MyClass::staticMethod`
+* if you have instance method you can call it from instance variable => `my::instanceMethod`, but also from static context, but in this case you should pass the instance as first argument
 * In below example you have instance method `isSpouse` so to call it properly you have to pass 2 instances. If you already have instance, you can call it `p1::isSpouse` in this case you have to pass only 1 argument, because first argument is already there. But if you call `Person::isSpouse` this assumes you have to pass 2 instances, were the first would be the instance and the second would be the argument. That's why the code is not compiled for single `Predicate` but works fine with `BiPredicate`
 * static call on instance method - first param should be the instance itself, then it works.
 ```java
@@ -7188,7 +7190,7 @@ class TooSmallValidator implements Validator{
 ```
 
 ###### Comparator and Comparable
-Remember Java sort order `empty > space > > negativeNumber > number > uppercase > lowercase` (natural sorting)
+Remember Java sort order: natural sorting => `empty > space > negativeNumber > number > uppercase > lowercase`
 ```java
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7209,10 +7211,10 @@ shuffled => [a, A,  , , 1]
 sorted => [,  , 1, A, a]
 ```
 Don't confuse:
-* `Comparable` - just interface with one method `int compareTo(T var1)`. Although technically it's a functional interface, logically it's not, because it describe inherent behavior of implementing class.
+* `Comparable` - just interface with one method `int compareTo(T var1)`. Although technically it's a functional interface, logically it's not, because it describes inherent behavior of implementing class.
 * `Comparator` - functional interface with method `int compare(T var1, T var2)`:
   * if we have 2 values, `a` and `b` when we need:
-    * increasing order - we should return `a-b`: if `a` less than `b` then `a-b` would be negative, so we would have increasing order, because `a` is first, and it's less then second element which is `b`
+    * increasing order - we should return `a-b`: if `a` less than `b` then `a-b` would be negative, so we would have increasing order, because `a` is first, and it's less than second element which is `b`
     * decreasing order - we should return `b-a`: same rule as above but in reverse
 `Collections.sort` just as constructor of all sortable maps/sets like `TreeMap/TreeSet` - takes `Comparator` as second argument. If class implements `Comparable` we can omit second param(class should explicitly implement this interface, otherwise `ClassCastException` would be thrown). 
 Since `Comparator` is functional interface we can pass lambda that takes 2 params.
@@ -7281,7 +7283,9 @@ public static Comparator<Person> sort() {
     return comparator;
 }
 ```
-You can also achieve this by implementing `Comparable<T>` interface
+You can also achieve this by implementing `Comparable<T>` interface:
+* If we remove `implements Comparable<Person>` we would get compile time error, cause sort expects list of T extends Comparable
+* If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.Person cannot be cast to class java.lang.Comparable`
 ```java
 import java.util.*;
 
@@ -7316,16 +7320,9 @@ class Person implements Comparable<Person>{
     }
 }
 ```
-If we remove `implements Comparable<Person>` we would get compile time error, cause sort expects list of T extends Comparable. 
-If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.Person cannot be cast to class java.lang.Comparable`.
 
 ###### Primitive streams
-If you want to work with stream use `Stream`. If you want primitive type streams use one of these
-`IntStream`
-`LongStream`
-`DoubleStream`
-
-To convert use function `mapToObj`, `mapToInt`, `mapToDouble`, `mapToLong`.
+If you want to work with stream use `Stream`. If you want primitive type streams use one of these: `IntStream/LongStream/DoubleStream`. To convert use function `mapToObj/mapToInt/mapToDouble/mapToLong`.
 ```java
 import java.util.stream.*;
 
@@ -7436,13 +7433,11 @@ public class App {
          * We have 2 versions of iterate, in second we can pass predicate as second param, otherwise iterate would run forever
          */
         Stream.iterate(0, v->v+1).limit(10).forEach(System.out::print);
-        System.out.println();
         Stream.iterate(0, v->v<10, v->v+1).forEach(System.out::print);
         /**
          * If we have some custom type (supplier) and need generate infinite
          * stream, like stream of guids, we can use generate for this
          */
-        System.out.println();
         Stream.generate(UUID::randomUUID).limit(3).forEach(System.out::println);
         System.out.println();
 
@@ -7605,29 +7600,35 @@ Also when we transform stream from parallel to sequential all stream would be se
 at the beginning or before terminal, whole stream would work either parallel or sequential.
 
 ###### Collectors
-`Collectors` - list of functions that terminate streams and allow you to transform your stream into string, list, set, map. `Stream.collect` take `Collector` interface as input parameter. There is no `.toArray` collector, but you can collect toList, and then call `toArray()` from stream.
-So almost all methods in `Collectors` class that we pass into `collect` return `Collector` object. Generally there should be enough methods in `Collectors` class, but if you need you can create our own by implementing this interface.
-`Collector/Collection` - interfaces, `Collectors/Collections` - concrete classes with many static factories to solve common problems.
-
-Collectors.mapping takes a function and another collector, and creates a new collector which first applies the function and then collects the mapped elements using the given collectors. Thus, the following are equivalent:
+* list of functions that terminate streams and allow you to transform your stream into string/list/set/map
+* `Stream.collect` take `Collector` interface as input parameter
+* there is no `toArray` collector:
+  * you can collect `toList` and then call `toArray()`
+  * for primitive, you can map to primitive type with `maptTo...` and call `toArray()` to get array of primitives
+* all methods in `Collectors` class that we pass into `collect` return `Collector` object. Generally there should be enough methods in `Collectors` class, but if you need you can create our own by implementing this interface.
+* `Collector/Collection` - interfaces, `Collectors/Collections` - concrete classes with many static factories to solve common problems.
+* `Collectors.mapping` takes a function and another collector, and creates a new collector which first applies the function and then collects the mapped elements using the given collectors. Thus, the following are equivalent:
 ```
 items.stream().map(f).collect(c);
 items.stream().collect(Collectors.mapping(f, c));
 ```
-Collectors.mapping is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
-* `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
-* `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
+* `Collectors.mapping` is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
+  * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
+  * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
 
 This is the case with `Collectors.filtering`
 ```java
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
-public class App{
+public class Test{
     public static void main(String[] args) {
         Predicate<String> p = s -> s.length() >= 2;
-        var f = Collectors.groupingBy(String::length);
+        Collector<String, ?, Map<Integer, List<String>>> f = Collectors.groupingBy(String::length);
         List<String> list = new ArrayList<>(List.of("a","bb","cc","aaa"));
         Map<Integer, List<String>> filterMap = list.stream().filter(p).collect(f);
         System.out.println("filterMap => " + filterMap);
@@ -7685,7 +7686,7 @@ public class App {
 
         /**
           * average method exists only in Int/Long/DoubleStream and return OptionalDouble
-          * in Stream we have 3 collectors averagingInt/Long/Double, that takes ToInt/Long/DoubleFunction and return double
+          * in Stream we have 3 collectors averagingInt/Long/Double, that takes To/Int/Long/Double/Function and return double
           */
         IntStream intStream = IntStream.range(0, 5);
         OptionalDouble optionalDouble = intStream.average();
@@ -7694,18 +7695,18 @@ public class App {
         //if we have duplicates we need third function to merge them, otherwise we will get (IllegalStateException: Duplicate key a)
         Map<String, Integer> duplicates = Stream
             .of("a","b","c","a","b","a")
-            .collect(Collectors.toMap(s -> s, s->s.length(), (s1, s2)-> s1+ s2));
+            .collect(Collectors.toMap(k -> k, v -> 1, (v1, v2)-> v1 + v2));
         System.out.println("duplicates => " + duplicates);
 
 
-        // We can do the other way around, a `Map<Integer, String>`. But doing so would throw `IllegalStateException`, cause 2 names have the same key (4 is the length for both Jack and John). In such a case, we should pass third function, where we write what to do. For example we can concatenate such names.
+        // We can do the other way around, a `Map<Integer, String>`. But doing so would throw `IllegalStateException`, cause 2 names have the same key (4 is the length for both Jack and John). In such a case, we should pass third param - merging function that takes 2 values and should merge them somehow and return single value, where we write what to do. For example, we can concatenate such names.
         Map<Integer, String> invertedMap = list
             .stream()
-            .collect(Collectors.toMap(s -> s.length(), s -> s, (s1, s2) -> s1 + ", " + s2));
+            .collect(Collectors.toMap(k -> k.length(), v -> v, (v1, v2) -> v1 + ", " + v2));
         System.out.println("invertedMap => " + invertedMap);
 
 
-        //Suppose we want to preserve order. For this we have to use `LinkedHashMap`. By default `toMap` return `HashMap`, but we can pass the fourth argument to `toMap` function.
+        //Suppose we want to preserve order. For this we have to use `LinkedHashMap`. By default, `toMap` return `HashMap`, but we can pass the fourth argument to `toMap` function.
         Map<Integer, String> invertedLinkedMap = list
             .stream()
             .collect(Collectors.toMap(s -> s.length(), s -> s, (s1, s2) -> s1 + ", " + s2, LinkedHashMap::new));
@@ -7761,19 +7762,19 @@ public class App {
          * To collect into a Map that contains list/set/map value by key (Map<MyKey, List<MyObject>>), use Collectors.groupingBy().
          */
         // default grouping return list of objects as value of map
-        Map<Integer, List<Person>> groupByAge = people.stream().collect(Collectors.groupingBy(k->k.age));
+        Map<Integer, List<Person>> groupByAge = people.stream().collect(Collectors.groupingBy(k -> k.age));
         System.out.println("groupByAge => " + groupByAge);
         // we can change value by supplying custom collector
-        Map<Integer, List<String>> groupNamesByAge = people.stream().collect(Collectors.groupingBy(k->k.age, Collectors.mapping(p->p.name, Collectors.toList())));
+        Map<Integer, List<String>> groupNamesByAge = people.stream().collect(Collectors.groupingBy(k -> k.age, Collectors.mapping(p->p.name, Collectors.toList())));
         System.out.println("groupNamesByAge => " + groupNamesByAge);
 
         /**
         * You can use toMap for multiple values, but code would be clunky
-        * especially merge function, you should accumulate values into list and retun it (there is no way to do it single line)
+        * especially merge function, you should accumulate values into list and return it (there is no way to do it single line)
         */
         Map<Integer, List<Person>> toMapByAge = people.stream()
-                    .collect(Collectors.toMap(k->k.age, 
-                            v->new ArrayList<>(List.of(v)), 
+                    .collect(Collectors.toMap(k -> k.age, 
+                            v -> new ArrayList<>(List.of(v)), 
                             (v, acc)->{
                                 acc.addAll(v);
                                 return acc;
