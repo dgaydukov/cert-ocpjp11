@@ -7419,9 +7419,9 @@ null
 ```
 
 We can check if elements in stream matching a specific criteria by using one of these 3 methods. Pay attention that all of them are short-circuiting and take predicate as param:
-* `anyMatch` - true if you find any object that match. Once found match - stop searching, return true.
-* `allMatch` - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true.
-* `noneMatch` - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. 
+* `anyMatch` - true if you find any object that match. Once found match - stop searching, return true. Return false for empty stream - because its purpose is to determine if at least one element in the stream matches a given predicate. `existential quantification` - statement asserting existence of something is inherently wrong if domain is empty.
+* `allMatch` - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true. Return true for empty stream. `vacuous truth` from math logic - statement about all members of empty set is always true.
+* `noneMatch` - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. Return true for empty stream.
 ```java
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -7431,9 +7431,11 @@ public class App {
     public static void main(String[] args){
         /**
          * We have 2 versions of iterate, in second we can pass predicate as second param, otherwise iterate would run forever
+         * iterator function generates values based on previous value, so you have previous value in your lambda
+         * lambda uses the information from the previous element in the stream to fetch the next element
          */
-        Stream.iterate(0, v->v+1).limit(10).forEach(System.out::print);
-        Stream.iterate(0, v->v<10, v->v+1).forEach(System.out::print);
+        Stream.iterate(0, prev -> prev + 1).limit(10).forEach(System.out::print);
+        Stream.iterate(0, v -> v < 10, prev -> prev + 1).forEach(System.out::print);
         /**
          * If we have some custom type (supplier) and need generate infinite
          * stream, like stream of guids, we can use generate for this
@@ -7602,8 +7604,9 @@ at the beginning or before terminal, whole stream would work either parallel or 
 ###### Collectors
 * list of functions that terminate streams and allow you to transform your stream into string/list/set/map
 * `Stream.collect` take `Collector` interface as input parameter
-* there is no `toArray` collector:
-  * you can collect `toList` and then call `toArray()`
+* there is no `toArray` collector - you can:
+  * call `toArray()` on `Stream` object to collect stream into array
+  * collect `toList` and then call `toArray()`
   * for primitive, you can map to primitive type with `maptTo...` and call `toArray()` to get array of primitives
 * all methods in `Collectors` class that we pass into `collect` return `Collector` object. Generally there should be enough methods in `Collectors` class, but if you need you can create our own by implementing this interface.
 * `Collector/Collection` - interfaces, `Collectors/Collections` - concrete classes with many static factories to solve common problems.
@@ -7615,8 +7618,75 @@ items.stream().collect(Collectors.mapping(f, c));
 * `Collectors.mapping` is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
   * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
   * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
+* You can use existing Collector or create your own, or just call `collect` directly and pass 3 params:
+  * `Supplier<R> supplier` - supplier of your collected output, for map - `new HashMap()` or list - `new ArrayList()`
+  * `BiConsumer<R, ? super T> accumulator` - accumulator function that would consume your stream into your output (first param is your output, second is element of the stream)
+  * `BiConsumer<R, R> combiner` - used only for parallel streams, not called for sequential streams. During parallel processing, such stream would be collected into multiple output, and you have to combine those outputs into single one (for example if you collect into map, during parallel processing you will get multiple maps, and you have to combine those maps into single one). By the way same combiner is used in `reduce` operation as third param and only for parallel streams, you get different results of reduce from parallel streams, and you need to combine all those chunks into single value.
+```java
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-This is the case with `Collectors.filtering`
+public class Test {
+    public static void main(String[] args) {
+        List<String> letters = List.of("a", "b", "c", "a", "b", "a");
+        Map<String, Integer> duplicates = letters.stream().parallel().collect(Collectors.toMap(k -> k, v -> 1, Integer::sum));
+        System.out.println("duplicates => " + duplicates);
+
+        Map<String, Integer> duplicatesRawCollect = letters.stream().parallel().collect(
+                HashMap::new,
+                (acc, v) -> acc.merge(v, 1, Integer::sum),
+                (acc, curr) -> curr.forEach((k, v) -> acc.merge(k, v, Integer::sum))
+        );
+        System.out.println("duplicatesRawCollect => " + duplicatesRawCollect);
+    }
+}
+```
+Here you can see 2 ways to collect into map: using `Collectors.toMap` and using raw `collect` method with 3 params:
+* first is supplier - `HashMap::new`
+* second is accumulator - we use `merge` function to achieve result with 1 line. Pay attention to param order: the first one is the map, the second is stream element
+* third is combiner - only called during parallel processing. If our stream is sequential, it won't be called, we can leave body as empty, second accumulator would collect into map. But in parallel processing - you will get many unrelated maps, and you have to combine all of them into single map. Pat attention to param order, the first is accumulating map, the second is just map from another thread.
+* we can conclude that `reduce` is simpler form of `collect`
+```
+duplicates => {a=3, b=2, c=1}
+duplicatesRawCollect => {a=3, b=2, c=1}
+```
+
+Don't confuse `collect` and `reduce`:
+* both are terminal operation that reduce the stream into single object
+* `collect` is mutable reduction, you modify returned type inside accumulator and combiner, yet `reduce` use returned values
+* you can check method signatures and accumulator/combiner and for `collect` - BiConsumer, means you can't return result, you have to modify existing values, yet for `reduce` - they are BiFunction - you can return values
+* `collect` takes supplier as first argument, but `reduce` takes identity, that's why in `reduce` you can't call `::new`
+* combiner only run during parallel execution for both methods
+```java
+import java.util.List;
+
+public class Test{
+    public static void main(String[] args) {
+        List<Integer> nums = List.of(1,2,3,4,5);
+        int reduce = nums.stream().reduce(0, Integer::sum, Integer::sum);
+        System.out.println("reduce => " + reduce);
+        int collect = nums.stream().collect(() -> 0, Integer::sum, Integer::sum);
+        System.out.println("collect => " + collect);
+
+        List<String> letters = List.of("a", "b", "c", "a", "b", "a");
+        StringBuilder sbReduce = letters.stream().reduce(new StringBuilder(), StringBuilder::append, StringBuilder::append);
+        System.out.println("sbReduce => " + sbReduce);
+        StringBuilder sbCollect = letters.stream().collect(StringBuilder::new, StringBuilder::append, StringBuilder::append);
+        System.out.println("sbCollect => " + sbCollect);
+    }
+}
+```
+To calculate sum, which is `int` - you must use `reduce`, because it returns value, if you use `collect` - you get invalid result, because there is no way to return, you have to modify object. `StringBuilder.append` is a good example because it's doing both - modify the object and return it, that's why it works for both methods. Otherwise most other cases would only work for collect.
+```
+reduce => 15
+collect => 0
+sbReduce => abcaba
+sbCollect => abcaba
+```
+
+`Collectors.filtering` example vs chained call of `filter` and `collect`
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -7642,6 +7712,8 @@ filterMap => {2=[bb, cc], 3=[aaa]}
 filteringMap => {2=[bb, cc], 3=[aaa]}
 ```
 The same is true for all other repeated collectors like `minBy,maxBy,counting,mapping,filtering,averagingInt/Long/Double,summingInt/Long/Double` and so on.
+* Methods like min/max - always requires `Comparator` even if stream elements implements `Comparable`. So you can't call them without param - code won't compile. Yet primitive streams like `IntStrea/LongStream/DoubleStream` have min/max without params, cause those primitive numbers already have built-in natural order.
+* Be careful with `count` - streams are smart enough to understand if you call count, you don't care about `peek/map...` so they won't be called: `Stream.of(1,2,3).peek(System.out::println).map(v -> v + 1).count()` - both peek/map won't be called here. IntelliJ also hints you that since they don't participate in the final output, they may be optimized out.
 ```java
 import java.util.*;
 import java.util.function.Function;
@@ -7850,7 +7922,7 @@ public class App {
 
         /**
          * There is no function sum() on Stream, but you can use Collectors.summingInt to get sum (0 if stream is empty)
-         * and Collectors.summarizingInt to get IntSummaryStatistics. These functions exists also for long and double
+         * and Collectors.summarizingInt to get IntSummaryStatistics. These functions exist also for long and double
          * For primitive streams we have sum terminal operation that return int/long/double and summaryStatistics that return Int/Long/DoubleSummaryStatistics
          * If stream is empty sum return int/long/double
          * For Stream we can use reduce operation or convert it into Int/Long/DoubleStream and call sum
@@ -7931,14 +8003,25 @@ streamSum => 6
 
 By default `filter` is stateless. And if we want to filter by distinct values, we need to have state. Fortunately we have `distinct()` function. But what if we want filter only those that are met exactly 3 times. For this we need custom filter.
 ```java
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         Stream.of(1,2,3,1,2,1).filter(distinct(3)).forEach(System.out::println);
+
+        System.out.println();
+        // similar idea about closure
+        Map<Integer, Integer> map = new HashMap<>();
+        Function<Integer, String> transform = i -> {
+            map.merge(i, 1, Integer::sum);
+            return i + ": " + map.get(i);
+        };
+        Stream.of(1,2,3,1,2,1).map(transform::apply).forEach(System.out::println);
     }
 
     /**
@@ -7947,44 +8030,24 @@ public class App {
      */
     private static <T> Predicate<T> distinct(int depth){
         Map<T, Integer> map = new ConcurrentHashMap<>();
-        return v->{
+        return v -> {
             map.merge(v, 1, (a,b)->a+b);
             return map.get(v) == depth;
         };
     }
 }
 ```
+Here in both examples we create kind of closure with additional variables, which store state, and use this state for our calculations
 ```
 1
-```
 
-Beware that `min/max` take comparator as param. So if you put some other operation you will get wrong result. Inside `max` calling `BinaryOperator.maxBy`, that checks if result is greater or equal to 0, return first otherwise return second.
-```java
-import java.util.*;
-import java.util.stream.Stream;
-
-public class App {
-    public static void main(String[] args) {
-        Optional<Integer> max1 = Stream.of(1,2,3,4,5).max(Math::max);
-        Optional<Integer> max2 = Stream.of(1,2,3,4,5).max(Comparator.naturalOrder());
-        System.out.println("max1 => " + max1);
-        System.out.println("max2 => " + max2);
-        Stream.of(1,2,3,4,5).max((a,b)->{
-            System.out.println(a+" "+b);
-            return Math.max(a,b);
-        });
-    }
-}
+1: 1
+2: 1
+3: 1
+1: 2
+2: 2
+1: 3
 ```
-```
-max1 => Optional[1]
-max2 => Optional[5]
-1 2
-1 3
-1 4
-1 5
-```
-
 
 #### Concurrency
 ###### Threads
