@@ -41,9 +41,10 @@
 * 6.1 [Functional interfaces](#functional-interfaces)
 * 6.2 [Method reference](#method-reference)
 * 6.3 [Comparator and Comparable](#comparator-and-comparable)
-* 6.4 [Primitive streams](#primitive-streams)
-* 6.4 [Parallel streams](#parallel-streams)
-* 6.5 [Collectors](#collectors)
+* 6.4 [Streams](#streams)
+* 6.5 [Primitive streams](#primitive-streams)
+* 6.6 [Parallel streams](#parallel-streams)
+* 6.7 [Collectors](#collectors)
 7. [Concurrency](#concurrency)
 * 7.1 [Threads](#threads)
 * 7.2 [ExecutorService](#executorservice)
@@ -7321,6 +7322,34 @@ class Person implements Comparable<Person>{
 }
 ```
 
+###### Streams
+Ordering:
+* there is no concept or ordering inside a stream
+* order is decided by the source. If source is not ordered - stream may process items in any order
+* you can check if collection is ordered using spliterator
+```java
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Spliterator;
+import java.util.function.Predicate;
+
+public class Test {
+    public static void main(String[] args) {
+        Predicate<Collection> isOrdered = c -> c.spliterator().hasCharacteristics(Spliterator.ORDERED);
+        System.out.println("ArrayList => " + isOrdered.test(new ArrayList<>()));
+        System.out.println("HashSet => " + isOrdered.test(new HashSet<>()));
+    }
+}
+```
+```
+ArrayList => true
+HashSet => false
+```
+* stream created by `generate` function is always unordered
+* `forEach/findAny` - 2 non-deterministic functions that don't guarantee any order, if you need order - use `forEachOrdered`
+* `unordered()` - use it to make processing unordered, this may improve performance, some operation perform better when we don't care about order
+
 ###### Primitive streams
 If you want to work with stream use `Stream`. If you want primitive type streams use one of these: `IntStream/LongStream/DoubleStream`. To convert use function `mapToObj/mapToInt/mapToDouble/mapToLong`.
 ```java
@@ -7553,6 +7582,17 @@ We need for parallel execution third function (combiner), that will combine part
 compiler force us to use combiner for sequential execution, although it's never called. That's why for sequential you can change combiner to `(a, b) => 0`, and it would work fine, but if you change it for parallel you will got 0 as result.
 
 ###### Parallel streams
+* You can add `parallel()` at any point before terminal operation. Stream doesn't care where it added, all it does is set flag to run in parallel. And streams are lazy-loading, they start execute only when they meet terminal operation.
+* So you can add many `parallel/sequential` - the type is decided by the last encountered
+* You can call `isParallel` to check if stream is parallel or not
+* `Collection` interface has method `parallelStream` that return parallel stream, but you can turn it into sequential
+* `List.of(1,2,3).parallelStream().sequential().isParallel()` would return false
+* under-the-hood parallel stream using `Spliterator` to split source into multiple chunks
+* under-the-hood for stateful operation - state would be supported, yet form some operation like `dropWhile/takeWhile/limit/skip` - faster to use sequential stream
+* thread safely ensured even for non-thread-safe data structures:
+  * when you call `collect` - you can use ArrayList/HashMap which are not thread safe
+  * during parallel execution it creates new list/map for each execution and ensure that only 1 thread access such single data structure
+* there is a method `groupingByConcurrent` which use `ConcurrentMap`
 By default, for `parallelStream` terminate operator - `forEach` show values in undetermined order, cause we can’t control in which order they were executed. If we want to get initial order we can use `forEachOrdered`.
 ```java
 import java.util.*;
@@ -7615,9 +7655,33 @@ at the beginning or before terminal, whole stream would work either parallel or 
 items.stream().map(f).collect(c);
 items.stream().collect(Collectors.mapping(f, c));
 ```
-* `Collectors.mapping` is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
-  * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
-  * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
+* nesting collects:
+  * collects `filtering/mapping/groupingBy/partitioningBy` - can be used to chain other collectors into them:
+  * collects `counting/reducing/joining/maxBy/summingXXX/averagingXXX/summarizingXXX` - terminal collects and can't be chained further
+  * since `collect` is terminal operation you can't apply `map/reduce/filster` to result of collector - but what if you want to - this is for this nesting collectors are made of, so you can chain and customize final output from one collector to another
+  * `Collectors.mapping` is most useful in situations where you do not have a stream, but you need to pass a collector directly. An example of such a situation is when using `Collectors.groupingBy`:
+    * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.toSet()))` returns a `Map<BigDecimal, Set<Item>>` 
+    * `items.stream().collect(Collectors.groupingBy(Item::getPrice, Collectors.mapping(Item::getName, Collectors.toSet())))` returns a `Map<BigDecimal, Set<String>>`, (before collecting the items, it first applies `getName` to them)
+```java
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class Test{
+    public static void main(String[] args) {
+        Stream<Person> stream = Stream.of(new Person("John", 20), new Person("Jack", 20), new Person("Mike", 40));
+        Map<Integer, String> personNamesAbove20 = stream.collect(Collectors.groupingBy(Person::age, Collectors.mapping(Person::name, Collectors.joining(", "))));
+        System.out.println("personNamesAbove20 => "+personNamesAbove20);
+    }
+}
+
+record Person(String name, int age) {
+}
+```
+you can see how we chained collectors with `groupingBy => mapping => joining`. We can build such chain unlimited and feed the result of one collector into another. Without collectors it would be rally hard to ahieve this.
+```
+personNamesAbove20 => {20=John, Jack, 40=Mike}
+```
 * You can use existing Collector or create your own, or just call `collect` directly and pass 3 params:
   * `Supplier<R> supplier` - supplier of your collected output, for map - `new HashMap()` or list - `new ArrayList()`
   * `BiConsumer<R, ? super T> accumulator` - accumulator function that would consume your stream into your output (first param is your output, second is element of the stream)
@@ -7651,6 +7715,35 @@ Here you can see 2 ways to collect into map: using `Collectors.toMap` and using 
 ```
 duplicates => {a=3, b=2, c=1}
 duplicatesRawCollect => {a=3, b=2, c=1}
+```
+* determine data type of nested collectors:
+  * when you chain multiple collectors their data type attach one-on-top-of-another
+```java
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class Test {
+    public static void main(String[] args) {
+        Stream<Person> people = Stream.of(
+                new Person("Jack", 20, "M"),
+                new Person("John", 30, "M"),
+                new Person("Mike", 40, "M"),
+                new Person("Alice", 20, "F")
+        );
+
+        Map<Boolean, Map<String, String>> result = people.collect(
+                Collectors.partitioningBy(p -> p.age() > 20, Collectors.groupingBy(Person::gender, Collectors.mapping(Person::name, Collectors.joining(", "))))
+        );
+        System.out.println("result => " + result);
+    }
+}
+
+record Person(String name, int age, String gender) {}
+```
+First collector would return `Map<Boolean, D>`, second collector would group by gender and turn D into `Map<String, D1>`, then mapping and joining would turn D1 into `String`
+```
+result => {false={F=Alice, M=Jack}, true={M=John, Mike}}
 ```
 
 Don't confuse `collect` and `reduce`:
@@ -8047,6 +8140,50 @@ Here in both examples we create kind of closure with additional variables, which
 1: 2
 2: 2
 1: 3
+```
+
+Collectors.teeing:
+* introduced in java12
+* split your stream into 2 and apply 2 collectors into it - after which use merge function to merge results into single one
+* useful when you want to apply 2 logic into single stream - so you apply 2 collects at the same time
+```java
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class Test{
+    public static void main(String[] args) {
+        String sumAndAverage = Stream.of(1, 2, 3, 4, 5)
+                .collect(Collectors.teeing(
+                        Collectors.summingInt(Integer::intValue), // First Collector: calculates the sum
+                        Collectors.averagingDouble(Integer::doubleValue), // Second Collector: calculates the average
+                        (sum, avg) -> "sum = " + sum + ", average = " + avg // Merger function: combines the results
+                ));
+        System.out.println("sumAndAverage => " + sumAndAverage);
+
+        Map<String, Person> highestAndLowestAge = Stream.of(new Person("Jack", 20), new Person("John", 30), new Person("Mary", 40))
+                .collect(Collectors.teeing(
+                        Collectors.minBy(Comparator.comparingInt(Person::age)),
+                        Collectors.maxBy(Comparator.comparingInt(Person::age)),
+                        (r1, r2) -> {
+                            HashMap<String, Person> map = new HashMap<>();
+                            map.put("Highest", r1.get());
+                            map.put("Lowest", r2.get());
+                            return map;
+                        }
+                ));
+        System.out.println("highestAndLowestAge => " + highestAndLowestAge);
+    }
+}
+
+record Person(String name, int age) {
+}
+```
+```
+sumAndAverage => sum = 15, average = 3.0
+highestAndLowestAge => {Lowest=Person[name=Mary, age=40], Highest=Person[name=Jack, age=20]}
 ```
 
 #### Concurrency
