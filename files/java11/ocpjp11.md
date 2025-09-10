@@ -4257,7 +4257,8 @@ seconds since 01-01-1970 UTC [OffsetDateTime.now().toEpochSecond()] => 158381501
 For time intervals we have 2 classes:
 * `Period` - used for days, months, years
 * `Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
-`Duration.toString` always return `PT` (stands for Period of Time) and then duration itself.
+* `Duration.toString` always return `PT` (stands for Period of Time) and then duration itself.
+* Period of 1 day and Duration of 24 hours similar but conceptually different. If you have DST event, and you add period of 1 day, it would just increase date on 1 day without affecting time. But adding 24 hours, will take time into account, and would produce different final time.
 ```java
 import java.time.Duration;
 import java.time.Period;
@@ -4348,7 +4349,6 @@ public class App{
         ChronoUnit fromTimeUnit = timeUnit.toChronoUnit();
         System.out.println("timeUnit => " + timeUnit);
         System.out.println("fromTimeUnit => " + fromTimeUnit);
-
         System.out.println(TimeUnit.of(ChronoUnit.MONTHS));
     }
 }
@@ -4360,7 +4360,14 @@ Exception in thread "main" java.lang.IllegalArgumentException: No TimeUnit equiv
 ```
 
 ###### Timezone and DST
-`Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(Greenwhich mean time) practically the same thing, the difference is how they calculate seconds, gmt - using solar time, utc - atomic clock.
+How computer see dates:
+* it's a long number of milliseconds since specified point in time
+* Epoch - the name of this point, set at January 1, 1970 00:00:00.000 at Greenwich
+* Greenwich - town in UK where the Royal Observatory is located
+* GMT (Greenwich Mean Time) - time in that location, in Greenwich, UK. `Z` - codename for GMT, that's why when you print `Instant` it adds `Z` to the end of the string.
+* UTC (Coordinated Universal Time) - same time as GMT adopted globally
+
+`Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(Greenwich mean time) practically the same thing, the difference is how they calculate seconds, GMT - using solar time, UTC - atomic clock.
 ```java
 import java.time.Duration;
 import java.time.Instant;
@@ -4430,24 +4437,31 @@ diff => PT1H
 On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 
 Don't confuse:
-* `Instant` - just store current datetime from UTC
-* `OffsetDateTime` - `Instant` + UTC offset
-* `ZonedDateTime` - `OffsetDateTime` + time zone
+* `Instant` - just store current datetime from UTC, if you are not in UTC - it wil show time less your offset
+* `LocalDateTime` - store current machine time - it doesn't have offset/zone but still shows correct time based on machine settings
+* `OffsetDateTime` - `Instant` + UTC offset (requires `ZoneOffset` which is subclass of `ZoneId`, but stores only offset, not the whole timezone)
+* `ZonedDateTime` - `OffsetDateTime` + time zone (requires `ZoneId` to specify timezone). You can get `ZoneId/ZoneOffset/LocalDateTime/Instant` from this class.
 ```java
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 
-public class App{
+public class Test{
     public static void main(String[] args) {
         System.out.println("Instant =>        " + Instant.now());
+        System.out.println("LocalDateTime =>  " + LocalDateTime.now());
         System.out.println("OffsetDateTime => " + OffsetDateTime.now());
         System.out.println("ZonedDateTime =>  " + ZonedDateTime.now());
     }
 }
 ```
+As you see `Instant` shows time minus 8 hours, because it's not aware of any offset/timezone, while other 3 shows correct local time.
 ```
-Instant =>        2019-11-18T08:37:56.893718Z
-OffsetDateTime => 2019-11-18T16:37:56.937434+08:00
-ZonedDateTime =>  2019-11-18T16:37:56.938073+08:00[Asia/Hong_Kong]
+Instant =>        2025-09-10T11:19:56.403713200Z
+LocalDateTime =>  2025-09-10T15:19:56.417717100
+OffsetDateTime => 2025-09-10T15:19:56.418716100+04:00
+ZonedDateTime =>  2025-09-10T15:19:56.418716100+04:00[Asia/Dubai]
 ```
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. TimeZone - is broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is broader concept than timeOffset.
 Java & DB time practice (we use mysql here as example):
@@ -4467,11 +4481,11 @@ Java & DB time practice (we use mysql here as example):
     * java.sql.Date => date
     * java.sql.Timestamp => datetime/timestamp
 * there is no native way to store timezone, so best practice assume to store it in another string column
-    * best way to store timezone is IANA format (don't store as offset, cause it error prone)
+    * best way to store timezone is IANA format (don't store as offset, cause it's error-prone)
 * best way to store dates is to store
     * timezone as IANA string
-    * store time as millisec in bigint
-        * this is better, cause timestamp - number of millisec from jan 1970, would always be the same, tz no matter
+    * store time as millisecond in bigint
+        * this is better, cause timestamp - number of millisecond from jan 1970, would always be the same, tz no matter
         yet when you need to display exact time, depending upon your TZ you will see different time,
         so best approach just store time as timestamp, and it always utc by default
         * this would avoid any problems with `timestamp` field like https://stackoverflow.com/questions/71346404/mysql-timestamp-throwing-incorrect-datetime-value-on-one-specific-datetime
@@ -4684,6 +4698,10 @@ public class App{
 2019/11/18
 2019/11/18
 ```
+All `parse` methods requires instance of `DateTimeFormatter`, yet 3 default methods take under-the-hood following formatters:
+* LocalTime => DateTimeFormatter.ISO_LOCAL_TIME => expects `HH:mm` or `HH:mm:ss`
+* LocalDate => DateTimeFormatter.ISO_LOCAL_DATE => expects `yyyy-MM-dd`
+* LocalDateTime => DateTimeFormatter.ISO_LOCAL_DATE_TIME => expects `yyyy-MM-ddTHH:mm:ss` or `yyyy-MM-ddTHH:mm`
 
 
 #### Generics
