@@ -4616,32 +4616,34 @@ NumberFormat.getInstance(locale) => 99,99
 NumberFormat.getCurrencyInstance(locale) => 99,10 ¤
 ```
 
+
+
 All `.parse` (except for `DateTimeFormatter`) throw checked exception `ParseException`. There is also `.parseObject` method in `Format` class, that takes string and throws `ParseException`.
 ```java
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Locale;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         double d = 99.99;
         String formatted = NumberFormat.getInstance(Locale.FRENCH).format(d);
         System.out.println(formatted);
         try {
             // parse returns Number.
-            double d2 = (Double)NumberFormat.getInstance().parse(formatted);
-            System.out.println(d2);
-        } catch (ParseException ex){
+            Number d2 = NumberFormat.getInstance().parse(formatted);
+            System.out.println(d2 + " => " + d2.getClass().getName());
+        } catch (ParseException ex) {
             System.out.println(ex);
         }
     }
 }
 ```
+When we parse we don't use French locale, and default locale is used, all comma separator are discarded and our number is parsed into long
 ```
 99,99
-java.lang.ClassCastException: class java.lang.Long cannot be cast to class java.lang.Double
+9999 => java.lang.Long
 ```
-Here we catch `ParseException`, but cause we use new `NumberFormat` instance with default locale (first time we were using French locale), we got `ClassCastException`.
 
 [List](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) of most common patterns 
 ```
@@ -4703,6 +4705,28 @@ All `parse` methods requires instance of `DateTimeFormatter`, yet 3 default meth
 * LocalDate => DateTimeFormatter.ISO_LOCAL_DATE => expects `yyyy-MM-dd`
 * LocalDateTime => DateTimeFormatter.ISO_LOCAL_DATE_TIME => expects `yyyy-MM-ddTHH:mm:ss` or `yyyy-MM-ddTHH:mm`
 
+Period and Duration parsing:
+* For period 2 formats are possible `PnYnMnWnD` - where `n` is the number of years/month/weeks/days, letter should follow one-after-another:
+  * `P1W1Y` - invalid
+  * `P1Y2M3W4D` - valid period for 1 year, 2 months, 25 days
+* For Duration - `PnDnHnMnS` - where `n` is the number of days/hours/minutes/seconds
+```java
+import java.time.Duration;
+import java.time.Period;
+
+public class Test {
+    public static void main(String[] args) {
+        Period period = Period.parse("P1Y2M3W4D");
+        Duration duration = Duration.parse("P1DT2H3M10S");
+        System.out.println("period => " + period);
+        System.out.println("duration => " + duration);
+    }
+}
+```
+```
+period => P1Y2M25D
+duration => PT26H3M10S
+```
 
 #### Generics
 * interface/class/record can be generic, but enum can't.
