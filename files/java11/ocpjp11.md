@@ -4167,8 +4167,65 @@ public class App {
 ```
 
 ###### New date api (java.time package)
-`LocalDate`, `LocalTime`, `LocalDateTime` => all have private constructor to force you to use methods like `.of`. They also immutable like String, so when make operation on them (plus, minus), make sure to reassign them back.
-`LocalDate.of` - has 2 version, one take month as numbers 1-12, another as `java.time.Month` enum value
+Most of the classes (`LocalDate/LocalTime/LocalDateTime...`): 
+* have private constructor to force you to use methods like `.of`. They also immutable like String, so when make operation on them (plus, minus), make sure to reassign them back.
+* `of` is static method that produce new object each time it's called - beware of these calls:
+  * `LocalDate.of(2024,1,1).of(2025,11,11)` - second call to `of` would overwrite first and return new object with date `2025-11-11`
+  * `Period.ofYears(1).ofMonths(1).ofWeeks(1).ofDays(1)` - each call overwrites the previous one, and in the end we have new object with 1 day only, so it `P1D`
+* all methods start with `getXXX/plusXXX/minusXXX` return the same object
+* all methods start with `atXXX` - change object type and return a different object:
+  * `LocalDate.now().atTime` => `LocalDateTime/OffsetDateTime`
+  * `LocalTime.now().atDate` => `LocalDateTime`
+  * `LocalTime.now().atOffset` => `OffsetDateTime`
+  * `LocalDateTime.now().atOffset` => OffsetDateTime
+  * `LocalDateTime.now().atZone` => ZonedDateTime
+Comparing date:
+* you can use `equals/compareTo` on each object because all of them override `equals` and implements `Comparable`
+* when compare 2 dates: when passed date is ahead returns -1, if equals 0, if it before return 1
+* `isAfter/isBefore` - return boolean value
+  * `isBefore/isAfter/isEqual` - don't take chronology (calendar system) into account
+  * `equals/compareTo` - take calendar system into account (like Thai or Islamic calendar)
+* when comparing `OffsetDateTime/ZonedDateTime` - first you need to convert to UTC by subtracting the offset (adding if offset is negative) - then you can compare 2 dates.
+* using `ChronoUnit` method of `between`
+  * you can compare different units, in this case second argument is converted to the type of first
+```java
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
+public class Test {
+    public static void main(String[] args) {
+        LocalDate date = LocalDate.parse("2025-05-01");
+        LocalDate after = LocalDate.parse("2025-06-01");
+        LocalDate before = LocalDate.parse("2025-04-01");
+        System.out.println(date + " compareTo " + after + " => " + date.compareTo(after));
+        System.out.println(date + " compareTo " + before + " => " + date.compareTo(before));
+        System.out.println(date + " isAfter " + after + " => " + date.isAfter(after));
+        System.out.println(date + " isAfter " + after + " => " + date.isBefore(after));
+        System.out.println("DAYS between "+before+" and "+after+" => "+ChronoUnit.DAYS.between(before, after));
+        System.out.println("WEEKS between "+before+" and "+after+" => "+ChronoUnit.WEEKS.between(before, after));
+        System.out.println("MONTHS between "+before+" and "+after+" => "+ChronoUnit.MONTHS.between(before, after));
+        System.out.println("YEARS between "+before+" and "+after+" => "+ChronoUnit.YEARS.between(before, after));
+        System.out.println(ChronoUnit.YEARS.between(LocalDate.now(), LocalDateTime.now()));
+        System.out.println(ChronoUnit.YEARS.between(LocalDateTime.now(), LocalDate.now()));
+    }
+}
+```
+As you see, June is ahead of May, so comparing may-to-june returns -1. Yet April is before, so comparing may-to-april returns 1.
+Last line throws `DateTimeException` because there is no way to convert `LocalDate` into `LocalDateTime` cause there is no time component in it.
+```
+2025-05-01 compareTo 2025-06-01 => -1
+2025-05-01 compareTo 2025-04-01 => 1
+2025-05-01 isAfter 2025-06-01 => false
+2025-05-01 isAfter 2025-06-01 => true
+DAYS between 2025-04-01 and 2025-06-01 => 61
+WEEKS between 2025-04-01 and 2025-06-01 => 8
+MONTHS between 2025-04-01 and 2025-06-01 => 2
+YEARS between 2025-04-01 and 2025-06-01 => 0
+0
+Exception in thread "main" java.time.DateTimeException: Unable to obtain LocalDateTime from TemporalAccessor: 2025-09-12 of type java.time.LocalDate
+```
+Create dates example:
 ```java
 import java.time.LocalDate;
 import java.time.Month;
@@ -4251,6 +4308,32 @@ days since 01-01-1970 UTC => 18331
 current time zone => +08:00
 seconds since 01-01-1970 UTC => 1583843813
 seconds since 01-01-1970 UTC [OffsetDateTime.now().toEpochSecond()] => 1583815013
+```
+There are multiple calendar system:
+```java
+import java.time.LocalDate;
+import java.time.chrono.HijrahDate;
+import java.time.chrono.JapaneseDate;
+import java.time.chrono.MinguoDate;
+import java.time.chrono.ThaiBuddhistDate;
+
+public class Test {
+    public static void main(String[] args) {
+        LocalDate now =  LocalDate.now();
+        System.out.println("LocalDateTime    => "+now);
+        System.out.println("HijrahDate       => "+HijrahDate.from(now));
+        System.out.println("JapaneseDate     => "+ JapaneseDate.from(now));
+        System.out.println("MinguoDate       => "+ MinguoDate.from(now));
+        System.out.println("ThaiBuddhistDate => "+ ThaiBuddhistDate.from(now));
+    }
+}
+```
+```
+LocalDateTime    => 2025-09-12
+HijrahDate       => Hijrah-umalqura AH 1447-03-20
+JapaneseDate     => Japanese Reiwa 7-09-12
+MinguoDate       => Minguo ROC 114-09-12
+ThaiBuddhistDate => ThaiBuddhist BE 2568-09-12
 ```
 
 ###### Period and Duration
@@ -4401,13 +4484,13 @@ public class App{
     }
 }
 ```
+As you can see it the same time, but `Instant` is in UTC, while `ZonedDateTime` has a timezone.
 ```
 zonedDateTime => 2020-03-10T19:08:25.597014+08:00[Asia/Hong_Kong]
 zonedDateTime.toInstant => 2020-03-10T11:08:25.597014Z
 offsetDateTime => 2020-03-10T19:08:25.596795+08:00
 offsetDateTime.toInstant => 2020-03-10T11:08:25.596795Z
 ```
-As you can see it the same time, but `Instant` is in UTC, while `ZonedDateTime` has a timezone.
 
 DST(Daylight saving time) is a practice to move time by one hour forward in spring and 1 hour back in fall(november).
 ```java
@@ -4428,13 +4511,13 @@ public class App{
     }
 }
 ```
+On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 ```
 dateTime1 => 2016-03-13T01:30-05:00[US/Eastern]
 dateTime2 => 2016-03-13T03:30-04:00[US/Eastern]
 diff => 1
 diff => PT1H
 ```
-On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 
 Don't confuse:
 * `Instant` - just store current datetime from UTC, if you are not in UTC - it wil show time less your offset
@@ -4462,6 +4545,58 @@ Instant =>        2025-09-10T11:19:56.403713200Z
 LocalDateTime =>  2025-09-10T15:19:56.417717100
 OffsetDateTime => 2025-09-10T15:19:56.418716100+04:00
 ZonedDateTime =>  2025-09-10T15:19:56.418716100+04:00[Asia/Dubai]
+```
+You can convert:
+* `ZonedDateTime` to `OffsetDateTime` - it just strip `ZoneId` from it, but offset stays
+* `OffsetDateTime` to `ZonedDateTime` - but such object would lack `ZoneId` and contain only offset => in my opinion it's pure wrong, because such conversion may lead to errors when working with DST, such conversion shouldn't be possible, yet java allows for it due to inheritance: `ZoneOffset` is child of `ZoneId` that's why you can create `ZonedDateTime` with only offset by passing child instead of actual `ZoneId`
+```java
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+public class Test {
+    public static void main(String[] args) {
+        ZonedDateTime zdt = ZonedDateTime.of(LocalDateTime.of(2016, 3, 12, 10, 0, 0), ZoneId.of("US/Eastern"));
+        OffsetDateTime odt = zdt.toOffsetDateTime();
+        System.out.println("zdt => "+zdt+", odt => " + odt);
+        ZonedDateTime newZdt = odt.toZonedDateTime();
+        System.out.println("newZdt => "+newZdt);
+        System.out.println("newZdt => "+zdt.plusDays(1)+", newZdt => "+newZdt.plusDays(1));
+    }
+}
+```
+On the 13th of March 2016, USA moved 1 hour forward, so original `ZonedDateTime` object store zone, and calculate new offset, but ne one without zone, can't correctly recalculate new offset.
+```
+zdt => 2016-03-12T10:00-05:00[US/Eastern], odt => 2016-03-12T10:00-05:00
+newZdt => 2016-03-12T10:00-05:00
+newZdt => 2016-03-13T10:00-04:00[US/Eastern], newZdt => 2016-03-13T10:00-05:00
+```
+You can easily convert:
+* `OffsetDateTime/ZonedDateTime` into `Instant` by simply by subtracting time minus offset
+* there is no ways back - you can't convert `Instant` to any of these 2 classes, because you have to provide additional offset/zone
+* you can use `atZone/atOffset` to convert into these 2 classes 
+```java
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
+public class Test {
+    public static void main(String[] args) {
+        LocalDateTime ldt = LocalDateTime.of(2016, 3, 12, 10, 0, 0);
+        ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.of("US/Eastern"));
+        OffsetDateTime odt = OffsetDateTime.of(ldt, ZoneOffset.ofHoursMinutes(4, 30));
+        System.out.println(zdt+" => "+zdt.toInstant());
+        System.out.println(odt+" => "+odt.toInstant());
+    }
+}
+```
+In first case we subtract -5 from 10 => 10 - -5 = 10+15 = 15. In second case we subtract 10-4.5 = 5.5 or 5 hours 30 minutes
+```
+2016-03-12T10:00-05:00[US/Eastern] => 2016-03-12T15:00:00Z
+2016-03-12T10:00+04:30 => 2016-03-12T05:30:00Z
 ```
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. TimeZone - is broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is broader concept than timeOffset.
 Java & DB time practice (we use mysql here as example):
@@ -4716,6 +4851,7 @@ import java.time.Period;
 
 public class Test {
     public static void main(String[] args) {
+        LocalDateTime ldt = LocalDateTime.parse("2000-11-11T11:11:11");
         Period period = Period.parse("P1Y2M3W4D");
         Duration duration = Duration.parse("P1DT2H3M10S");
         System.out.println("period => " + period);
