@@ -4247,6 +4247,35 @@ date => 2018-01-01
 date => 2019-03-04
 ```
 
+LocalDateTime:
+* doesn't have a concept of timezone - but anyway shows current time, taking system settings
+* Since it's showing current time - it's not the same as `Instant`, cause current time on your machine may be different from UTC current time
+* since there is no concept of timezone/offset - you can convert it into UTC time - and it will show the same time
+* But you can't convert `Instant` into it, because here you have to provide timezone
+```java
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+
+public class Test {
+    public static void main(String[] args) {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        ZonedDateTime utc = now.atZone(ZoneId.of("UTC"));
+        System.out.println("now => " + now + ", utc => " + utc);
+
+        ZonedDateTime zdt = now.atZone(ZoneId.systemDefault());
+        ZonedDateTime utc2 = zdt.withZoneSameInstant(ZoneId.of("UTC"));
+        System.out.println("zdt => " + zdt + ", utc => " + utc2);
+    }
+}
+```
+As you can see both LocalDateTime and UTC time shows the same value for current time, yet if we introduce timezone, UTC time would be different
+```
+now => 2025-09-15T10:22, utc => 2025-09-15T10:22Z[UTC]
+zdt => 2025-09-15T10:22+04:00[Asia/Dubai], utc => 2025-09-15T06:22Z[UTC]
+```
+
 You can iterate over dates like this with interval of 1 month
 ```java
 import java.time.LocalDate;
@@ -4449,6 +4478,83 @@ How computer see dates:
 * Greenwich - town in UK where the Royal Observatory is located
 * GMT (Greenwich Mean Time) - time in that location, in Greenwich, UK. `Z` - codename for GMT, that's why when you print `Instant` it adds `Z` to the end of the string.
 * UTC (Coordinated Universal Time) - same time as GMT adopted globally
+
+To convert to offset:
+* `LocalDateTime` - just add offset to existing time, time itself not changing (because LDT doesn't have offset concept inside, it's just time)
+* `Instant` - add offset (positive or negative) to UTC time to get proper time
+* if you want to convert timezone time into UTC - just subtract offset
+```java
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+public class Test {
+    public static void main(String[] args) {
+        ZoneId NY_TZ = ZoneId.of("America/New_York");
+        LocalDateTime ldt = LocalDateTime.parse("2024-01-10T10:30");
+        ZonedDateTime utc = ZonedDateTime.of(ldt, ZoneId.of("UTC"));
+        ZonedDateTime ny = ZonedDateTime.of(ldt, NY_TZ);
+        System.out.println("ldt => "+ldt+", utc => " + utc+", ny = " + ny);
+
+        Instant instant = Instant.from(utc);
+        ZonedDateTime ny2 = instant.atZone(NY_TZ);
+        System.out.println("instant => "+instant+", ny2 => "+ny2);
+    }
+}
+```
+```
+ldt => 2024-01-10T10:30, utc => 2024-01-10T10:30Z[UTC], ny = 2024-01-10T10:30-05:00[America/New_York]
+instant => 2024-01-10T10:30:00Z, ny2 => 2024-01-10T05:30-05:00[America/New_York]
+```
+
+How DST works:
+* you only change offset adding/subtracting one hour to offset
+* usually in Spring/March you move time forward 1 hour (so 1 hour is literally disappeared)
+* usually in Autumn/November you move time backward 1 hour (so people live 1 hour twice)
+* On 2024-03-10 clock is moved 1 hour forward, so after 1AM we have 3AM:
+  * 1AM we have offset -5, but at 3AM we have offset -4
+* on 2024-11-03 clock is moved 1 hour backward - so ppl live 1 hour from 1 to 2AM twice: once with offset -4, and second time with offset -5
+```java
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+public class Test {
+    public static void main(String[] args) {
+        ZoneId newYorkTZ = ZoneId.of("America/New_York");
+        ZoneId UtcTZ = ZoneId.of("UTC");
+        {
+            // DST starts at 2024-03-10 at 2Am
+            ZonedDateTime utc_6_30 = ZonedDateTime.of(LocalDateTime.parse("2024-03-10T06:30"), UtcTZ);
+            ZonedDateTime utc_7_30 = utc_6_30.plusHours(1);
+            ZonedDateTime ny_1_30 = utc_6_30.withZoneSameInstant(newYorkTZ);
+            ZonedDateTime ny_2_30 = utc_7_30.withZoneSameInstant(newYorkTZ);
+            System.out.println("utc_6_30 => " + utc_6_30 + ", ny_1_30 => " + ny_1_30);
+            System.out.println("utc_7_30 => " + utc_7_30 + ", ny_2_30 => " + ny_2_30);
+        }
+        System.out.println();
+        {
+            // DST ends at 2024-11-03 at 2Am
+            ZonedDateTime utc_5_30 = ZonedDateTime.of(LocalDateTime.parse("2024-11-03T05:30"), UtcTZ);
+            ZonedDateTime utc_6_30 = utc_5_30.plusHours(1);
+            ZonedDateTime ny_1_30 = utc_5_30.withZoneSameInstant(newYorkTZ);
+            ZonedDateTime ny_2_30 = utc_6_30.withZoneSameInstant(newYorkTZ);
+            System.out.println("utc_5_30 => " + utc_5_30 + ", ny_1_30 => " + ny_1_30);
+            System.out.println("utc_6_30 => " + utc_6_30 + ", ny_2_30 => " + ny_2_30);
+        }
+    }
+}
+```
+In the first example, we are jumping from 1.30 to 3.30, although the difference is 1 hour only. But you can see that offset is also changing from 1.30-5 to 3.30-4, if you recalculate to UTC you will find that difference is still 1 hour.
+In the second case, we have same time twice, but with different offset. Again due to offset if you recalculate to UTC you will have 1 hour difference.
+```
+utc_6_30 => 2024-03-10T06:30Z[UTC], ny_1_30 => 2024-03-10T01:30-05:00[America/New_York]
+utc_7_30 => 2024-03-10T07:30Z[UTC], ny_2_30 => 2024-03-10T03:30-04:00[America/New_York]
+
+utc_5_30 => 2024-11-03T05:30Z[UTC], ny_1_30 => 2024-11-03T01:30-04:00[America/New_York]
+utc_6_30 => 2024-11-03T06:30Z[UTC], ny_2_30 => 2024-11-03T01:30-05:00[America/New_York]
+```
 
 `Instant` - specific moment in time in UTC. UTC(Coordinated universal time) and GMT(Greenwich mean time) practically the same thing, the difference is how they calculate seconds, GMT - using solar time, UTC - atomic clock.
 ```java
