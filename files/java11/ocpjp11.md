@@ -4252,6 +4252,7 @@ LocalDateTime:
 * Since it's showing current time - it's not the same as `Instant`, cause current time on your machine may be different from UTC current time
 * since there is no concept of timezone/offset - you can convert it into UTC time - and it will show the same time
 * But you can't convert `Instant` into it, because here you have to provide timezone
+* so it's an object completely unhinged/unrelated to any concept of timezone, it's just date and time, nor in any timezone neigher in UTC. Yet when you call `now` it shows your current time in your timezone, but doesn't have any concept inside itself. So it's ideal to work, if you just want to work with datetime. If you need offset/timezone you can use specific classes
 ```java
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -4506,6 +4507,30 @@ public class Test {
 ```
 ldt => 2024-01-10T10:30, utc => 2024-01-10T10:30Z[UTC], ny = 2024-01-10T10:30-05:00[America/New_York]
 instant => 2024-01-10T10:30:00Z, ny2 => 2024-01-10T05:30-05:00[America/New_York]
+```
+Beware of such code, where you convert `LocalDateTime/Instant` that shows same time, yet one has offset another not, and they would be converted into different time
+```java
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+public class Test {
+    public static void main(String[] args) {
+        ZoneId NY_TZ = ZoneId.of("America/New_York");
+        LocalDateTime ldt = LocalDateTime.parse("2024-01-10T10:30:00");
+        Instant instant = Instant.parse("2024-01-10T10:30:00+00:00");
+        ZonedDateTime zd1 = ZonedDateTime.of(ldt, NY_TZ);
+        ZonedDateTime zd2 = ZonedDateTime.ofInstant(instant, NY_TZ);
+        System.out.println("zd1 => " + zd1 + " zd2 => " + zd2);
+        System.out.println("instant1 => " + zd1.toInstant()+ ", instant2 => " + zd2.toInstant());
+    }
+}
+```
+When we convert `Instant` we add offset to calculate proper time in timezone, but when convert `LocalDateTime` we just append offset and leave time as it is. This is become visible when we convert back to `Instant`, now we can see that they actually different. There is no way to transform into `LocalDateTime` - because it doesn't have concept of offset. If you want to convert, you have to explicitly pass timezone, in this case proper hour based on the timezone would be shown `LocalDateTime.ofInstant(instant, ZoneId.of("America/New_York"))`. Yet once you convert, timezone is not stored inside - you just have local time.
+```
+zd1 => 2024-01-10T10:30-05:00[America/New_York] zd2 => 2024-01-10T05:30-05:00[America/New_York]
+instant1 => 2024-01-10T15:30:00Z, instant2 => 2024-01-10T10:30:00Z
 ```
 
 How DST works:
@@ -8468,6 +8493,58 @@ record Person(String name, int age) {
 ```
 sumAndAverage => sum = 15, average = 3.0
 highestAndLowestAge => {Lowest=Person[name=Mary, age=40], Highest=Person[name=Jack, age=20]}
+```
+
+Don't confuse:
+* map.compute - take key, and function with key/value (key is that you provided as first param) - where you put your logic - it's good to use when value creation is time-consuming and you don't want to create it for each key
+* map.merge - take key,value and function with oldValue/value (same value as you provided as second param) - where you put merging logic. May not be ideal when creating value is resource-consuming. Because here, compare to `compute` you have to create value for each key, which may not be desired. When your value is `ArrayList`, you want to create it only once, and then add something to it, but here with `merge` you are forced to create `new ArrayList` each time you call it.
+* Collectors.groupingBy - ideal solution, where actual computation logic is hidden behind, and you have nice one-line functional programming solution to transform your original list of objects into custom map. It combines both of 2 words, it would create `ArrayList` only 3 times, each time for new unique key (not 5 times like with `merge` function), and it really nice and beatiful solution.
+```java
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import static java.util.stream.Collectors.*;
+
+public class Test {
+    public static void main(String[] args) {
+        List<Person> list = List.of(
+                new Person(20, "Mike"),
+                new Person(30, "Jack"),
+                new Person(40, "John"),
+                new Person(20, "Emmanuel"),
+                new Person(20, "James")
+        );
+
+        Map<Integer, List<String>> computeMap = new HashMap<>();
+        Map<Integer, List<String>> mergeMap = new HashMap<>();
+        list.forEach(p -> {
+            computeMap.compute(p.age(), (k, v) -> {
+                if (v == null) {
+                    v = new ArrayList<>();
+                }
+                v.add(p.name());
+                return v;
+            });
+            mergeMap.merge(p.age(), new ArrayList<>(List.of(p.name())), (o, n) -> {
+                o.addAll(n);
+                return o;
+            });
+        });
+
+        Map<Integer, List<String>> collectMap = list.stream().collect(groupingBy(Person::age, mapping(Person::name, toList())));
+
+        System.out.println("computeMap => " + computeMap);
+        System.out.println("mergeMap => " + mergeMap);
+        System.out.println("collectMap => " + collectMap);
+    }
+}
+record Person(int age, String name) {}
+```
+```
+computeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+mergeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+collectMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 ```
 
 #### Concurrency
