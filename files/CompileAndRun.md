@@ -9,7 +9,7 @@ There are 3 commands available for java cmd:
   * we add `-d {directory}` option to build proper package structure into file - java expects us that package name is corresponding to file structure
 * `jar` stands for java archiver - tool to build special executable file with `.jar` extension
   * we use 3 commands: `cvf` => `--create --verbose --file`
-* `java` - tool to run `.java/.jar` files
+* `java` - tool to run `.java/.class/.jar` files
 
 1. Compile and Run single file without package: 
 ```java
@@ -82,13 +82,13 @@ javac -d . App.java util/Printer.java
 java com.java.test.App
 ```
 
-4. Compile and Run with `--add-exports`:
-We use package `jdk.internal.misc` from `java.base` module, which is not exported by default, so you can't even compile this code
+4. Compile and Run with `--add-exports`: We use package `jdk.internal.misc` from `java.base` module, which is not exported by default, so you can't even compile this code
 ```java
 package com.java.test;
 
 public class App {
     public static void main(String[] args) {
+        System.out.println("Starting the app...");
         jdk.internal.misc.Unsafe.getUnsafe();
         System.out.println("Hello World");
     }
@@ -106,8 +106,9 @@ Keep in mind that only `--add-exports` works on compilation time, if you try to 
 ```shell
 # success compilation
 javac -d . --add-exports java.base/jdk.internal.misc=ALL-UNNAMED App.java
-# calling java will faile
+# just running without --add, app would run, but once it get to the accessing the class - it would fail
 java com.java.test.App
+Starting the app...
 Exception in thread "main" java.lang.IllegalAccessError: class com.java.test.App (in unnamed module @0x4617c264) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x4617c264
         at com.java.test.App.main(App.java:5)
         
@@ -115,8 +116,7 @@ Exception in thread "main" java.lang.IllegalAccessError: class com.java.test.App
 java --add-exports java.base/jdk.internal.misc=ALL-UNNAMED com.java.test.App
 ```
 
-5. Compile and Run with `--add-opens`: use this flag only if you require deep reflection
-You have this code to fetch private field from java class in private package
+5. Compile and Run with `--add-opens`: use this flag only if you require deep reflection - like this code to fetch private field from java class in private package:
 ```java
 package com.java.test;
 
@@ -138,7 +138,7 @@ public class App {
     }
 }
 ```
-You have to compile with `-add-exports` without it code won't compile
+You have to compile with `-add-exports` without it, code won't compile
 ```shell
 # success compilation
 javac -d . --add-exports java.base/jdk.internal.misc=ALL-UNNAMED App.java
@@ -171,13 +171,26 @@ java App.java
 # compile java file into class file
 javac App.java
 # build jar file
+jar --create --verbose --file=app.jar App.class 
+# short version for create/verbose/file
 jar cvf app.jar App.class 
-# run jar => you will get error: no main manifest attribute, in app.jar
+# because jar is not executable you will get error: no main manifest attribute, in app.jar
 java -jar app.jar
-# error is because jar is not executable, but you can run this way
-java -cp app.jar App
+# you can run with class path, in his case it would work
+java --class-path=app.jar App
+# you can make jar executable
+jar --create --verbose --file=app.jar --main-class=App App.class
+# recompile with manifest (short version)
+jar cvfe app.jar App App.class
 ```
-Make jar executable
+Above example without package, but you can do the same with package
+```shell
+# compile class with full package name
+javac -d . App.java
+# build jar with main class
+jar --create --verbose --file=app.jar --main-class=com.java.test.App com/java/test/App.class
+```
+You can also create manifest manually and create jar with this manifest file:
 ```shell
 # add this file META-INF/MANIFEST.MF
 Main-Class: App
@@ -187,7 +200,24 @@ jar -cmvf META-INF/MANIFEST.MF app.jar App.class
 # call
 java -jar app.jar
 ```
-Rules for class/file -names:
-* file can contain only 1 public class with the same name as file - if you declare public class name different from filename you get compilation error: `error: class MyApp is public, should be declared in a file named MyApp.java`
-* you can have many classes - all classes would compile into separate `.class` name
-* you can have non-public class with different name - it would compile fine
+
+7. Create modular jar file
+Add following file: module-info.java
+```java
+module app{
+    exports com.java.test;
+}
+```
+Now create modular jar
+```shell
+# compile file with full package name
+javac -d . *.java
+# create jar
+jar --create --verbose --file=app.jar --main-class=com.java.test.App com/java/test/App.class module-info.class
+# you can run it the old way
+java -jar app.jar
+# run with class path
+java --class-path=app.jar com.java.test.App
+# you can run as module
+java --module-path=app.jar --module=app
+```
