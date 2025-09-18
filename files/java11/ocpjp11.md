@@ -8498,12 +8498,16 @@ highestAndLowestAge => {Lowest=Person[name=Mary, age=40], Highest=Person[name=Ja
 Don't confuse:
 * map.compute - take key, and function with key/value (key is that you provided as first param) - where you put your logic - it's good to use when value creation is time-consuming and you don't want to create it for each key
 * map.merge - take key,value and function with oldValue/value (same value as you provided as second param) - where you put merging logic. May not be ideal when creating value is resource-consuming. Because here, compare to `compute` you have to create value for each key, which may not be desired. When your value is `ArrayList`, you want to create it only once, and then add something to it, but here with `merge` you are forced to create `new ArrayList` each time you call it.
-* Collectors.groupingBy - ideal solution, where actual computation logic is hidden behind, and you have nice one-line functional programming solution to transform your original list of objects into custom map. It combines both of 2 words, it would create `ArrayList` only 3 times, each time for new unique key (not 5 times like with `merge` function), and it really nice and beatiful solution.
+* create custom `Map` and add new `merge` with `Supplier`. In this case your value would be called only once. Also, if you create custom `ArrayList` where you have chainable methods, that return reference on the object you can do your lambda in one-line of code - this is because methods in original `ArrayList` are not chainable, for example `add` returns `boolean`. So if you create 2 custom classes you can achieve `merge` in one line, but it too complex, so better to use collectors - they will do all the job with one single line.
+* Collectors.groupingBy - ideal solution, where actual computation logic is hidden behind, and you have nice one-line functional programming solution to transform your original list of objects into custom map. It combines both of 2 words, it would create `ArrayList` only 3 times, each time for new unique key (not 5 times like with `merge` function), and it is really nice and beautiful solution.
 ```java
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import static java.util.stream.Collectors.*;
 
 public class Test {
@@ -8518,6 +8522,7 @@ public class Test {
 
         Map<Integer, List<String>> computeMap = new HashMap<>();
         Map<Integer, List<String>> mergeMap = new HashMap<>();
+        MyHashMap<Integer, MyArrayList<String>> customMap = new MyHashMap<>();
         list.forEach(p -> {
             computeMap.compute(p.age(), (k, v) -> {
                 if (v == null) {
@@ -8530,20 +8535,48 @@ public class Test {
                 o.addAll(n);
                 return o;
             });
+            customMap.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), l -> l.addAndReturn(p.name()));
         });
 
         Map<Integer, List<String>> collectMap = list.stream().collect(groupingBy(Person::age, mapping(Person::name, toList())));
 
         System.out.println("computeMap => " + computeMap);
         System.out.println("mergeMap => " + mergeMap);
+        System.out.println("customMap => " + customMap);
         System.out.println("collectMap => " + collectMap);
     }
 }
 record Person(int age, String name) {}
+
+class MyHashMap<K,V> extends HashMap<K,V> {
+    public V merge(K key, Supplier<V> valueSupplier, Function<? super V, ? extends V> remappingFunction) {
+        Objects.requireNonNull(remappingFunction);
+        Objects.requireNonNull(valueSupplier);
+        V oldValue = get(key);
+        V newValue = oldValue == null ? valueSupplier.get() : remappingFunction.apply(oldValue);
+        if (newValue == null) {
+            remove(key);
+        } else {
+            put(key, newValue);
+        }
+        return newValue;
+    }
+}
+class MyArrayList<E> extends ArrayList<E> {
+    public MyArrayList(List<E> name) {
+        super(name);
+    }
+
+    public MyArrayList<E> addAndReturn(E value) {
+        this.add(value);
+        return this;
+    }
+}
 ```
 ```
 computeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 mergeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+customMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 collectMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 ```
 
@@ -13183,7 +13216,7 @@ There are 3 types of modules:
 NM can have access to AM, but should require it in it's `module-info.java` file by its name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
 AM can access all types from both NM and AM 
 UM can access all types from both NM and AM
-Bottom-up vs top-down approach: suppose we have 3 jars A.jar => B.jar => C.jar (`=>` - means depend on).
+Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
 Bottom-up:
 * first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
 * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
@@ -13193,12 +13226,12 @@ Top-down:
 * second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
 * finally convert C.jar
 If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `--module-path` (in this case named module loaded as named module, others as automatic modules).
-Inside module-info we can:
+Inside `module-info.java` we can:
 * requires one module at a time (requires moduleA, moduleB - illegal)
 * exports one package at a time (exports my.com.java.* - illegal)
 * provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
 
-Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, load as simply jar, trying to get access to package inside `X` jar, but this jar already converted into java module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The "opens" directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly "open" the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
+Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, loaded as simple jar, trying to get access to package inside `X` loaded as module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The "opens" directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly "open" the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
 Don't confuse:
 * `--add-opens` - provides access for deep reflection (including non-public members) at run time only (this can't be used with `javac`). So if you have the code like `setAccessible(true)` that means you are trying to get access to some private types, that you are not supposed to get access, and you need to use this option. Basically we can say that this option is wider than `--add-exports` because additionally it opens access to private types.
 * `--add-exports` - provides access to public API at compile and run time
@@ -13254,67 +13287,60 @@ ServiceLoader won't be able to load the implementation, you will get compile err
 If class both implement type and return this type in `provider()` method - this method has priority.
 `Jlink` - you can create custom jre environment, and run your app, where there is no java
 You can run your jar with 2 options `-jar` or `-cp`. If you jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
-`javap` - java disassembler, works with bytecode `.class` files.
-Usage:
-`javap -v compiled/com/java/test/App.class`
+`javap` - java disassembler, works with bytecode `.class` files. If we have file with this content:
+```java
+package com.java.test;
+
+public class Test {
+    public static void main(String[] args) {
+        System.out.println("Hello World!");
+    }
+}
 ```
-Classfile /home/diman/projects/my/ocpjp/code/warnings/compiled/com/java/test/App.class
-  Last modified 11 Feb 2020; size 624 bytes
-  MD5 checksum 8db0bc45b9bb01a9252305822f39524e
-  Compiled from "App.java"
-public class com.java.test.App
+We first compile it with `javac` and then try to disassemble with `javap -v compiled/com/java/test/App.class` - we get following output:
+```
+Classfile /C:/work/books/cert-ocpjp11/src/main/java/com/java/test/Test.class
+  Last modified 17 Sept 2025; size 428 bytes
+  SHA-256 checksum a6d424e0e7847bb1deee52e830113e7d42f2cf7e6f12d1fdd01b9c1ea05ef1c8
+  Compiled from "Test.java"
+public class com.java.test.Test
   minor version: 0
-  major version: 55
+  major version: 68
   flags: (0x0021) ACC_PUBLIC, ACC_SUPER
-  this_class: #12                         // com/java/test/App
-  super_class: #4                         // java/lang/Object
+  this_class: #21                         // com/java/test/Test
+  super_class: #2                         // java/lang/Object
   interfaces: 0, fields: 0, methods: 2, attributes: 1
 Constant pool:
-   #1 = Methodref          #4.#21         // java/lang/Object."<init>":()V
-   #2 = Class              #22            // java/util/ArrayList
-   #3 = Methodref          #2.#21         // java/util/ArrayList."<init>":()V
-   #4 = Class              #23            // java/lang/Object
-   #5 = InterfaceMethodref #24.#25        // java/util/List.add:(Ljava/lang/Object;)Z
-   #6 = Class              #26            // com/java/test/Printer
-   #7 = Methodref          #6.#21         // com/java/test/Printer."<init>":()V
-   #8 = Methodref          #6.#27         // com/java/test/Printer.print:()V
-   #9 = Fieldref           #28.#29        // java/lang/System.out:Ljava/io/PrintStream;
-  #10 = String             #30            // running app...
-  #11 = Methodref          #31.#32        // java/io/PrintStream.println:(Ljava/lang/String;)V
-  #12 = Class              #33            // com/java/test/App
-  #13 = Utf8               <init>
-  #14 = Utf8               ()V
-  #15 = Utf8               Code
-  #16 = Utf8               LineNumberTable
-  #17 = Utf8               main
-  #18 = Utf8               ([Ljava/lang/String;)V
-  #19 = Utf8               SourceFile
-  #20 = Utf8               App.java
-  #21 = NameAndType        #13:#14        // "<init>":()V
-  #22 = Utf8               java/util/ArrayList
-  #23 = Utf8               java/lang/Object
-  #24 = Class              #34            // java/util/List
-  #25 = NameAndType        #35:#36        // add:(Ljava/lang/Object;)Z
-  #26 = Utf8               com/java/test/Printer
-  #27 = NameAndType        #37:#14        // print:()V
-  #28 = Class              #38            // java/lang/System
-  #29 = NameAndType        #39:#40        // out:Ljava/io/PrintStream;
-  #30 = Utf8               running app...
-  #31 = Class              #41            // java/io/PrintStream
-  #32 = NameAndType        #42:#43        // println:(Ljava/lang/String;)V
-  #33 = Utf8               com/java/test/App
-  #34 = Utf8               java/util/List
-  #35 = Utf8               add
-  #36 = Utf8               (Ljava/lang/Object;)Z
-  #37 = Utf8               print
-  #38 = Utf8               java/lang/System
-  #39 = Utf8               out
-  #40 = Utf8               Ljava/io/PrintStream;
-  #41 = Utf8               java/io/PrintStream
-  #42 = Utf8               println
-  #43 = Utf8               (Ljava/lang/String;)V
+   #1 = Methodref          #2.#3          // java/lang/Object."<init>":()V
+   #2 = Class              #4             // java/lang/Object
+   #3 = NameAndType        #5:#6          // "<init>":()V
+   #4 = Utf8               java/lang/Object
+   #5 = Utf8               <init>
+   #6 = Utf8               ()V
+   #7 = Fieldref           #8.#9          // java/lang/System.out:Ljava/io/PrintStream;
+   #8 = Class              #10            // java/lang/System
+   #9 = NameAndType        #11:#12        // out:Ljava/io/PrintStream;
+  #10 = Utf8               java/lang/System
+  #11 = Utf8               out
+  #12 = Utf8               Ljava/io/PrintStream;
+  #13 = String             #14            // Hello World!
+  #14 = Utf8               Hello World!
+  #15 = Methodref          #16.#17        // java/io/PrintStream.println:(Ljava/lang/String;)V
+  #16 = Class              #18            // java/io/PrintStream
+  #17 = NameAndType        #19:#20        // println:(Ljava/lang/String;)V
+  #18 = Utf8               java/io/PrintStream
+  #19 = Utf8               println
+  #20 = Utf8               (Ljava/lang/String;)V
+  #21 = Class              #22            // com/java/test/Test
+  #22 = Utf8               com/java/test/Test
+  #23 = Utf8               Code
+  #24 = Utf8               LineNumberTable
+  #25 = Utf8               main
+  #26 = Utf8               ([Ljava/lang/String;)V
+  #27 = Utf8               SourceFile
+  #28 = Utf8               Test.java
 {
-  public com.java.test.App();
+  public com.java.test.Test();
     descriptor: ()V
     flags: (0x0001) ACC_PUBLIC
     Code:
@@ -13323,45 +13349,22 @@ Constant pool:
          1: invokespecial #1                  // Method java/lang/Object."<init>":()V
          4: return
       LineNumberTable:
-        line 11: 0
+        line 3: 0
 
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
-      stack=2, locals=4, args_size=1
-         0: new           #2                  // class java/util/ArrayList
-         3: dup
-         4: invokespecial #3                  // Method java/util/ArrayList."<init>":()V
-         7: astore_1
-         8: new           #4                  // class java/lang/Object
-        11: dup
-        12: invokespecial #1                  // Method java/lang/Object."<init>":()V
-        15: astore_2
-        16: aload_1
-        17: aload_2
-        18: invokeinterface #5,  2            // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
-        23: pop
-        24: new           #6                  // class com/java/test/Printer
-        27: dup
-        28: invokespecial #7                  // Method com/java/test/Printer."<init>":()V
-        31: astore_3
-        32: aload_3
-        33: invokevirtual #8                  // Method com/java/test/Printer.print:()V
-        36: getstatic     #9                  // Field java/lang/System.out:Ljava/io/PrintStream;
-        39: ldc           #10                 // String running app...
-        41: invokevirtual #11                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
-        44: return
+      stack=2, locals=1, args_size=1
+         0: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         3: ldc           #13                 // String Hello World!
+         5: invokevirtual #15                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+         8: return
       LineNumberTable:
-        line 15: 0
-        line 16: 8
-        line 17: 16
-        line 19: 24
-        line 20: 32
-        line 22: 36
-        line 23: 44
+        line 5: 0
+        line 6: 8
 }
-SourceFile: "App.java"
+SourceFile: "Test.java"
 ```
 `jdeps` - analyze class dependencies
 Example output:
