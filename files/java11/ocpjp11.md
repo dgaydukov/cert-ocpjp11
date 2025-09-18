@@ -8506,6 +8506,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import static java.util.stream.Collectors.*;
@@ -8522,7 +8523,8 @@ public class Test {
 
         Map<Integer, List<String>> computeMap = new HashMap<>();
         Map<Integer, List<String>> mergeMap = new HashMap<>();
-        MyHashMap<Integer, MyArrayList<String>> customMap = new MyHashMap<>();
+        MyHashMap<Integer, MyArrayList<String>> customMap1 = new MyHashMap<>();
+        MyHashMap<Integer, MyArrayList<String>> customMap2 = new MyHashMap<>();
         list.forEach(p -> {
             computeMap.compute(p.age(), (k, v) -> {
                 if (v == null) {
@@ -8535,14 +8537,16 @@ public class Test {
                 o.addAll(n);
                 return o;
             });
-            customMap.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), l -> l.addAndReturn(p.name()));
+            customMap1.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), l -> l.addAndReturn(p.name()));
+            customMap2.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), p.name(), MyArrayList::addAndReturn);
         });
 
         Map<Integer, List<String>> collectMap = list.stream().collect(groupingBy(Person::age, mapping(Person::name, toList())));
 
         System.out.println("computeMap => " + computeMap);
-        System.out.println("mergeMap => " + mergeMap);
-        System.out.println("customMap => " + customMap);
+        System.out.println("mergeMap   => " + mergeMap);
+        System.out.println("customMap1 => " + customMap1);
+        System.out.println("customMap2 => " + customMap2);
         System.out.println("collectMap => " + collectMap);
     }
 }
@@ -8554,6 +8558,19 @@ class MyHashMap<K,V> extends HashMap<K,V> {
         Objects.requireNonNull(valueSupplier);
         V oldValue = get(key);
         V newValue = oldValue == null ? valueSupplier.get() : remappingFunction.apply(oldValue);
+        if (newValue == null) {
+            remove(key);
+        } else {
+            put(key, newValue);
+        }
+        return newValue;
+    }
+
+    public <T> V merge(K key, Supplier<V> valueSupplier, T value, BiFunction<? super V, T, ? extends V> remappingFunction) {
+        Objects.requireNonNull(remappingFunction);
+        Objects.requireNonNull(valueSupplier);
+        V oldValue = get(key);
+        V newValue = oldValue == null ? valueSupplier.get() : remappingFunction.apply(oldValue, value);
         if (newValue == null) {
             remove(key);
         } else {
@@ -8573,10 +8590,12 @@ class MyArrayList<E> extends ArrayList<E> {
     }
 }
 ```
+You can see that `customMap1/customMap2` different that in second version we use static reference, although in the first case it won't work. For static reference to work, 2 params should be passed into `addAndReturn` - the list itself, the string value. That's why in second `merge` we use `BiFunction` that actually use second value. Using static reference is not possible in the first case, because you have to explicitly pass value into it. Yet in second case, value is supplied as second argument of `BiFunction`. This is also explain the original `merge`, that actually force you to use `BiFunction` and not use `Supplier` because they want `V` to always be available on each call - so you can merge your existing value with new value - and do it with nice and short static reference.
 ```
 computeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
-mergeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
-customMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+mergeMap   => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+customMap1 => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+customMap2 => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 collectMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 ```
 
