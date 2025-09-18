@@ -9,9 +9,7 @@ There are 3 commands available for java cmd:
   * we add `-d {directory}` option to build proper package structure into file - java expects us that package name is corresponding to file structure
 * `jar` stands for java archiver - tool to build special executable file with `.jar` extension
   * we use 3 commands: `cvf` => `--create --verbose --file`
-* `java` - tool to run jar files
-
-
+* `java` - tool to run `.java/.jar` files
 
 1. Compile and Run single file without package: 
 ```java
