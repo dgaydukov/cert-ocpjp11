@@ -221,3 +221,8 @@ java --class-path=app.jar com.java.test.App
 # you can run as module
 java --module-path=app.jar --module=app
 ```
+Check jar content
+```shell
+# check what is inside your jar (module should include module-info.class)
+jar -tf app.jar
+```
