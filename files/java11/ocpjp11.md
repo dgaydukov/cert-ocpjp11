@@ -8979,7 +8979,10 @@ Don't confuse:
   * timeout expires but service not terminated - return false
   * `InterruptedException` throws - goes to catch block
   * You have to call `shutdown` before, otherwise behavior is unpredictable - it would wait until the end of timeout, regardless if service actually terminated or not and return false
-In below code, if your futures completes in 1 sec, all is good. But if you change it to 3 sec, then `awaitTermination` would exit with false, but your `whenComplete` would be called anyway with fail result, `ex` would be null in either success or fail. Also it's a nice example of how `CompletableFuture` works, and how you can register callbacks in java with `whenComplete`, and how you can add blocking code to wait the completion of callbacks.
+In below code, if your futures completes in 1 sec, all is good. But if you change it to 3 sec, then `awaitTermination` would exit with false, but your `whenComplete` would be called anyway with fail result, `ex` would be null in either success or fail. Also, it's a nice example of how `CompletableFuture` works, and how you can register callbacks in java with `whenComplete`, and how you can add blocking code to wait the completion of callbacks. There are several ways to wait including:
+  * CompletableFuture.allOf => `get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException` - wait for execution with timeout, or join (compare to `get` it doesn't throw any exception)
+  * `awaitTermination` - that used in below example
+  * `CountDownLatch` => `await(long timeout, TimeUnit unit)` - wait for execution with timeout
 ```java
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;

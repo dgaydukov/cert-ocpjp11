@@ -4,13 +4,14 @@
 * [Description](#description)
 * [Composition over inheritance](#composition-over-inheritance)
 * [Lombok Delegate](#lombok-delegate)
+* [Decorator pattern](#decorator-pattern)
 
 ### Description
 In this file I'll add all the tricks and hacks, including all best practices related to OOP. This is very broad topics, so I'll not add all the details and basic concepts, only the most advanced.
 
 ### Composition over inheritance
 There are 2 main approach how you can build your app:
-* inheritance - the downside is that you create tight coupling. Moreover in real world you have composition. For example car consist of multiple not directly related parts
+* inheritance - the downside is that you create tight coupling. Moreover, in real world you have composition. For example car consist of multiple not directly related parts
 * composition - better than inheritance, cause it gives you more flexible and remove tight coupling. There are several ways how you can achieve this in java:
   * use of multiple interfaces
   * use of `@Delegate` interface from Lombok
@@ -71,4 +72,50 @@ class Printer {
         System.out.println(msg);
     }
 }
+```
+
+### Decorator pattern
+* design pattern that adds additional behavior to the object
+* but doing so without modifying original class or even without inheritance (if we have interface)
+* so you have completely new object which is type of interface but has additional behavior
+* AOP design pattern is based on decorators where you add logic before/after the method call, and supply your proxy object instead of original object - so adding additional features without modifying original class
+* lombok `@Delegate` annotation is similar or one of use-cases of decorator - the only difference with lombok you don't have the ability to extend the behavior, what it does - just add same logic into new class without adding additional behavior.
+```java
+public class Test {
+    public static void main(String[] args) {
+        Printer console = new ConsolePrinter();
+        Printer decorator = new DecoratedPrinter(console);
+        decorator.print("hello");
+    }
+}
+
+interface Printer {
+    void print(String msg);
+}
+
+class ConsolePrinter implements Printer {
+    @Override
+    public void print(String msg) {
+        System.out.println(msg);
+    }
+}
+
+class DecoratedPrinter implements Printer {
+    private final Printer printer;
+    public DecoratedPrinter(Printer printer) {
+        this.printer = printer;
+    }
+    @Override
+    public void print(String msg) {
+        System.out.println("decorated printer before the call...");
+        printer.print(msg);
+        System.out.println("decorated printer after the call");
+    }
+}
+```
+Here we have created a decorator, that kind of extends our `ConsolePrinter` and adding additional behavior, but without modifying original class. Also because both original class and decorator extends the same interface they can substitute each other in the code where interface is used.
+```
+decorated printer before the call...
+hello
+decorated printer after the call
 ```
