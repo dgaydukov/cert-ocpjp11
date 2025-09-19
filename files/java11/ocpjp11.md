@@ -8974,11 +8974,50 @@ Don't confuse:
 * `shutdown` - shutdown the service, but doesn't terminate running threads, you wait until all threads finish execution and terminated.
 * `shutdownNow` - shutdown the service and terminate all running thread, by calling `interrupt`, all threads are interrupted and exit execution
 * `close` (added in java19) - since service also extends `AuoClosable`, if you wrap creation into `try-with-resources`, it would automatically call `close` which under-the-hood calls `shutdown` and wait for termination of all running threads. Previous 2 don't block current thread, but this one would block and wait until all threads are terminated.
-Has 3 versions of submit:
-* `submit(Runnable)` - take nothing, return `Future<?>`
-* `submit(Runnable, T)` - return `Future<T>` when done
-* `submit(Callable<T>)` - return `Future<T>` from callable
-* one version of submit from parent interface `Executor` with 1 method only: `void execute(Runnable)`. All 3 above method, under-the-hood call `execute`
+* `awaitTermination throws InterruptedException` - should be called after `shutdown`, block current thread  until one of 3 condition:
+  * service terminated before timeout - returns true
+  * timeout expires but service not terminated - return false
+  * `InterruptedException` throws - goes to catch block
+  * You have to call `shutdown` before, otherwise behavior is unpredictable - it would wait until the end of timeout, regardless if service actually terminated or not and return false
+In below code, if your futures completes in 1 sec, all is good. But if you change it to 3 sec, then `awaitTermination` would exit with false, but your `whenComplete` would be called anyway with fail result, `ex` would be null in either success or fail. Also it's a nice example of how `CompletableFuture` works, and how you can register callbacks in java with `whenComplete`, and how you can add blocking code to wait the completion of callbacks.
+```java
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class Test {
+    public static void main(String[] args) {
+        ExecutorService service = Executors.newCachedThreadPool();
+        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(1000);
+                return "success";
+            } catch (InterruptedException ex) {
+                return "fail: " + ex.getMessage();
+            }
+        }, service);
+        future.whenComplete((res, ex) -> {
+            System.out.println("result="+res+", ex="+ex);
+        });
+        // this is must-be, if you miss this line, code would be unpredictable
+        service.shutdown();
+        try {
+            if (!service.awaitTermination(2, TimeUnit.SECONDS)){
+                System.out.println("Finish timeout waiting and service is not terminated. Shutting down...");
+                service.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            System.out.println("ERR => " + ex);
+        }
+    }
+}
+```
+* Has 3 versions of submit:
+  * `submit(Runnable)` - take nothing, return `Future<?>`
+  * `submit(Runnable, T)` - return `Future<T>` when done
+  * `submit(Callable<T>)` - return `Future<T>` from callable
+  * one version of submit from parent interface `Executor` with 1 method only: `void execute(Runnable)`. All 3 above method, under-the-hood call `execute`
 ```java
 import java.util.concurrent.*;
 
@@ -13284,6 +13323,15 @@ If package is hidden:
 * if you run compiled code you can get 2 exceptions:
   * `java.lang.IllegalAccessError` - if you run compiled code without `--add-exports` (yes you need to add it to both `javac` to compile and `java` to run)
   * `java.lang.reflect.InaccessibleObjectException` - if you run compiled code that has deep reflection, then you have to add `--add-opens` (for deep reelection just adding `--add-exports` is not enough)
+
+Rules for class/file-names:
+* file can contain only 1 public class with the same name as file - if you declare public class name different from filename you get compilation error: `error: class MyApp is public, should be declared in a file named MyApp.java`
+* you can have many classes - all classes would compile into separate `.class` name
+* you can have non-public class with different name - it would compile fine
+* package and module name - should be valid java identifier: alphanumeric and `. _ $` allowed
+    * valid names: $a, a$, _n, n.a, n1
+    * invalid names: a..b, 1n
+    * `module-info.java` is java file that would be compiled into `module-info.class` and it can't be empty
 
 We can also use custom module inside maven project.
 ```xml
