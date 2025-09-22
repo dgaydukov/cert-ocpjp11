@@ -13297,6 +13297,8 @@ Error message: `module X does not 'opens Y' to unnamed module` - means, that you
 Don't confuse:
 * `--add-opens` - provides access for deep reflection (including non-public members) at run time only (this can't be used with `javac`). So if you have the code like `setAccessible(true)` that means you are trying to get access to some private types, that you are not supposed to get access, and you need to use this option. Basically we can say that this option is wider than `--add-exports` because additionally it opens access to private types.
 * `--add-exports` - provides access to public API at compile and run time
+* `--add-reads` - example above using module `jaba.base` which is built-in module, that's why it's already added to module graph. But if you have custom module that you need to call with `--add-exports/opens` commands, you have to load your module into module graph first, that's why you have to use this command.
+* `--add-modules` - again for built-in modules you don't have to use it, but for custom modules, if you declare `--add-reads` you have to use this command to add module. This commands add module into module graph, but add-reads allows your module to read custom module [check consolemodular](/code/consolemodular)
 
 Rule for package exposure:
 * each module has a `module-info.java` file with package declarations:

@@ -1,2 +1,3 @@
-module com.java.app{
+module module.app{
+    requires module.printer;
 }
