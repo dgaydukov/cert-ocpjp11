@@ -19,8 +19,8 @@ jar --create --file compiled/jarB.jar --manifest jarB/MANIFEST.MF -C compiled/ja
 jar --list --file compiled/jarB.jar
 
 # 3 ways to run app
-java --class-path compiled/jarB:compiled/jarA com.java.jarb.JarBApp
-java --class-path compiled/jarB.jar:compiled/jarA.jar com.java.jarb.JarBApp
+java --class-path "compiled/jarB;compiled/jarA" com.java.jarb.JarBApp
+java --class-path "compiled/jarB.jar;compiled/jarA.jar" com.java.jarb.JarBApp
 java -jar compiled/jarB.jar
 
 
@@ -48,11 +48,11 @@ java --module-path compiled/moduleC3 --module moduleC/com.java.modulec.ModuleCAp
 
 
 echo && echo "__Building moduleD__"
-javac -d compiled/moduleD moduleD/ModuleDApp.java moduleD/module-info.java --module-path compiled/moduleC.jar:compiled/jarB.jar
+javac -d compiled/moduleD moduleD/ModuleDApp.java moduleD/module-info.java --module-path "compiled/moduleC.jar;compiled/jarB.jar"
 jar --create --file compiled/moduleD.jar --main-class com.java.moduled.ModuleDApp -C compiled/moduleD .
 jar --list --file compiled/moduleD.jar
-java --module-path compiled/moduleD.jar:compiled/moduleC.jar:compiled/jarB.jar:compiled/jarA.jar --module moduleD/com.java.moduled.ModuleDApp
-java --class-path compiled/jarA.jar --module-path compiled/moduleD.jar:compiled/moduleC.jar:compiled/jarB.jar --module moduleD/com.java.moduled.ModuleDApp
+java --module-path "compiled/moduleD.jar;compiled/moduleC.jar;compiled/jarB.jar;compiled/jarA.jar" --module moduleD/com.java.moduled.ModuleDApp
+java --class-path compiled/jarA.jar --module-path "compiled/moduleD.jar;compiled/moduleC.jar;compiled/jarB.jar" --module moduleD/com.java.moduled.ModuleDApp
 
 echo && echo "__View dependencies moduleD__"
 # standard view
@@ -60,5 +60,5 @@ echo && echo "__View dependencies moduleD__"
 #echo && echo "recursive summary"
 
 
-jdeps -s -recursive --module-path compiled/moduleD.jar:compiled/moduleC.jar:compiled/jarB.jar:compiled/jarA.jar compiled/moduleD.jar
-jdeps -s -recursive --class-path compiled/jarA.jar --module-path compiled/moduleD.jar:compiled/moduleC.jar:compiled/jarB.jar compiled/moduleD.jar
+jdeps -s -recursive --module-path "compiled/moduleD.jar;compiled/moduleC.jar;compiled/jarB.jar;compiled/jarA.jar" compiled/moduleD.jar
+jdeps -s -recursive --class-path compiled/jarA.jar --module-path "compiled/moduleD.jar;compiled/moduleC.jar;compiled/jarB.jar" compiled/moduleD.jar
