@@ -13300,7 +13300,7 @@ Don't confuse:
 * `--add-reads` - example above using module `jaba.base` which is built-in module, that's why it's already added to module graph. But if you have custom module that you need to call with `--add-exports/opens` commands, you have to load your module into module graph first, and then notify that your module would read another module. This is the inverse of `requires` inside `module-info.java` file. If `module.b` depends on `module.a` then:
   * declare `requires module.a` in `module-info.java` file of the `module.b`
   * add `--add-modules=module.a --add-reads module.b=module.a` when you compile/run `module.b`
-* `--add-modules` - again for built-in modules you don't have to use it, but for custom modules, if you declare `--add-reads` you have to use this command to add module. This commands add module into module graph, but `--add-reads` allows your module to read custom module [check modular](/code/modular)
+* `--add-modules` - again for built-in modules you don't have to use it, but for custom modules, if you declare `--add-reads` you have to use this command to add module. This commands add module into module graph, but `--add-reads` allows your module to read custom module [check modular](/code/modular2jar)
 
 Rule for package exposure:
 * each module has a `module-info.java` file with package declarations:

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+clear
 rm -rf ./compiled
 
 #compile interface

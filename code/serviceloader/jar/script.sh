@@ -1,5 +1,6 @@
 #!/bin/bash
 # With ServiceLoader you can load both interface and abstract and concrete classes
+clear
 rm -rf ./compiled
 
 #compile interface
