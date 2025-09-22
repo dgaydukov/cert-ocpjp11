@@ -3449,6 +3449,7 @@ java.lang.NullPointerException
 * Java7 team wanted a mechanism to label objects as be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
 * it works by inserting `try/finally` and wrapping your code inside `try` block with it - below is example where I showed how JVM handle closing the resources.
 * resources closed in reverse order of declaration, `catch/finally` are executed after resources closed
+* usually `public void close() throws IOException` - so if you create for example `BufferedReader` without try-with-resource, it would work fine, but if you wrap it into it, then code won't compile and request that you explicitly handle exception.
 ```java
 import java.io.BufferedReader;
 import java.io.FileReader;
