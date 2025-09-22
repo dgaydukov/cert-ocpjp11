@@ -1,5 +1,3 @@
-package com.java.test;
-
 /**
  * https://docs.oracle.com/javase/6/docs/technotes/tools/solaris/javac.html#options
  * Pay attention that "all" type is not default for JDK, it's supported by Intellij & Eclipse IDE but not by javac

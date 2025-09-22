@@ -1,5 +1,9 @@
 #!/bin/bash
 
-rm -rf compiled
+# cleanup
+clear
+rm -rf ./compiled
+
+echo && echo "__Running app__"
 javac -Xlint -d compiled App.java
-java -cp compiled com.java.test.App
+java -cp compiled App
