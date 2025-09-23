@@ -8969,6 +8969,7 @@ TIMED_WAITING
 TERMINATED
 TERMINATED
 ```
+ThreadLocal - holder class that create variable accessible only by one thread - if you create such variable with `ThreadLocal<String> threadLocal = new ThreadLocal<>();` and try to access from different threads, each threads will have it's own copy and will never see/flush changes to other threads.
 
 ###### ExecutorService
 Don't confuse:

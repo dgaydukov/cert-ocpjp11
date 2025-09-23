@@ -214,6 +214,12 @@ Now create modular jar
 javac -d . *.java
 # create jar
 jar --create --verbose --file=app.jar --main-class=com.java.test.App com/java/test/App.class module-info.class
+
+# compile 2 files with full package structure into compiled directory
+javac -d compiled App.java module-info.java
+# create jar from the source files in compiled folder and put jar into current directory: maybe nicer then previous where you have to supply all files manually
+jar --create --verbose --file=app.jar --main-class=com.java.test.App -C compiled .
+
 # you can run it the old way
 java -jar app.jar
 # run with class path
