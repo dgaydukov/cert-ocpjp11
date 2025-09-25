@@ -240,8 +240,9 @@ jar -tf app.jar
 There are 2 ways you can compile java module:
 * using standard java command - in this case you compile all files just like regular java files
 * using new module options like - in this case you force compiler to compile java files as single module. Basically it's the same compilation, but it also checks if your project is a proper module:
-  * name of the module should correspond to the directory name
+  * all 3 name for the module name should correspond: name passed into `--module` param, directory that holds the module, name inside `module-info.java` file
   * inside directory there should be file `module-info.java` with same module name as passed param and directory
+  * modular compilation create folder with module name, while simple is just put everything into output folder
 * Modular compilation can give you hints if what you are trying to compile is not real module - you can get following errors:
   * `error: module module.xyz not found in module source path` - if there is no directory with name `module.xyz` in the `src` directory, or directory exists, but there is no `module-info.java` inside `module.xyz` directory
   * `src\module.xyz\module-info.java:1: error: module name module.app does not match expected name module.xyz` - module name in the file `module-info.java` doesn't correspond to the name passed to `--module` param
@@ -254,6 +255,6 @@ javac -d compiled src/module.app/module-info.java src/module.app/**/*.java
 javac -d compiled --module-source-path=src --module=module.app
 # modular compilation: you can have multiple modules in single dir and compile them one-by-one
 javac -d compiled --module-source-path=src --module=module.xyz
-# modular compilation: compile both modules
-javac -d compiled --module-source-path=src --module=module.abc --module=module.xyz
+# modular compilation: compile 2 modules at once. if you use --module=module.app --module=module.xyz - then second param overwrite the first, and only module.xyz would be compiled
+javac -d compiled --module-source-path=src --module=module.app,module.xyz
 ```
