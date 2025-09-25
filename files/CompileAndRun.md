@@ -7,6 +7,9 @@
 There are 3 commands available for java cmd:
 * `javac` stands for java compiler - tool to compile java file into binary file with `.class` extension
   * we add `-d {directory}` option to build proper package structure into file - java expects us that package name is corresponding to file structure
+  * if your project is lacking proper folder structure `javac` would build it:
+    * if you have file `App.java` declared with `package com.java.test`, compiler would create full path for compiled file with `com/java/test/App.class`
+    * it doesn't matter if your original file as `App.java` had this file structure or not, compile would create it anyway
 * `jar` stands for java archiver - tool to build special executable file with `.jar` extension
   * we use 3 commands: `cvf` => `--create --verbose --file`
 * `java` - tool to run `.java/.class/.jar` files
@@ -231,4 +234,26 @@ Check jar content
 ```shell
 # check what is inside your jar (module should include module-info.class)
 jar -tf app.jar
+```
+
+8. Compile module - [modular](/code/modular)
+There are 2 ways you can compile java module:
+* using standard java command - in this case you compile all files just like regular java files
+* using new module options like - in this case you force compiler to compile java files as single module. Basically it's the same compilation, but it also checks if your project is a proper module:
+  * name of the module should correspond to the directory name
+  * inside directory there should be file `module-info.java` with same module name as passed param and directory
+* Modular compilation can give you hints if what you are trying to compile is not real module - you can get following errors:
+  * `error: module module.xyz not found in module source path` - if there is no directory with name `module.xyz` in the `src` directory, or directory exists, but there is no `module-info.java` inside `module.xyz` directory
+  * `src\module.xyz\module-info.java:1: error: module name module.app does not match expected name module.xyz` - module name in the file `module-info.java` doesn't correspond to the name passed to `--module` param
+```shell
+# regular compilation with all files listed manually
+javac -d compiled src/module.app/module-info.java src/module.app/com.java.test/App.java
+# regular compilation with recursive for all files in all sub dirs (all files inside all packages inside module.app folder)
+javac -d compiled src/module.app/module-info.java src/module.app/**/*.java
+# modular compilation: name of --module param, directory name, and inside module-info.java - all 3 should be the same
+javac -d compiled --module-source-path=src --module=module.app
+# modular compilation: you can have multiple modules in single dir and compile them one-by-one
+javac -d compiled --module-source-path=src --module=module.xyz
+# modular compilation: compile both modules
+javac -d compiled --module-source-path=src --module=module.abc --module=module.xyz
 ```
