@@ -1,7 +1,16 @@
 # Java command-line tools
 
 ### Content
+* [Path Separator](#path-separator)
 * [Building and running java](#building-and-running-java)
+
+### Path Separator
+When you need to pass multiple paths to `javac/java/jar` commands you have to separate paths using path separator. And this separator is system dependent:
+* Windows - we use semicolon `;`
+* Linux/MacOS - we use colon `:`
+You need to keep this in mind, because code is written, especially in `code` folder for Linux, and may not compile in Windows, you will have to change:
+* Linux: `jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar`
+* Windows: `jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar`
 
 ### Building and running java
 There are 3 commands available for java cmd:
@@ -9,7 +18,7 @@ There are 3 commands available for java cmd:
   * we add `-d {directory}` option to build proper package structure into file - java expects us that package name is corresponding to file structure
   * if your project is lacking proper folder structure `javac` would build it:
     * if you have file `App.java` declared with `package com.java.test`, compiler would create full path for compiled file with `com/java/test/App.class`
-    * it doesn't matter if your original file as `App.java` had this file structure or not, compile would create it anyway
+    * it doesn't matter if your original file as `App.java` had this file structure or not, compile would create it anyway based on the package name - Yet it's considered good practice to structure code according to package name, so your file should be `com/java/test/App.java`
 * `jar` stands for java archiver - tool to build special executable file with `.jar` extension
   * we use 3 commands: `cvf` => `--create --verbose --file`
 * `java` - tool to run `.java/.class/.jar` files
@@ -243,18 +252,30 @@ There are 2 ways you can compile java module:
   * all 3 name for the module name should correspond: name passed into `--module` param, directory that holds the module, name inside `module-info.java` file
   * inside directory there should be file `module-info.java` with same module name as passed param and directory
   * modular compilation create folder with module name, while simple is just put everything into output folder
+    * if you have output directory as `compiled` and module name as `module.app` - `javac` would compile into `compiled/module.app`, but with simple non-modular compilation, all files would be just in `src` folder
+  * `--module-path` - expect 2 things either directory with same name as module or jar file with `module-info.java` with same name as module (name of jar file is not important):
+    * if compiled file - path where our module directory is located
+    * if jar file - path where jar file is located
+  * `--module-path` - can be used with both `java/javac` commands:
+    * when compiling if you need another already built module as dependency (you can specify both jar file or directory that contains jar file): `javac --module-path=module.printer -d compiled --module-source-path=src --module=module.app`
+    * when running - you specify the path for jar or folder with compiled files: `java --module-path=compiled --module=module.abc/com.java.test.App`
 * Modular compilation can give you hints if what you are trying to compile is not real module - you can get following errors:
   * `error: module module.xyz not found in module source path` - if there is no directory with name `module.xyz` in the `src` directory, or directory exists, but there is no `module-info.java` inside `module.xyz` directory
   * `src\module.xyz\module-info.java:1: error: module name module.app does not match expected name module.xyz` - module name in the file `module-info.java` doesn't correspond to the name passed to `--module` param
 ```shell
 # regular compilation with all files listed manually
-javac -d compiled src/module.app/module-info.java src/module.app/com.java.test/App.java
+javac -d compiled src/module.abc/module-info.java src/module.abc/com/java/test/App.java
 # regular compilation with recursive for all files in all sub dirs (all files inside all packages inside module.app folder)
-javac -d compiled src/module.app/module-info.java src/module.app/**/*.java
+javac -d compiled src/module.abc/module-info.java src/module.abc/**/*.java
 # modular compilation: name of --module param, directory name, and inside module-info.java - all 3 should be the same
-javac -d compiled --module-source-path=src --module=module.app
+javac -d compiled --module-source-path=src --module=module.abc
 # modular compilation: you can have multiple modules in single dir and compile them one-by-one
 javac -d compiled --module-source-path=src --module=module.xyz
 # modular compilation: compile 2 modules at once. if you use --module=module.app --module=module.xyz - then second param overwrite the first, and only module.xyz would be compiled
-javac -d compiled --module-source-path=src --module=module.app,module.xyz
+javac -d compiled --module-source-path=src --module=module.abc,module.xyz
+
+# run as java
+java --class-path=compiled/module.abc com.java.test.App
+# run as module
+java --module-path=compiled --module=module.abc/com.java.test.App
 ```
