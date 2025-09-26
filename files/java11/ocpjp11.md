@@ -13274,8 +13274,8 @@ Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Inte
 Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
 There are 3 types of modules:
 * named module (NM) - one with `module-info.java` file loaded from `--module-path`
-* automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so mysql-java-connector-1.2.3.jar => mysql.java.connector. You can also set it explicitly by adding to MANIFEST.MF => Automatic-Module-Name: <module name>)
-* unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`
+* automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so `mysql-java-connector-1.2.3.jar` => `mysql.java.connector`. You can also set it explicitly by adding to `MANIFEST.MF` => `Automatic-Module-Name: <module name>`). All packages are both exported/opened of automatic module, and it can read all exported packages of all modules loaded with `--module-path`. If automatic module is dependent on non-modular jar, we can simply put this jar into `--class-path`. We have to use automatic module, and put non-modular jar into `--module-path` only if our modular jar requires non-modular jar.
+* unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`. The type of jar is not important, you can load from classpath both regular jar and modular jar. If you load modular jar, its `module-info.java` would be ignored, and it would behave just like regular jar file. Classes of UM can read all exported packages of all modules loaded from `--module-path`, yet because UM doesn't have a name, no module can use its packages.
 NM can have access to AM, but should require it in it's `module-info.java` file by its name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
 AM can access all types from both NM and AM 
 UM can access all types from both NM and AM
@@ -13302,6 +13302,15 @@ Don't confuse:
   * declare `requires module.a` in `module-info.java` file of the `module.b`
   * add `--add-modules=module.a --add-reads module.b=module.a` when you compile/run `module.b`
 * `--add-modules` - again for built-in modules you don't have to use it, but for custom modules, if you declare `--add-reads` you have to use this command to add module. This commands add module into module graph, but `--add-reads` allows your module to read custom module [check modular](/code/modular2jar)
+* `reqiures module_name` - when your module needs packages from another, you have to explicitly define it in your module
+* `requires transitive module_name` - transitive dependency. By default, if module `A` requires module `B` which requires module `C`, module `A` still has no access to module `C` and if it needs, it should explicitly add `reuires C` into it's `module-info.java`. But if for example module `B` has some return types from module `C` that means anybody who is using `B` would also need to explicitly require module `C`. So to avoid this, module `B` may use transitive dependency where now, if somebody requires module `B` he automatically get access to module `C`.
+* duplicating `requires` statement inside module declaration is prohibited and code won't compile: `error: duplicate requires: java.desktop` - this is different from `import` where you can duplicate them in java file and it would compile fine.
+* circular dependency not allowed: if module `A` requires module `B` which requires module `C`, now `B/C` can't require `A`
+* `opens, opens to` - is similar to `--add-opens` - add access only at runtime - useful if you want to un-export some packages which other modules using. If you just remove `exports` statement, the code on dependent modules would break and won't compile/run. But if you change `exports` => `opens` - code is able to run, but not compile. So that means for future version dependent modules should refactor their code, but current version can run fine. And of course the second feature of `opens` is open package for reflection access, so you can have both `exports` & `opens` for the same package - that would mean you are exporting it for other modules, but also allows deep reflection access.
+* `open module A` - open all packages from this module
+* `opens` compare to `exports` allows to open package that doesn't exist in the module:
+  * if you try to export the non-existent package - you get compilation error (won't compile): `error: package is empty or does not exist: com.example.none`
+  * if you try to open the non-existent package - you get a warning, but code would compile: `warning: package is empty or does not exist: com.example.none`
 
 Rule for package exposure:
 * each module has a `module-info.java` file with package declarations:

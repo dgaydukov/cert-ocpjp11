@@ -2,6 +2,7 @@
 
 ### Content
 * [Path Separator](#path-separator)
+* [Quick command names](#quick-command-names)
 * [Building and running java](#building-and-running-java)
 
 ### Path Separator
@@ -11,6 +12,14 @@ When you need to pass multiple paths to `javac/java/jar` commands you have to se
 You need to keep this in mind, because code is written, especially in `code` folder for Linux, and may not compile in Windows, you will have to change:
 * Linux: `jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar`
 * Windows: `jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar`
+
+### Quick command names
+Don't confuse following short commands:
+* `-p` => `--module-path`, specify path of the module (either jar or folder with jar, or folder with compiled files), used in both compilation & running
+* `-m` => `--module`, specify module name, used in both compilation & running
+* `-d` => no full command, specify output directory for compilated files
+* `-cp` => `--class-path`, and also `-classpath` - this is the only command that has 2 short form: `-cp/-classpath`
+* `--module-source-path` => doesn't have a short form
 
 ### Building and running java
 There are 3 commands available for java cmd:
