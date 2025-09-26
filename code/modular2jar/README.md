@@ -28,7 +28,7 @@ module module.printer{
     exports com.java.printer to module.app;
 }
 ```
-Yet we can omit `exports/requires` and leave declarations empty. In this case we would have to use command line params when we compile and run the app:
+Yet we can omit `exports/requires` and leave body empty. In this case we would have to use command line params when we compile and run the app:
 ```
 --add-modules - add module to module graph (need to use it if we using --add-reads)
 --add-reads - read packages from module (the same as requires in module-info)
