@@ -11,7 +11,7 @@ jdeps --class-path=compiled/printer.jar compiled/printer.jar
 jdeps compiled/printer.jar
 
 # if module depends on another, only this proper call would work
-jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar
+jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar
 ```
 
 ### Empty module-info file
@@ -56,7 +56,7 @@ javac -d compiled/app  --module-path=compiled/printer.jar \
 jar --create --verbose --file=compiled/app.jar -C compiled/app .
 
 echo && echo "__Run app__"
-java --module-path="compiled/printer.jar;compiled/app.jar" \
+java --module-path=compiled/printer.jar:compiled/app.jar \
                        --add-modules=module.printer \
                        --add-reads module.app=module.printer \
                        --add-exports module.printer/com.java.printer=module.app \

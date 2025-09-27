@@ -9,9 +9,16 @@
 When you need to pass multiple paths to `javac/java/jar` commands you have to separate paths using path separator. And this separator is system dependent:
 * Windows - we use semicolon `;`
 * Linux/MacOS - we use colon `:`
-You need to keep this in mind, because code is written, especially in `code` folder for Linux, and may not compile in Windows, you will have to change:
-* Linux: `jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar`
-* Windows: `jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar`
+You need to keep this in mind, because code is written, especially in `code` folder for Linux, and may not compile in Windows, you will have to change. If you try to run with invalid separator, only first dependency would be loaded, and others left, and code won't compile/run.
+```shell
+# Windows separator
+jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar
+java --module-path="compiled/printer.jar;compiled/app.jar" --module module.app/com.java.app.App
+
+# Linux & MacOS separator
+jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar
+java --module-path=compiled/printer.jar:compiled/app.jar --module module.app/com.java.app.App
+```
 
 ### Quick command names
 Don't confuse following short commands:

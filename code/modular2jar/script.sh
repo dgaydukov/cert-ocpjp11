@@ -14,4 +14,5 @@ javac -d compiled/app  --module-path=compiled/printer.jar app/App.java app/modul
 jar --create --verbose --file=compiled/app.jar -C compiled/app .
 
 echo && echo "__Run app__"
-java --module-path="compiled/printer.jar;compiled/app.jar" --module module.app/com.java.app.App
+java --module-path=compiled/printer.jar:compiled/app.jar --module module.app/com.java.app.App
+
