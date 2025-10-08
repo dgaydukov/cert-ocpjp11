@@ -6,7 +6,7 @@
 * 1.3 [Short circuit boolean](#wrapper-classes)
 * 1.4 [Wrapper classes](#wrapper-classes)
 * 1.5 [String and StringBuilder](#string-and-stringbuilder)
-* 1.6 [Arrays](#-arrays)
+* 1.6 [Arrays](#arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 * 1.8 [Pre/Post Increment](#prepost-increment)
 * 1.9 [Statement vs. Expression](#statement-vs-expression)
@@ -82,7 +82,7 @@
 11. [Miscellaneous](#miscellaneous)
 * 11.1 [Modules](#modules)
 * 11.2 [Random numbers](#random-numbers)
-* 11.3 [Locale and ResourceBundle](#locale-and-resourcebundle)
+* 11.3 [I18N](#i18n)
 * 11.4 [Assertions](#assertions)
 * 11.5 [Object interning](#object-interning)
 * 11.6 [Annotations](#annotations)
@@ -13288,7 +13288,7 @@ Top-down:
 * first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from `--module-path`, B - automatic module, and C.jar loaded from classpath
 * second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
 * finally convert C.jar
-If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `--module-path` (in this case named module loaded as named module, others as automatic modules).
+If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `module-path` (in this case named module loaded as named module, others as automatic modules). Top-down is more preferable, because we don't need to wait for other jars to became modules, we can just start from our modules, and put all other jars into `module-path`. Once other teams/companies modularize their jars, we don't need to change anything, it would be working. The only case, if during modularization they decided to change names of module/package - in this case you would need to change your command. But if they just modularize - no change would be required from your side.
 Inside `module-info.java` we can:
 * requires one module at a time (requires moduleA, moduleB - illegal)
 * exports one package at a time (exports my.com.java.* - illegal)
@@ -13362,16 +13362,37 @@ We can also use custom module inside maven project.
 </dependency>
 ```
 Pay attention that groupId, artifactId and version can be any value.
+
 `ServiceLoader` - used for loading services. There are 2 ways we can use it:
 * old jar way - creating file `META-INF/services/NameOfService` and putting name of your implementation there
 * new module way - with module definition `provides/uses`
-There are also 2 ways to implement loading:
-* extend you class from abstract class(or concrete class) or implement interface. In this case implementation should have no-arg constructor. If no no-arg constructor, 
-ServiceLoader won't be able to load the implementation, you will get compile error (`foo/module-info.java:5: error: the service implementation does not have a default constructor: SecondFooInterfacePrinter`)
-* add `public static NameOfService provider(){}` to your class. In this case these method calls. No need for no-args constructor.
-If class both implement type and return this type in `provider()` method - this method has priority.
+Don't confuse:
+* service - interface providing some service/features (can be a concrete class, but usually just an interface)
+* service provider - concrete implementation of service
+Java modules - simplified process to work with services. You have a service in module `printers` called `printers.Printer`. You have 1 concrete implementation in module `console` called `concole.ConsolePrinter`. Consumer shouldn't know about concrete implementation, he just needs to know about service - there are 3 steps:
+1. export service provider as service - its `module-info.java` should look like this:
+```java
+module console {
+    requires printers;
+    provides printers.Printer with console.ConsolePrinter;
+}
+```
+Although you can directly `exports console.ConsolePrinter`, the best practice not to export concrete implementation from service provider module to avoid any dependency on such concrete implementation, because the whole idea of service provider module is to hide concrete implementation and export it as service.
+2. require service module in the consumer module: we have new keyword `uses` by which we indicate that we want to use service, but we don't require module with concrete implementation
+```java
+module consumer {
+    requires printers;
+    uses printers.Printer;
+}
+```
+3. Inside consumer module you use `java.util.ServiceLoader` to load all available on the `module-path` providers and use any of them. Ideally service should have methods like `getName` to uniquely identify the concrete implementation, because you can have multiple providers at the same time, but need only the specific one.
+There are some rules to service provider:
+* service implementation should be public class and top level or nested static (it can't be nested instance)
+* service implementation should have either default no-arg constructor or `public static T provider` that return instance of the class
+
 `Jlink` - you can create custom jre environment, and run your app, where there is no java
-You can run your jar with 2 options `-jar` or `-cp`. If you jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
+You can run your jar with 2 options `-jar` or `-cp`. If your jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
+
 `javap` - java disassembler, works with bytecode `.class` files. If we have file with this content:
 ```java
 package com.java.test;
@@ -13382,75 +13403,7 @@ public class Test {
     }
 }
 ```
-We first compile it with `javac` and then try to disassemble with `javap -v compiled/com/java/test/App.class` - we get following output:
-```
-Classfile /C:/work/books/cert-ocpjp11/src/main/java/com/java/test/Test.class
-  Last modified 17 Sept 2025; size 428 bytes
-  SHA-256 checksum a6d424e0e7847bb1deee52e830113e7d42f2cf7e6f12d1fdd01b9c1ea05ef1c8
-  Compiled from "Test.java"
-public class com.java.test.Test
-  minor version: 0
-  major version: 68
-  flags: (0x0021) ACC_PUBLIC, ACC_SUPER
-  this_class: #21                         // com/java/test/Test
-  super_class: #2                         // java/lang/Object
-  interfaces: 0, fields: 0, methods: 2, attributes: 1
-Constant pool:
-   #1 = Methodref          #2.#3          // java/lang/Object."<init>":()V
-   #2 = Class              #4             // java/lang/Object
-   #3 = NameAndType        #5:#6          // "<init>":()V
-   #4 = Utf8               java/lang/Object
-   #5 = Utf8               <init>
-   #6 = Utf8               ()V
-   #7 = Fieldref           #8.#9          // java/lang/System.out:Ljava/io/PrintStream;
-   #8 = Class              #10            // java/lang/System
-   #9 = NameAndType        #11:#12        // out:Ljava/io/PrintStream;
-  #10 = Utf8               java/lang/System
-  #11 = Utf8               out
-  #12 = Utf8               Ljava/io/PrintStream;
-  #13 = String             #14            // Hello World!
-  #14 = Utf8               Hello World!
-  #15 = Methodref          #16.#17        // java/io/PrintStream.println:(Ljava/lang/String;)V
-  #16 = Class              #18            // java/io/PrintStream
-  #17 = NameAndType        #19:#20        // println:(Ljava/lang/String;)V
-  #18 = Utf8               java/io/PrintStream
-  #19 = Utf8               println
-  #20 = Utf8               (Ljava/lang/String;)V
-  #21 = Class              #22            // com/java/test/Test
-  #22 = Utf8               com/java/test/Test
-  #23 = Utf8               Code
-  #24 = Utf8               LineNumberTable
-  #25 = Utf8               main
-  #26 = Utf8               ([Ljava/lang/String;)V
-  #27 = Utf8               SourceFile
-  #28 = Utf8               Test.java
-{
-  public com.java.test.Test();
-    descriptor: ()V
-    flags: (0x0001) ACC_PUBLIC
-    Code:
-      stack=1, locals=1, args_size=1
-         0: aload_0
-         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
-         4: return
-      LineNumberTable:
-        line 3: 0
-
-  public static void main(java.lang.String[]);
-    descriptor: ([Ljava/lang/String;)V
-    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
-    Code:
-      stack=2, locals=1, args_size=1
-         0: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
-         3: ldc           #13                 // String Hello World!
-         5: invokevirtual #15                 // Method java/io/PrintStream.println:(Ljava/lang/String;)V
-         8: return
-      LineNumberTable:
-        line 5: 0
-        line 6: 8
-}
-SourceFile: "Test.java"
-```
+We first compile it with `javac` and then try to disassemble with `javap -v compiled/com/java/test/App.class`
 `jdeps` - analyze class dependencies
 Example output:
 ```
@@ -13544,7 +13497,8 @@ range with Math.random => 840.2608870210925
 range with rnd.nextInt => 214
 ```
 
-###### Locale and ResourceBundle
+###### I18N
+Stands for internationalization, because there is 18 letters between i & n. So i18n is kind of shorten form for this 20-letter long word. If you app doesn't hardcode values, but can dynamically load it on runtime - such app is - internationalized. And `internationalization` is a refactoring process to remove any hardcode.
 `Locale` - immutable class, once created can't change its locale. There are 3 ways to create `Locale`. Language, language & country, language & country & variant. So `Locale` at least requires language.
 `getString(str s)` - retrieve value by key from current or all parent bundles. Loading happens this way:
 first => parent bundle loaded, and then more concrete loaded and values from concrete bundle overwrite values from base bundle.
