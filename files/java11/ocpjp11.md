@@ -13521,7 +13521,12 @@ getLanguage => en
 getCountry => US
 ```
 If we want to reassign `ResourceBundle` to other locale, we can't change current locale, we need reassign variable itself.
-ResourceBundle loading files in following ways. Suppose we have 4 files and our default locale is `en_HK`
+Loading rules:
+* resource file should be on the classpath
+* if bundle name is `myapp` then file `myapp.properties` should be available on the classpath
+* if bundle name is `data.myapp` then file `myapp.properties` should be under `data` directory, which itself should be on the classpath
+* backslash `\` is used to escape space char
+ResourceBundle loading files in following ways: `bundle => bundle_language => bundle_language_country`. Suppose we have 4 files and our default locale is `en_HK`:
 ```
 myapp.properties
 myapp_en.properties
@@ -13529,10 +13534,10 @@ myapp_en_US.properties
 myapp_fr.properties
 ```
 Then we have the following order of execution:
-* if we don't pass anything `myapp_en` would be loaded, cause default locale is en
+* if we don't pass anything `myapp_en` would be loaded, cause default locale is `en`
 * if we pass existing locale (like `fr` or `en_US`) corresponding file would be loaded
-* if we pass `en_us` locale 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
-* If we pass non-existing locale (like `german`) default locale would be loaded
+* if we pass `en_us` locale, 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
+* If we pass non-existing locale (like `german`) default locale would be loaded => this is important: default locate is loaded first, and only if property file is not found for default locale, `myapp.properties` is loaded. But of course if there is file with default locale, it would also load its parent. But the key here is that if we use non-existent locale, then default locale is trying to be loaded first.
 * If we set default locale as `german`, then `myappp` would be loaded.
 `Locale.setDefault` has 2 overloaded methods. One takes `Locale` object, another (Locale.Category, Locale).
 `Locale.getDefault` has 2 overloaded methods. () - get all, (Locale.Category)
@@ -13641,6 +13646,25 @@ lang => english
 arr => [Jack, Mike, John]
 list => [apple, banana, mango]
 person => Person[name=Jack, age=30]
+```
+MessageFormat:
+* If you need to insert some values into your strings you can use this class
+* Although you can append values in the beginning/end of your messages, sometimes due to grammar rules, the place where you have to insert your value is different dependeing on the lanugage (for example in english it should be in the end but in Arabic it should be in the middle)
+* to resolve such issues you can use this class: `formatted=your price is {0} USD`
+```java
+import java.text.MessageFormat;
+import java.util.ResourceBundle;
+
+public class Test {
+    public static void main(String[] args) {
+        ResourceBundle rb = ResourceBundle.getBundle("myapp");
+        String msg = MessageFormat.format(rb.getString("formatted"), 100);
+        System.out.println("msg => " + msg);
+    }
+}
+```
+```
+msg => your price is 100 dollars
 ```
 
 ###### Assertions
