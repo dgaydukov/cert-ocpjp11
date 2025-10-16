@@ -105,7 +105,7 @@ converting decimal fraction to binary:
 
 7.25 => 111.01
 
-# for backwrad conversion: integer part convert normally but fraction with multiply by 2 with minus
+# for backwrad conversion: integer part convert normally but fraction with power of minus
 111.01 = (1 * 2**0) + (1 * 2**1) + (1 * 2**2) + (0 * 2**-1) + (1 * 2**-2) = 1 + 2 + 4 + 0 + 1/4 = 7.25
 ```
 
@@ -128,12 +128,10 @@ so you can see that we have rational number like:
 * 1/5=0.2 that can be represented as finite in decimal but not in binary
 * `1/11=0.0909090909090909...` or `5/17=0.29411764705882354...` that can't be finitely represented in both decimal and binary
 
-
-
 As you see many rational numbers can't be represented as finite binary, so we have to do rounding in order to store it - but once we do this, we encounter rounding problem:
 * stuffing infinite number of real numbers into finite number of bits is impossible, so whatever we do we always have rounding issue
 * floating-point representation - most widely used representation of real numbers in PC. it has base=b, and precision=p.
-  there are 3 way to store floating point:
+There are 3 way to store floating point:
 * float - 32bit
 * double - 64bit
 * long double (not available in java, yet we have it in C) - 80bit or 128bit
@@ -143,7 +141,7 @@ There are a few ways you can avoid floating point rounding error:
 * use BigDecimal/BigInteger
 
 ### Storing floating point numbers
-* converting fraction to binary is one thing, but storing in memory is another, computers use `IEEE 754` as standard to store fractions in memory
+* converting fraction to binary is one thing, but storing in memory is another, computers use `IEEE-754` as standard to store fractions in memory
 * `fixed point` - convenient way to store fractions `7.25 => 111.01` but computers use the concept called `floating point`
 * There are 2 standards in IEEE 754:
   * single precision: 32 bits => 1 bit for sign + 8 bits for exponent + 23 bits for mantissa
@@ -155,7 +153,7 @@ There are a few ways you can avoid floating point rounding error:
 # since power itself can be positive/negative we have simple rule based on 127 = power+127
 111.01 = 1.1101 * 2**2 
 # step 3: set first bit as sign, 0 - in our case cause it's a positive number
-# step 4: normalize exponent => adjust exponent by adding 127 to id and convert to binary
+# step 4: normalize exponent => adjust exponent by adding 127 to it and convert to binary
 2 + 127 = 129 = 1000_0001
 # step 5: normalize mantissa => remove left bit cause it's 1 and add zeros to the length of 23
 1.1101 = 1101 000 0000 0000 0000 0000

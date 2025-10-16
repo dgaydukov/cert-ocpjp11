@@ -1397,7 +1397,7 @@ p1.equals(clone) => true
 ###### Classes
 There are 3 types of inheritance:
 * inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
-* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. Although you can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited)
+* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. You can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited), java support multiple inheritance of behavior/implementation
 * inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
 
 Type vs state: classes, interfaces and enums - types. Since java support multiple interface implementation => java support multiple inheritance of types. 
@@ -3190,6 +3190,11 @@ ex=java.lang.ExceptionInInitializerError
 ex=java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
 done
 ```
+
+Don't confuse:
+* `IndexOutOfBoundsException` - generic exception to throws for array/strings
+* `ArrayIndexOutOfBoundsException extends IndexOutOfBoundsException` - specific class for array based exception
+* `StringIndexOutOfBoundsException extends IndexOutOfBoundsException` - specific class for array based exception, yet many methods of `String` class, say that they throw `IndexOutOfBoundsException`, but actually throws `StringIndexOutOfBoundsException`.
 
 Exceptions thrown inside `catch` block can’t be handled by next `catch` block
 ```java
