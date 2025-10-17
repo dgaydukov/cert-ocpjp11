@@ -22,11 +22,13 @@ java --module-path=compiled/printer.jar:compiled/app.jar --module module.app/com
 
 ### Quick command names
 Don't confuse following short commands:
-* `-p` => `--module-path`, specify path of the module (either jar or folder with jar, or folder with compiled files), used in both compilation & running
-* `-m` => `--module`, specify module name, used in both compilation & running
-* `-d` => no full command, specify output directory for compilated files
-* `-cp` => `--class-path`, and also `-classpath` - this is the only command that has 2 short form: `-cp/-classpath`
-* `--module-source-path` => doesn't have a short form
+* `-cp` (java & javac) => `--class-path`, and also `-classpath` - this is the only command that has 2 short form: `-cp/-classpath`
+* `-p` (java & javac) => `--module-path`, specify path of the module (either jar or folder with jar, or folder with compiled files), used in both compilation & running
+* `-m` (java & javac) => `--module`, specify module name, used in both compilation & running
+* `-d` (javac) => no full command, specify output directory for compilated files
+* `-d` (java) => `--describe-module`, describe module and exit
+* `--module-source-path` (javac), specify compilation path of required modules
+* `--list-modules, --show-module-resolution` (java) => doesn't have a short form
 
 ### Building and running java
 There are 3 commands available for java cmd:

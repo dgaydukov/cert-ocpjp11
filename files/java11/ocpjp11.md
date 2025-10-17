@@ -546,7 +546,7 @@ public class App {
 1_000_000 based 2 => 64
 abcde based 36 => 17325410
 ```
-Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of Boolean.TRUE & Boolean.FALSE) or may return cached object. For `Integer`, by default cached valued -128..127, but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing using cached objects, but `constructor` always create new object.
+Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of `Boolean.TRUE` & `Boolean.FALSE`) or may return cached object. For `Integer`, by default cached valued -128..127, but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing using cached objects, but `constructor` always create new object.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -594,7 +594,7 @@ Unboxing - is the opposite of autoboxing (transform primitive to box(reference))
 Integer i = 10; // autoboxing
 int x = i; // unboxing
 ```
-Autoboxing won't happen when we call `System.out.println(1)`, cause `println` overloaded to take both int and Object.
+Autoboxing won't happen when we call `System.out.println(1)`, cause `println` overloaded to take both int and Object. Yet it happen in this case `System.out.println(1+"")`, because we have to call `toString()` on each object being concatenating with `String`, so our primitive need to be autoboxed first into object, then `toString` on object would be called.
 
 When convert large integer to float, lost of precision happens, that’s why the result is -3, not 0.
 ```java
@@ -13279,12 +13279,14 @@ Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Inte
 Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
 There are 3 types of modules:
 * named module (NM) - one with `module-info.java` file loaded from `--module-path`
-* automatic module (AM) - simple jar loaded from `--module-path` (name of the module is the name of the jar itself, hyphens converted into dots and version is removed so `mysql-java-connector-1.2.3.jar` => `mysql.java.connector`. You can also set it explicitly by adding to `MANIFEST.MF` => `Automatic-Module-Name: <module name>`). All packages are both exported/opened of automatic module, and it can read all exported packages of all modules loaded with `--module-path`. If automatic module is dependent on non-modular jar, we can simply put this jar into `--class-path`. We have to use automatic module, and put non-modular jar into `--module-path` only if our modular jar requires non-modular jar.
+* automatic module (AM) - simple jar loaded from `--module-path`, name of the module is the name of the jar itself, hyphens converted into dots and version is removed so `mysql-java-connector-1.2.3.jar` => `mysql.java.connector`. You can also set it explicitly by adding to `MANIFEST.MF` => `Automatic-Module-Name: <module name>`. All packages are both exported/opened of, and it can read all exported packages of all modules loaded with `--module-path`.
 * unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`. The type of jar is not important, you can load from classpath both regular jar and modular jar. If you load modular jar, its `module-info.java` would be ignored, and it would behave just like regular jar file. Classes of UM can read all exported packages of all modules loaded from `--module-path`, yet because UM doesn't have a name, no module can use its packages.
-NM can have access to AM, but should require it in it's `module-info.java` file by its name. There is no way NM can access UM, because named module can't set dependency on unnamed module in its `module-info.java`.
-AM can access all types from both NM and AM 
-UM can access all types from both NM and AM
-Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
+Access rules:
+* NM can have  access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
+* AM can access only exported packages from NM, and all packages from other AM
+  * Can AM read UM? I have different answers, chatgpt says no, google AI says yes - build your project with 3 modules NM,AM,UM and see if they can access each other.
+* UM can access all types from both NM and AM, and all packages from other UM
+  Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
 Bottom-up:
 * first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
 * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
