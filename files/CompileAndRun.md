@@ -107,7 +107,7 @@ public class Printer {
 Now
 ```shell
 # compile both files
-javac -d . App.java util/Printer.java
+javac -d . App.java util/Calculator.java
 # run with java
 java com.java.test.App
 ```

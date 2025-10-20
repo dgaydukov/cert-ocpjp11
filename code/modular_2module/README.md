@@ -42,7 +42,7 @@ clear
 rm -rf ./compiled
 
 echo && echo "__Building printer__"
-javac -d compiled/printer printer/Printer.java printer/module-info.java
+javac -d compiled/printer printer/Calculator.java printer/module-info.java
 jar --create --verbose --file=compiled/printer.jar -C compiled/printer .
 
 
