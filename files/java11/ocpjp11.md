@@ -13283,8 +13283,7 @@ There are 3 types of modules:
 * unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`. The type of jar is not important, you can load from classpath both regular jar and modular jar. If you load modular jar, its `module-info.java` would be ignored, and it would behave just like regular jar file. Classes of UM can read all exported packages of all modules loaded from `--module-path`, yet because UM doesn't have a name, no module can use its packages.
 Access rules:
 * NM can have  access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
-* AM can access only exported packages from NM, and all packages from other AM
-  * Can AM read UM? I have different answers, chatgpt says no, google AI says yes - build your project with 3 modules NM,AM,UM and see if they can access each other.
+* AM can access: only exported packages from NM, and all packages from other AM, [all packages from UM](/code/modular/script.sh) - here `calculator.jar` which loaded as AM, is accessing class from `printer.jar` which is loaded as UN.cd
 * UM can access all types from both NM and AM, and all packages from other UM
   Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
 Bottom-up:
