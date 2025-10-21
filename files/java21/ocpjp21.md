@@ -691,6 +691,7 @@ Before java21:
 * each thread in JVM is basically a wrapper in OS thread
 * OS decided when each thread would actually run (thread scheduling is done by OS, where multiple threads scheduled to run on the same CPU)
 * problem: OS thread creation is cost memory and CPU + creating many threads cause OS to do a lot of context switching which slows down the OS
+  * Thrashing - the problem when many CPU do constant context switching and slowing down performance
 * if you create several thousands threads - OS will run out of memory and kill the app - so the model thread-per-task is good but not practical - java apps like Tomcat, create pool of threads and reuse them, rather then creating new thread for new request. It's so common that it became part of JDK: `Executors.newFixedThreadPool`
 From java21:
 * you can create virtual thread - they are virtual because OS doesn't aware of it, they are created & managed by JVM

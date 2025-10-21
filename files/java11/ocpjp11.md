@@ -546,7 +546,7 @@ public class App {
 1_000_000 based 2 => 64
 abcde based 36 => 17325410
 ```
-Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of `Boolean.TRUE` & `Boolean.FALSE`) or may return cached object. For `Integer`, by default cached valued -128..127, but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing using cached objects, but `constructor` always create new object.
+Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of `Boolean.TRUE` & `Boolean.FALSE`) or may return cached object. For `Integer`, by default cached valued -128..127, but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing (which basically uses `valueOf` under-the-hood) using cached objects, but `constructor` always create new object.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -13284,16 +13284,22 @@ There are 3 types of modules:
 Access rules:
 * NM can have  access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
 * AM can access: only exported packages from NM, and all packages from other AM, [all packages from UM](/code/modular/script.sh) - here `calculator.jar` which loaded as AM, is accessing class from `printer.jar` which is loaded as UN.cd
+  * AM implicitly exports all of its types
 * UM can access all types from both NM and AM, and all packages from other UM
-  Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
-Bottom-up:
-* first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
-* second convert B.jar (A.jar still can be loaded from classpath and access all packages)
-* finally convert A.jar -> now all are named modules run from `--module-path`
-Top-down:
-* first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from `--module-path`, B - automatic module, and C.jar loaded from classpath
-* second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
-* finally convert C.jar
+  * just like AM, UM implicitly exports all of its types
+* If same type (same fully qualified name) declared in both named & unnamed module:
+  * type from named module is used and type from unnamed module ignored
+  * if same type is loaded from both NM & AM - you get `java.lang.module.ResolutionException` on runtime
+  * if NM doesn't export package, still any class loaded from module-path, both NM & AM would try to call type from module, not from UM, and if it's not exported you get `Exception in thread "main" java.lang.IllegalAccessError` on runtime
+Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
+* Bottom-up:
+  * first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
+  * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
+  * finally convert A.jar -> now all are named modules run from `--module-path`
+* Top-down:
+  * first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from `--module-path`, B - automatic module, and C.jar loaded from classpath
+  * second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
+  * finally convert C.jar
 If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `module-path` (in this case named module loaded as named module, others as automatic modules). Top-down is more preferable, because we don't need to wait for other jars to became modules, we can just start from our modules, and put all other jars into `module-path`. Once other teams/companies modularize their jars, we don't need to change anything, it would be working. The only case, if during modularization they decided to change names of module/package - in this case you would need to change your command. But if they just modularize - no change would be required from your side.
 Inside `module-info.java` we can:
 * requires one module at a time (requires moduleA, moduleB - illegal)
@@ -15077,14 +15083,22 @@ public class App{
 null => oops
 ```
 
-4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using "final"). It also works for interfaces.Sealed classes/interfaces are a way to create a tagged union. Tagged unions are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week like this:
+4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces. Sealed classes/interfaces are a way to create a tagged union - are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week.
 There are several rules when you create sealed class/interface:
 * classes in `permits` section should be already defined, otherwise it won't compile
 ```java
 // this code won't compile with error: can't resolve symbol SportCar
-sealed interface Car permits SportCar{
+sealed interface Car permits SportCar {
     int getSpeed();
 }
+```
+* you should either use `permits` or declare classes in the same file
+```java
+sealed interface Car {
+    int getSpeed();
+}
+
+non-sealed interface Suv extends Car{}
 ```
 * child classes should be clearly defined as either `sealed` or `no-sealed` - if you try to create subclass without explicitly stating this, you will get compilation error 
 ```java
@@ -15096,6 +15110,13 @@ non-sealed interface SportCar extends Car{}
 sealed interface SuvCar extends Car{}
 // compile error: modifier sealed or non-sealed is expected
 interface SuperCar extends Car{}
+```
+* class can also be final
+```java
+sealed class Car{}
+
+final class SuvCar extends Car{}
+non-sealed class SportCar extends Car{}
 ```
 * you are not able to extend class until it explicitly in `permits` section
 ```java
