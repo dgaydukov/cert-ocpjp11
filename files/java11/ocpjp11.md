@@ -4917,24 +4917,120 @@ When we parse we don't use French locale, and default locale is used, all comma 
 9999 => java.lang.Long
 ```
 
-[List](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html) of most common patterns 
+[List of most common patterns](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html)
 ```
 y/Y - year   (yy/YY-20 or yyyy/YYYY-2020)
 q   - quarter of the year (q-1, qq-01, qqqq-1st quarter)
 M/L - month  (M/L-2, MM/LL-02, MMM/LLL-Feb, MMMM/LLLL-February)
-w/F - week of the year (w/F-7, ww-07)
-W   - week of the month (W-3)
+    * in english both the same, but in some locate they would be different in russian: M - марта, L - Март, to signify (of marth, or March)
+w   - week of the year (w-7, ww-07)
+W/F - week of the month (W-3, F-3)
 d   - day in month (d-9, dd-09)
 e/c - localized day in week (e/c-6, ee-06, eee-Fri, eeee-Friday)
 E   - day in week (E/EE/EEE - Fri, EEEE-Friday)
-h/K - hour (0-12)  (h/K-5, hh/KK-05)
-H/k - hour (0-23)  (H/k-17, HH/k-17)
-a   - am/pm (a-PM)
+a   - am/pm (a-pm)
+h   - Hour of am/pm (1-12), 12 = noon or midnight, should be used with 'a'
+K   - Hour of am/pm (0-11), 0 = midnight/noon, should be used with 'a', rarely used
+k   - hour-of-the-day (1-24), midnight - 24, starts at 1 ends in 24, rarely used
+H   - hour-of-the-day (0-23), midnight - 0
 m   - minute in hour (m-7, mm-07)
 s   - seconds (s-9, ss-09)
-S   - milliseconds (S-2, SS-23, SSS-235)
+S   - milliseconds (S-2, SS-23, SSS-235.... up to 9) - precision up to nanoseconds with up to 9 digits
 z   - time zone  text (z/zz/zzz-HKT, zzzz-Hong Kong Standard Time)
 Z   - time offset (Z/ZZ/ZZZ-+0800, ZZZZ-GMT+08:00)
+VV  - time zone (VV-Asia/Dubai, used only as 2 letters)
+Others:
+A   - epoch day (A=19475) — days since 1970-01-01
+B   - AM/PM of day number (B=0 for AM, B=1 for PM) — numerical form of AM/PM
+D   - day of year (D=001-365/366) — 1=Jan 1, 365=Dec 31
+G   - era text (G=AD, G=BC) — historic era
+N   - nanosecond of day (N=55893984000) — from 0 to 86399999999999
+X   - ISO 8601 time offset (X=Z, XX=+02, XXX=+02:00)
+n   - nanosecond of second (n=123456789) — 9-digit fraction of second
+u   - proleptic year (u=2023, u=-044) — supports BCE years
+x   - RFC 822 time offset (x=Z, xx=+0200, xxx=+02:00)
+```
+Java example
+```java
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Test {
+    public static void main(String[] args) {
+        ZonedDateTime now = ZonedDateTime.now();
+        String yearAndQuarter = "'y='y, 'yy='yy, 'yyyy'=yyyy, 'Y='Y, 'YY='YY, 'YYYY'=YYYY, 'q='q, 'qq='qq, 'qqqq'=qqqq";
+        String monthAndWeek = "'M='M, 'MM='MM, 'MMM='MMM, 'MMMM'=MMMM, 'L='L, 'LL='LL, 'LLL='LLL, 'LLLL='LLLL, 'w='w, 'ww='ww, 'F='F, 'W='W";
+        String day = "'d='d, 'dd='dd, 'e='e, 'ee='ee, 'eee='eee, 'eeee='eeee, 'c='c, 'ccc='ccc, 'cccc='cccc, 'E='E, 'EE='EE 'EEE='EEE, 'EEEE='EEEE";
+        String time = "'H='H, 'HH='HH, 'm='m, 'mm='mm, 's='s, 'ss='ss";
+        String timeOfDay = "'a='a, 'h='h, 'hh='hh, 'k='k, 'kk='kk, 'K='K, 'KK='KK";
+        String subseconds = "'S='S, 'SS='SS, 'SSS='SSS, 'SSSS='SSSS, 'SSSSS='SSSSS, 'SSSSSS='SSSSSS, 'SSSSSSS='SSSSSSS, 'SSSSSSSS='SSSSSSSS, 'SSSSSSSSS='SSSSSSSSS";
+        String timezone = "'z='z, 'zz='zz, 'zzz='zzz, 'zzzz='zzzz, 'Z='Z, 'ZZ='ZZ, 'ZZZ='ZZZ, 'ZZZZ='ZZZZ, 'VV='VV";
+        String others = "'A='A, 'B='B, 'D='D, 'G='G, 'N='N, 'X='X, 'n='n, 'u='u, 'x='x";
+        System.out.println("yearAndQuarter => "+now.format(DateTimeFormatter.ofPattern(yearAndQuarter)));
+        System.out.println("monthAndWeek => "+now.format(DateTimeFormatter.ofPattern(monthAndWeek)));
+        System.out.println("day => "+now.format(DateTimeFormatter.ofPattern(day)));
+        System.out.println("time => "+now.format(DateTimeFormatter.ofPattern(time)));
+        System.out.println("timeOfDay => "+now.format(DateTimeFormatter.ofPattern(timeOfDay)));
+        System.out.println("milli/micro/nano-sec => "+now.format(DateTimeFormatter.ofPattern(subseconds)));
+        System.out.println("timezone => "+now.format(DateTimeFormatter.ofPattern(timezone)));
+        System.out.println("others => "+now.format(DateTimeFormatter.ofPattern(others)));
+    }
+}
+```
+```
+yearAndQuarter => y=2025, yy=25, yyyy=2025, Y=2025, YY=25, YYYY=2025, q=4, qq=04, qqqq=4th quarter
+monthAndWeek => M=10, MM=10, MMM=Oct, MMMM=October, L=10, LL=10, LLL=Oct, LLLL=October, w=43, ww=43, F=4, W=4
+day => d=23, dd=23, e=4, ee=04, eee=Thu, eeee=Thursday, c=4, ccc=Thu, cccc=Thursday, E=Thu, EE=Thu EEE=Thu, EEEE=Thursday
+time => H=10, HH=10, m=59, mm=59, s=5, ss=05
+timeOfDay => a=am, h=10, hh=10, k=10, kk=10, K=10, KK=10
+milli/micro/nano-sec => S=3, SS=39, SSS=397, SSSS=3971, SSSSS=39715, SSSSSS=397157, SSSSSSS=3971574, SSSSSSSS=39715740, SSSSSSSSS=397157400
+timezone => z=GTS, zz=GTS, zzz=GTS, zzzz=Gulf Standard Time, Z=+0400, ZZ=+0400, ZZZ=+0400, ZZZZ=GMT+04:00, VV=Asia/Dubai
+others => A=39545397, B=in the morning, D=296, G=AD, N=39545397157400, X=+04, n=397157400, u=2025, x=+04
+```
+
+Don't confuse:
+* `F` - week of the month based on n-th day (like first Monday or second Tuesday) - so this value is changed based on the day
+* `W` - week of the month based on java internal calculation using `WeekFields`
+```java
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class Test {
+    public static void main(String[] args) {
+        LocalDate date = LocalDate.of(2023, 11, 6); // 1st Monday of the month
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("'F='F, 'W='W");
+        System.out.println("date: " + date + " => " + date.format(formatter));
+        date = LocalDate.of(2023, 11, 27); // 4th Monday of the month
+        System.out.println("date: " + date + " => " + date.format(formatter));
+    }
+}
+```
+Most of the time `F==W`, but for some month they are different, like below. November 6 was the first Monday of the month, yet it was counted as second week. And the same for all other days in the month.
+```
+date: 2023-11-06 => F=1, W=2
+date: 2023-11-27 => F=4, W=5
+```
+
+`WeekFields`
+* special class to calculate both week-of-the-year and week-of-the-month based on Locale
+* There are different rules how you calculate week, depending when week starts like on Sunday or on Monday - based on this you can get different value
+* you can use locale or create your own rule
+* below we create a rule, that week starts from the Wednesday, and got that Monday is actually first week
+```java
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.WeekFields;
+
+public class Test {
+    public static void main(String[] args) {
+        WeekFields wf = WeekFields.of(DayOfWeek.WEDNESDAY, 4);
+        LocalDate date = LocalDate.of(2023, 11, 6); // 1st Monday of the month
+        System.out.println("weekOfMonth => "+date.get(wf.weekOfMonth()));
+    }
+}
+```
+```
+weekOfMonth => 1
 ```
 
 We can have arbitrary text inside pattern, we just need to enclose it in single quotes ''
