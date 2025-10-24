@@ -118,7 +118,9 @@ for (int b = -128; b <= 127; b++) {
 ##### XOR
 This operation has several properties that can be reused:
 * `x ^ y = z  => x ^ z = y`
-* `x ^ x = 0`, `x ^ 0 = x`
+* `x ^ x = 0`, `x ^ 0 = x` (xor with itself is always 0)
+* `x ^ ~x = -1` (xor with inverse of itself is always -1)
+
 
 ##### Bit masking
 In essence, Bitmask is a list of boolean flags (for example isAlive, isMoving...) compressed into a single field, usually an integer (max 32 boolean values, but we can store up to 64 in `long`). It can cut quite a significant amount of JSON string size or memory footprint.

@@ -1322,7 +1322,7 @@ System.out.println(obj.getClass().getName());
 #### Classes and Objects
 ###### toString, equals, hashcode, clone
 These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called , it won't use your version, but from `Object` itself. 
-By default `Object.clone` is `protected`, so you have to implement `Cloneable` interface and  override the method to be able to call this method. If you just try to override the method without implementing `Cloneable` you will get `CloneNotSupportedException`. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method.
+By default `Object.clone` is `protected`, so you have to implement `Cloneable` interface and  override the method to be able to call this method. If you just try to override the method without implementing `Cloneable` you will get `CloneNotSupportedException`. If you need to clone object you can override `clone` from object (class should implement `Cloneable`), or you can create your own version of clone like constructor cloning or `customClone` method. The interface `Cloneable` doesn't define any methods - it's just informational interface, and acts as permission handle, you have to explicitly add it to allow cloning, otherwise your class is not clonable. This is done to protect against accidental cloning.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -3224,6 +3224,18 @@ Exception in thread "main" java.lang.RuntimeException
 	at com.java.test.App.main(App.java:15)
 ```
 As you can see when we throw `throw new RuntimeException();` it won’t be caught by the next catch, so this code `System.out.println(3);` will never be executed. Yet `finally` would be executed right before throwing exception.
+Yet if we call `System.exit(0)`, `finally` won't be executed. Below code will not print anything
+```java
+public class Test {
+    public static void main(String[] args) {
+        try {
+            System.exit(0);
+        } finally {
+            System.out.println("done");
+        }
+    }
+}
+```
 
 When you overriding method that throws checked exception you are allowed:
 * not to throw any exception
