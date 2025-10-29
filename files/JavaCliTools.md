@@ -17,8 +17,8 @@ Here we would talk about command line tools for java that resides under `bin` di
 3. Packaging & Modules
 * `jar` – Package and manage JAR files
 * `jarsigner` – Sign and verify JAR files
-* `jlink` – Create custom runtime images
-* `jmod` – Manage Java modules
+* `jlink` – Create custom runtime images with `.jmod` files
+* `jmod` – allows you to create Java module files `.jmod`, intermediate format (neither `.jar` nor native binaries)
 * `jpackage` – Create platform-specific packages
 * `jimage` – Inspect/modify runtime image files
 

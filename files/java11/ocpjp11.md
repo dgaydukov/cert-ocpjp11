@@ -10,6 +10,7 @@
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 * 1.8 [Pre/Post Increment](#prepost-increment)
 * 1.9 [Statement vs. Expression](#statement-vs-expression)
+* 1.10 [Break Label](#break-label)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
 * 2.2 [Classes](#classes)
@@ -952,6 +953,15 @@ class App {
 }
 ```
 
+Enhanced for loop:
+* also knows as for-each loop or simply foreach
+* simplified version of the traditional for loop introduced in Java 5
+```java
+for (Type element : collection_or_array) {
+    // use element
+}
+```
+
 Jagged array - for multidimensional array, java doesn't have a concept of matrix like 2x3, so it has array of arrays, and memory layout not clear defined. This is why in java it's called jagged array. But in C# we can have 2 types of array, kind of matrix-based and jagged. Java doesn’t have the concept of single or multidimensional arrays, If the elements of an array are themselves arrays, we call it a multidimensional array but from the language perspective, it is still just an array.
 
 Array class name - java make up class name using followint notatioin: `{dimensions}{letter_of_type}`
@@ -1319,6 +1329,35 @@ Object obj = a == b ? 5.0 : "hello";
 System.out.println(obj.getClass().getName());
 ```
 
+###### Break Label
+In java every statement can have a label:
+```java
+label1: while (true) { ... }
+label2: for (int i = 0; i < 10; i++) { ... }
+label3: { ... }
+label4: if (x > 0) System.out.println(x);
+label5: System.out.println("hello");
+```
+Yet utility right now have only `while` loops. You can have multiple nested loops:
+* just `break` - exits the current `while` loop
+* `break` with label - exit labelled loop
+Yet you can exit any label block and imitate go-to workflow: below code won't print `end`:
+```java
+public class Test {
+    public static void main(String[] args) {
+        int x = 5;
+        label: {
+            System.out.println("start");
+            if (x == 5) {
+                System.out.println("breaking...");
+                break label;
+            }
+            System.out.println("end");
+        }
+    }
+}
+```
+
 #### Classes and Objects
 ###### toString, equals, hashcode, clone
 These are methods of `Object` class itself, and since every class in java in the end is inherited from it, they all can override these methods. Pay attention that `equals` take `Object`, not Person. If you try to override it with Person param, If you are using `@Override` annotation you will get compile time error, if not you've created method overloading. It would work, but whenever `equqls` called , it won't use your version, but from `Object` itself. 
@@ -1419,6 +1458,25 @@ _____________________________________________________________
 |private    │   +   │         │          │          │        |
 |___________|_______|_________|__________|__________|________|
  + : accessible         blank : not accessible
+```
+* `protected` is inherited and can be accessed from another package on the inherited instance itself, but default is not.
+```java
+package a;
+class A {
+    void m1() {
+    }
+
+    protected void m2() {
+    }
+}
+
+package b;
+class B extends A{}
+
+// main
+B b  new B();
+b.m1(); // not compiled
+b.m2(); //works fine
 ```
 
 Class itself can have modified:
@@ -9082,11 +9140,11 @@ TIMED_WAITING
 TERMINATED
 TERMINATED
 ```
-ThreadLocal - holder class that create variable accessible only by one thread - if you create such variable with `ThreadLocal<String> threadLocal = new ThreadLocal<>();` and try to access from different threads, each threads will have it's own copy and will never see/flush changes to other threads.
+ThreadLocal - holder class that create variable accessible only by one thread - if you create such variable with `ThreadLocal<String> threadLocal = new ThreadLocal<>();` and try to access from different threads, each threads will have its own copy and will never see/flush changes to other threads.
 
 ###### ExecutorService
 Don't confuse:
-* `shutdown` - shutdown the service, but doesn't terminate running threads, you wait until all threads finish execution and terminated.
+* `shutdown` - shutdown the service, but doesn't terminate running threads, it would wait until all threads finish execution and terminated. Doesn't block current thread, but wait for execution: so your main thread is not blocked and can continue to execute, yet if there is nothing to execute, main thread will not exit, but wait until all thread terminated.
 * `shutdownNow` - shutdown the service and terminate all running thread, by calling `interrupt`, all threads are interrupted and exit execution
 * `close` (added in java19) - since service also extends `AuoClosable`, if you wrap creation into `try-with-resources`, it would automatically call `close` which under-the-hood calls `shutdown` and wait for termination of all running threads. Previous 2 don't block current thread, but this one would block and wait until all threads are terminated.
 * `awaitTermination throws InterruptedException` - should be called after `shutdown`, block current thread  until one of 3 condition:
@@ -9133,7 +9191,7 @@ public class Test {
 ```
 * Has 3 versions of submit:
   * `submit(Runnable)` - take nothing, return `Future<?>`
-  * `submit(Runnable, T)` - return `Future<T>` when done
+  * `submit(Runnable, T)` - return `Future<T>` when completed
   * `submit(Callable<T>)` - return `Future<T>` from callable
   * one version of submit from parent interface `Executor` with 1 method only: `void execute(Runnable)`. All 3 above method, under-the-hood call `execute`
 ```java

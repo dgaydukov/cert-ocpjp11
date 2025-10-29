@@ -271,9 +271,10 @@ There are 2 ways you can compile java module:
   * inside directory there should be file `module-info.java` with same module name as passed param and directory
   * modular compilation create folder with module name, while simple is just put everything into output folder
     * if you have output directory as `compiled` and module name as `module.app` - `javac` would compile into `compiled/module.app`, but with simple non-modular compilation, all files would be just in `src` folder
-  * `--module-path` - expect 2 things: either directory with same name as module or jar file with `module-info.java` with same name as module (name of jar file is not important):
-    * if compiled file - path where our module directory is located
-    * if jar file - path where jar file is located
+  * `--module-path` - expect 3 things:
+    * jar file - if the file is non-modular jar then it's treated as AM
+    * folder with multiple jars - in this case all jars inside this directory are loaded into module path
+    * exploded module - directory with same name as module with compiled classes
   * `--module-path` - can be used with both `java/javac` commands:
     * when compiling if you need another already built module as dependency (you can specify both jar file or directory that contains jar file): `javac --module-path=module.printer -d compiled --module-source-path=src --module=module.app`
     * when running - you specify the path for jar or folder with compiled files: `java --module-path=compiled --module=module.abc/com.java.test.App`
