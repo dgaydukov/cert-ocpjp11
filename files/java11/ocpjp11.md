@@ -914,13 +914,21 @@ difference between a & A => 32
 difference between 9 & 6 => 3
 ```
 
-Replace/delete philosophy is: start index is always inclusive and end index is always exclusive for both `String/StringBuilder`
+Replace/delete philosophy is: `startIndex is inclusive, and endIndex is exclusive` for all sub-part methods for `String/StringBuilder/List...`
 ```java
 StringBuilder sb = new StringBuilder("hello");
 // replace the first 3 starting from 0, up to 3, but not inclusive, so replace only 0-2
 // notice that we can put bigger amount in this case it would act as remove first 3 chars + insert 5 chars into position 0
 sb.replace(0, 3, "abcde"); // produce: abcdelo
 sb.delete(0, 3); // produce: delo
+```
+This half-open interval `[start, end)` is common because:
+```
+sub(start, start) -> empty result
+sub(0, sequence.length()) -> full sequence
+end-start = number of items
+a[0, m) and a[m, n) - equal split and assurance that index m would only be at one of the split (not in both)
+for (int i = start; i < end; i++) - matches looping logic
 ```
 
 ###### Arrays
@@ -2353,7 +2361,7 @@ class B extends A{}
 ```
 
 ###### Interfaces
-All variables in interface are always `public static final`, and can be called both from interface or from its instance. Which is different from `static` methods that can be called only from interface.
+All variables in interface are always `public static final`, and can be called both from interface or from its instance. Which is different from `static` methods that can be called only from interface. Variables are `static` because interface is class-level, and not instance. But they also `final` - because interface is define behavior not state.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -4052,9 +4060,9 @@ Method class and lambda can access only `effectively final` variables:
 * lifetime of method variables is method execution, and when method is returned, all variables are cleared from the stack. But lambda/class may outlive the method, they may be returned and continue to live after method returned. In this case having non-final method variables may be confusing. Moreover, lambda/class create new scope, and copy values. So if we pass non-final method variables to lambda/class, it's confusing what should happen with them, if we are changing them inside lambda/class. For this reason to avoid confusion there is hard requirement to use either final or effectively final variables inside lambda/class
 
 ###### Anonymous classes
-Anonymous classes - can be created out of interface/(abstract)class by implementing class body on the fly. They can't:
+Anonymous classes - can be created out of interface/abstract/concrete classes by implementing class body on the fly. They can't:
 * extends other classes or implement interfaces
-* add constructors
+* add constructors - constructors must have a name, and an anonymous class has no name (yet you can define instance initializers)
 * have static fields (yet they can have final static fields)
 * have static methods (both final & non-final)
 
@@ -6424,7 +6432,7 @@ public class App {
 
         System.out.println("lowerKey => " + treeMap.lowerKey(key) + ", lowerEntry => " + treeMap.lowerEntry(key)); // less than key or null
         System.out.println("higherKey => " + treeMap.higherKey(key) + ", higherEntry => " + treeMap.higherEntry(key)); // higher than key or null
-        System.out.println("floorKey => " + treeMap.floorKey(key) + ", floorEntry => " + treeMap.floorEntry(key)); // less then or equal
+        System.out.println("floorKey => " + treeMap.floorKey(key) + ", floorEntry => " + treeMap.floorEntry(key)); // less than or equal
         System.out.println("ceilingKey => " + treeMap.ceilingKey(key) + ", ceilingEntry => " + treeMap.ceilingEntry(key)); // higher than or equal
 
         // these 3 returns SortedMap
@@ -7195,7 +7203,7 @@ Lambda rules:
 * for one param you don't need brackets, but if you want to add type, even for single param - you still need brackets
 * if you want to use annotation for lambda param - you must specify the type
 * lambda has no standalone type, because of this you can't assign `var` to it. For the same reason you can't assign lambda to `Object`
-Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block). Instance & static variables shouldn't be effectively final in order to be used inside lambda.
+Automatic variables - those that declared inside block of code (named like that because they would be gone automatically when we exit the block). Instance & static variables shouldn't be effectively final in order to be used inside lambda. Basically it's a name for local variable in terms of lifetime and scope used in the lambda context.
 ```java
 class Scope{
     int global = 1; // instance variable
@@ -9379,16 +9387,17 @@ Don't confuse:
 * if any `run()` methods, throws any exception, we would catch `ExecutionException`
 * there is overloaded get(long time, TimeUnit unit) -> throws 3 exceptions InterruptedException, ExecutionException, TimeoutException
 
-We can use `scheduleAtFixedRate` and `scheduleWithFixedDelay` if we want to execute some task endlessly with interval. Take note that both method accept only `Runnable`. And it’s logical, otherwise it would generate endless array of Futures. There is a subtle difference between them.
+We can use `scheduleAtFixedRate` and `scheduleWithFixedDelay` if we want to execute some task endlessly with interval. Take note that both method accept only `Runnable`. And it’s logical, otherwise it would generate endless array of Futures. There is a subtle difference between them. Both return `ScheduledFuture` which you can use to cancel repeated task.
 `scheduleAtFixedRate` - put into queue new task after delay. So if we have 1 sec delay, but task runs 2 seconds, that mean next task will start immediately.
 `scheduleWithFixedDelay` - wait delay after previous executed and execute next. So if we have 1 sec delay, but task runs 2 seconds, next task will run after 1 sec.
 If we want to schedule something to run once in future we can use `schedule`. There are 2 overloaded methods, one for callable and one for runnable.
 ```java
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         int numberOfThreads = Runtime.getRuntime().availableProcessors();
         ScheduledExecutorService service = Executors.newScheduledThreadPool(numberOfThreads);
@@ -9397,8 +9406,13 @@ public class App {
             sleep(2);
             System.out.println("Runnable finish " + Thread.currentThread().getName());
         };
-        service.scheduleAtFixedRate(runnable, 1000, 100, TimeUnit.MILLISECONDS);
-        service.scheduleWithFixedDelay(runnable, 1000, 200, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> fixedRate = service.scheduleAtFixedRate(runnable, 1000, 100, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> fixedDelay = service.scheduleWithFixedDelay(runnable, 1000, 200, TimeUnit.MILLISECONDS);
+        service.schedule(()->{
+            fixedRate.cancel(true);
+            fixedDelay.cancel(true);
+            System.out.println("Runnable finish " + Thread.currentThread().getName());
+        }, 1200, TimeUnit.MILLISECONDS);
         sleep(5);
         service.shutdown();
     }
@@ -9412,14 +9426,13 @@ public class App {
 }
 ```
 ```
+Runnable start pool-1-thread-2
 Runnable start pool-1-thread-1
-Runnable start pool-1-thread-2
-Runnable finish pool-1-thread-2
-Runnable finish pool-1-thread-1
-Runnable start pool-1-thread-2
-Runnable start pool-1-thread-3
-Runnable finish pool-1-thread-2
 Runnable finish pool-1-thread-3
+sleep ERR: java.lang.InterruptedException: sleep interrupted
+sleep ERR: java.lang.InterruptedException: sleep interrupted
+Runnable finish pool-1-thread-1
+Runnable finish pool-1-thread-2
 ```
 If we remove `service.shutdown();` they will run forever.
 
@@ -12969,10 +12982,14 @@ class App{
             System.out.println("Writer => " + ex);
         }
         /**
-         * PrintStream extends FilterOutputStream, but overrides close and handle IOException
+         * PrintStream extends FilterOutputStream, but overrides close and handle IOException (you can check errors by checkError() method)
          * so only FileNotFoundException is left unchecked
          */
         try(PrintStream ps = new PrintStream(file);){
+            ps.println("Hello!");
+            if (ps.checkError()) {
+                System.out.println("An error occurred in the PrintStream.");
+            }
         }catch (FileNotFoundException ex){
             System.out.println("PrintStream => " + ex);
         }
@@ -13448,10 +13465,11 @@ There are 3 types of modules:
 * automatic module (AM) - simple jar loaded from `--module-path`, name of the module is the name of the jar itself, hyphens converted into dots and version is removed so `mysql-java-connector-1.2.3.jar` => `mysql.java.connector`. You can also set it explicitly by adding to `MANIFEST.MF` => `Automatic-Module-Name: <module name>`. All packages are both exported/opened of, and it can read all exported packages of all modules loaded with `--module-path`.
 * unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`. The type of jar is not important, you can load from classpath both regular jar and modular jar. If you load modular jar, its `module-info.java` would be ignored, and it would behave just like regular jar file. Classes of UM can read all exported packages of all modules loaded from `--module-path`, yet because UM doesn't have a name, no module can use its packages.
 Access rules:
-* NM can have  access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
+* NM can have access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
 * AM can access: only exported packages from NM, and all packages from other AM, [all packages from UM](/code/modular/script.sh) - here `calculator.jar` which loaded as AM, is accessing class from `printer.jar` which is loaded as UN.cd
   * AM implicitly exports all of its types
 * UM can access all types from both NM and AM, and all packages from other UM
+  * yet it true only for custom modules, if your UM try to access platform modules like `java.base` it can only access exported/opened packages
   * just like AM, UM implicitly exports all of its types
 * If same type (same fully qualified name) declared in both named & unnamed module:
   * type from named module is used and type from unnamed module ignored
@@ -13472,7 +13490,7 @@ Inside `module-info.java` we can:
 * exports one package at a time (exports my.com.java.* - illegal)
 * provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
 
-Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, loaded as simple jar, trying to get access to package inside `X` loaded as module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The "opens" directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly "open" the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
+Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, loaded as simple jar into `--module-path`, trying to get access to package inside `X` loaded as module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The `opens` directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly `open` the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
 Don't confuse:
 * `--add-opens` - provides access for deep reflection (including non-public members) at run time only (this can't be used with `javac`). So if you have the code like `setAccessible(true)` that means you are trying to get access to some private types, that you are not supposed to get access, and you need to use this option. Basically we can say that this option is wider than `--add-exports` because additionally it opens access to private types.
 * `--add-exports` - provides access to public API at compile and run time
@@ -13506,10 +13524,8 @@ We have 2 `Unsafe` classes but:
 Below is example of `module-info.java` for `jdk.unsupported` module - as you can see, package `sun.misc` is both exported - can be used by anybody and opened - which means you can use deep reflection on it
 ```
 module jdk.unsupported {
-    exports com.sun.nio.file;
     exports sun.misc;
     exports sun.reflect;
-
     opens sun.misc;
     opens sun.reflect;
 }

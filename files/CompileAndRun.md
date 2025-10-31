@@ -2,6 +2,7 @@
 
 ### Content
 * [Path Separator](#path-separator)
+* [Place of module-info.java](#place-of-module-infojava)
 * [Quick command names](#quick-command-names)
 * [Building and running java](#building-and-running-java)
 
@@ -18,6 +19,18 @@ java --module-path="compiled/printer.jar;compiled/app.jar" --module module.app/c
 # Linux & MacOS separator
 jdeps --module-path=compiled/printer.jar:compiled/app.jar compiled/app.jar
 java --module-path=compiled/printer.jar:compiled/app.jar --module module.app/com.java.app.App
+```
+
+### Place of module-info.java
+This file should always be in the root of the directory. Below example where we have module named `com.java.printer` and we have same directory structure and same package naming. But we put our file into first directory, not under src, because `src` is not a root folder.
+```
+src/
+└── com.java.printer/           ← 🔷 Module name = com.java.printer
+    ├── module-info.java        ← ✅ Goes here
+    └── com/
+        └── java/
+            └── printer/
+                └── Printer.java  ← with package `com.java.printer`
 ```
 
 ### Quick command names
@@ -116,7 +129,7 @@ java com.java.test.App
 ```java
 package com.java.test;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         System.out.println("Starting the app...");
         jdk.internal.misc.Unsafe.getUnsafe();
@@ -267,14 +280,13 @@ jar -tf app.jar
 There are 2 ways you can compile java module:
 * using standard java command - in this case you compile all files just like regular java files
 * using new module options - in this case you force compiler to compile java files as single module. Basically it's the same compilation, but it also checks if your project is a proper module:
-  * all 3 name for the module name should correspond: name passed into `--module` param, directory that holds the module, name inside `module-info.java` file
+  * all 3 name for the module name should correspond: name passed into `--module` param, directory that holds the module, module name inside `module-info.java` file
   * inside directory there should be file `module-info.java` with same module name as passed param and directory
-  * modular compilation create folder with module name, while simple is just put everything into output folder
-    * if you have output directory as `compiled` and module name as `module.app` - `javac` would compile into `compiled/module.app`, but with simple non-modular compilation, all files would be just in `src` folder
+  * modular compilation create folder with module name, while simple is just put everything into output folder: if you have output directory as `compiled` and module name as `module.app` - `javac` would compile into `compiled/module.app`, but with simple non-modular compilation, all files would be just in `src` folder
   * `--module-path` - expect 3 things:
     * jar file - if the file is non-modular jar then it's treated as AM
-    * folder with multiple jars - in this case all jars inside this directory are loaded into module path
     * exploded module - directory with same name as module with compiled classes
+    * folder with multiple jars or multiple exploded modules
   * `--module-path` - can be used with both `java/javac` commands:
     * when compiling if you need another already built module as dependency (you can specify both jar file or directory that contains jar file): `javac --module-path=module.printer -d compiled --module-source-path=src --module=module.app`
     * when running - you specify the path for jar or folder with compiled files: `java --module-path=compiled --module=module.abc/com.java.test.App`

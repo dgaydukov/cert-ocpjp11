@@ -219,6 +219,7 @@ public class App {
 * patten matching with `switch`:
   * you have old and new syntax to use patten matching
   * `break` is required for old syntax - if you miss first `break` code won't compile with error `illegal fall-through to a pattern`, yet you can miss last `break` before `default`
+    * in new syntax you can have `break` inside curly brackets, but it's not required
   * exhaustive - such switch should include all possible use-cases or `default` keyword
   * order of `case` - it should be in growing order `Integer => Number => Object` if you change the order you get compilation error: `this case label is dominated by a preceding case label`
   * `null` case is allowed in any place but must come before `default`
@@ -272,6 +273,34 @@ record Person(int age, String name) {}
   * follow the rule on dominance of case labels
   * not exhibit fall through
 * if switch statement is expression (return some value) - it must be exhaustive
+3 types of switch expression: old one, new one, new one with yield:
+```java
+
+public class Test {
+    public static void main(String[] args) {
+        int x = 0;
+        int v1 = switch (x) {
+            case 0:
+                yield 1;
+            default:
+                yield 2;
+        };
+        int v2 = switch (x) {
+            case 0 -> 1;
+            default -> 2;
+        };
+        int v3 = switch (x) {
+            case 0 -> {
+                yield 1;
+            }
+            default -> {
+                yield 2;
+            }
+        };
+        System.out.println(v1 + ", " + v2 + ", " + v3);
+    }
+}
+```
 
 ###### Assignment rules
 * `widening conversion` - assigning smaller type to larger type
