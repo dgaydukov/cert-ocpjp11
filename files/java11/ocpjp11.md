@@ -1444,7 +1444,7 @@ p1.equals(clone) => true
 ###### Classes
 There are 3 types of inheritance:
 * inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
-* inheritance of behavior - if class extends other class or implement interface it inherit their behavior. You can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited), java support multiple inheritance of behavior/implementation
+* inheritance of behavior/implementation - if class extends other class or implement interface it inherit their behavior. You can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited), java has multiple inheritance of implementation.
 * inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
 
 Type vs state: classes, interfaces and enums - types. Since java support multiple interface implementation => java support multiple inheritance of types. 
@@ -1526,6 +1526,29 @@ class Child extends Parent {
 ```
 Child.value => 2
 Parent.value => 1
+```
+
+Java chooses the `most specific` match:
+* if we have 2 methods with Object/String and pass null - String would be chosen - because it's more specific than Object
+* if we have 2 specific with Integer/String and pass null - compilation error
+```java
+public class Test {
+    public static void main(String[] args) {
+        print(null); // won't compile
+    }
+
+    static void print(String s) {
+        System.out.println("String");
+    }
+
+    static void print(Integer s) {
+        System.out.println("Integer");
+    }
+
+    static void print(Object s) {
+        System.out.println("Object");
+    }
+}
 ```
 
 Immutable class - is a class without setters. We can still set values in constructor, the idea is that we can’t change values after instantiation. One caveat is when dealing with complex object, create and return value using new or unmodifiable objects. Otherwise, initial values can be changed using values passed to constructor or get from `get` method, by changing them.
@@ -2361,7 +2384,7 @@ class B extends A{}
 ```
 
 ###### Interfaces
-All variables in interface are always `public static final`, and can be called both from interface or from its instance. Which is different from `static` methods that can be called only from interface. Variables are `static` because interface is class-level, and not instance. But they also `final` - because interface is define behavior not state.
+All variables in interface are always `public static final`, and can be called both from interface or from its instance. Which is different from `static` methods that can be called only from interface. Variables are `static` because interface is class-level, and not instance. But they also `final` - because interface defines behavior not state.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2437,7 +2460,7 @@ class B implements A {
 ```
 
 when a class implements 2 interfaces with the same:
-* variable (static) - it would compile, but if you try to access such static variable from instance of that class, you will get compilation error: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
+* variable (static) - code won't compile: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
 * default method - code won't compile: `types com.java.test.A and com.java.test.B are incompatible; class com.java.test.C inherits unrelated defaults for print() from types com.java.test.A and com.java.test.B`
 ```java
 public class App {
@@ -2481,24 +2504,27 @@ void sum (int a, int b){}
 private void sum (int a, int b){}
 int sum (int value1, int value2){}
 ```
-* method "overloading" - same name but different set of params, so your method is "overloaded" - means there are multiple possibilities with the same name
+* method overloading - same name but different set of params, so your method is "overloaded" - means there are multiple possibilities with the same name
 * method overloading compilation error: happens only if you try to call it with ambiguous params, by default those 2 `sum` function are overloaded, and no errors, only if you try to call with ambiguous param, it became an issue
+* `sum(short, short)` is calling `sum(int a, Short b)`:
+  * short is widened to int
+  * short is autoboxed into Short
 ```java
-public class App {
-  public static void main(String[] args) {
-    int a = 5;
-    short b = 10;
-    // compilation error: reference to sum is ambiguous
-    sum(a, b);
+public class Test {
+    public static void main(String[] args) {
+        int a = 5;
+        short b = 10;
+        // compilation error: reference to sum is ambiguous
+        sum(a, b);
 
-    // compile fine
-    sum((short) a, b); // calls sum(int, Short)
-    sum((Integer) a, b); // calls sum(Integer, short)
-    sum(a, (Short) b); // calls sum(int, Short)
-  }
+        // compile fine
+        sum((Integer) a, b); // calls sum(Integer, short)
+        sum(a, (Short) b); // calls sum(int, Short)
+        sum((short) a, b); // calls sum(int, Short)
+    }
 
-  public static void sum(Integer a, short b) {}
-  public static void sum(int a, Short b) {}
+    public static void sum(Integer a, short b) {}
+    public static void sum(int a, Short b) {}
 }
 ```
 * subtype for primitives:
@@ -2572,7 +2598,7 @@ interface X{
 }
 ```
 
-When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call this method of interface:
+When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call such method of interface:
 * fundamental rule of java inheritance - classes win over interfaces
 * class inheritance was since java1, but interface default methods were added in java8 - if you allow interface to override - many old code may exhibit wrong behavior. For the same reason if you force to recompile, a lot of older code may get broken. This is the main reason, why it was decided to give class methods priority over interface, and don't throw compilation error
 * based on this you can deduce if class extends another, and implement multiple interface with same default method, no compilation error because method from parent class will take priority and effectively overwrite other implementations
@@ -5195,6 +5221,8 @@ public class App {
         var list1 = new ArrayList<String>(); // valid declaration of List<String>
         var list2 = new ArrayList<>(); // valid declaration of List<Object>
         List<?> list3 = new ArrayList<>(); // valid declaration, but you can't add anything here but can extract object
+        // don't confuse with this, which create ArrayList<Object>, not the unbounded list like previous example
+        var list = new ArrayList<>();
     }
 }
 ```
@@ -5609,7 +5637,7 @@ Covariant return:
   * but `List<B>` or `List<? extends B>` not a subtype of `List<A>`
 * `List<? super Object>` <-- `List<Object>`  <-- `List<? super A>` <-- `List<A>`<-- `List<? super B>`
   * `List<B>` is subtype for `List<? super B>`
-  * `List<?>` - is not a supertype for anything, so you can't pass it as return value
+  * `List<?>` - is not a supertype for anything, so you can't pass it as return value.
 * `B[]` <-- `A[]` - array different from generics: compare below examples between arrays and generics:
 ```java
 import java.util.ArrayList;
@@ -8770,7 +8798,7 @@ class MyArrayList<E> extends ArrayList<E> {
     }
 }
 ```
-You can see that `customMap1/customMap2` different that in second version we use static reference, although in the first case it won't work. For static reference to work, 2 params should be passed into `addAndReturn` - the list itself, the string value. That's why in second `merge` we use `BiFunction` that actually use second value. Using static reference is not possible in the first case, because you have to explicitly pass value into it. Yet in second case, value is supplied as second argument of `BiFunction`. This is also explain the original `merge`, that actually force you to use `BiFunction` and not use `Supplier` because they want `V` to always be available on each call - so you can merge your existing value with new value - and do it with nice and short static reference.
+You can see that `customMap1/customMap2` different that in second version we use method reference, although in the first case it won't work. For method reference to work, 2 params should be passed into `addAndReturn` - the list itself, the string value. That's why in second `merge` we use `BiFunction` that actually use second value. Using method reference is not possible in the first case, because you have to explicitly pass value into it. Yet in second case, value is supplied as second argument of `BiFunction`. This is also explain the original `merge`, that actually force you to use `BiFunction` and not use `Supplier` because they want `V` to always be available on each call - so you can merge your existing value with new value - and do it with nice and short method reference.
 ```
 computeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 mergeMap   => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
@@ -13728,13 +13756,13 @@ myapp_en_US.properties
 myapp_fr.properties
 ```
 Then we have the following order of execution:
-* if we don't pass anything `myapp_en` would be loaded, cause default locale is `en`
-* if we pass existing locale (like `fr` or `en_US`) corresponding file would be loaded
-* if we pass `en_us` locale, 3 bundles would be loaded: `myapp => myapp_en => myapp_en_us`, with values overwriting each other. So if you have same key in all 3 files, key from `myapp_en_us` would be used
-* If we pass non-existing locale (like `german`) default locale would be loaded => this is important: default locate is loaded first, and only if property file is not found for default locale, `myapp.properties` is loaded. But of course if there is file with default locale, it would also load its parent. But the key here is that if we use non-existent locale, then default locale is trying to be loaded first.
-* If we set default locale as `german`, then `myappp` would be loaded.
-`Locale.setDefault` has 2 overloaded methods. One takes `Locale` object, another (Locale.Category, Locale).
-`Locale.getDefault` has 2 overloaded methods. () - get all, (Locale.Category)
+* if we don't pass anything: 2 bundles would be loaded  `myapp_en => myapp` (first key is looked in `myapp_en` if not found then in `myapp`)
+* if we pass existing locale like `fr`: 2 bundles would be loaded `myapp_fr => myapp`
+* if we pass `en_US`: 3 bundles would be loaded `myapp_en_us => myapp_en => myapp` (search for key start from first and go to third in this order)
+* If we pass non-existing locale `de` (germany): 
+  * 2 bundles would be loaded  `myapp_en => myapp`
+  * default locate is loaded first, and only if property file is not found for default locale, `myapp` is loaded
+* If we set default locale as `de`: 1 bundle loaded - only `myappp`.
 If we try to `getBundle` resource that doesn't exist, we got `java.util.MissingResourceException: Can't find bundle for base name myapp1, locale fr`
 If bundle exists, but there is no value for key, we got `java.util.MissingResourceException: Can't find resource for bundle java.util.PropertyResourceBundle, key lang`
 ```java
@@ -13769,6 +13797,9 @@ fr locale => french
 de locale => english
 de locale => default
 ```
+
+`Locale.setDefault` has 2 overloaded methods. One takes `Locale` object, another (Locale.Category, Locale).
+`Locale.getDefault` has 2 overloaded methods. () - get all, (Locale.Category)
 `getKeys` returns all keys from current bundle and all parent bundles. If keys are same current bundle keys values are used, if in parent bundle there are new keys, they also be included.
 ```java
 import java.util.*;
