@@ -6404,21 +6404,23 @@ Exception in thread "main" java.util.ConcurrentModificationException
 In case of `HashMap` if we try to modify object we got exception, but for concurrent - it's ok
 Simple example of RingBuffer
 ```java
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         LruCache<Integer, Integer> cache = new LruCache<>(3);
         for(int i = 1; i <= 3; i++){
             cache.put(i, 1);
         }
         System.out.println(cache);
+        cache.get(1);
         cache.put(4, 1);
         System.out.println(cache);
     }
 }
 
-class LruCache<K, V> extends LinkedHashMap<K, V>{
+class LruCache<K, V> extends LinkedHashMap<K, V> {
     private final int capacity;
     public LruCache(int capacity){
         super(capacity+1, 0.75f, true);
@@ -6431,6 +6433,7 @@ class LruCache<K, V> extends LinkedHashMap<K, V>{
     }
 }
 ```
+key 1 was used, so it moved to last place, and first now is 2 which is removed.
 ```
 {1=1, 2=1, 3=1}
 {3=1, 1=1, 4=1}
@@ -8704,8 +8707,8 @@ highestAndLowestAge => {Lowest=Person[name=Mary, age=40], Highest=Person[name=Ja
 ```
 
 Don't confuse:
-* map.compute - take key, and function with key/value (key is that you provided as first param) - where you put your logic - it's good to use when value creation is time-consuming and you don't want to create it for each key
-* map.merge - take key,value and function with oldValue/value (same value as you provided as second param) - where you put merging logic. May not be ideal when creating value is resource-consuming. Because here, compare to `compute` you have to create value for each key, which may not be desired. When your value is `ArrayList`, you want to create it only once, and then add something to it, but here with `merge` you are forced to create `new ArrayList` each time you call it.
+* map.compute - take key, and function with key/value (key is that you provided as first param) - where you put your logic - it's good to use when value creation is time-consuming, and you don't want to create it for each key
+* map.merge - take key,value and function with oldValue/value (same value as you provided as second param) - where you put merging logic. May not be ideal when creating value is resource-consuming. Because here, compare to `compute` you have to create value for each key, which may not be desired. When your value is `ArrayList`, you want to create it only once, and then add something to it, but here with `merge` you are forced to create `new ArrayList` each time you call it. It's good for simple accumulation, because it avoids boilerplate and allows to write concise code with method reference.
 * create custom `Map` and add new `merge` with `Supplier`. In this case your value would be called only once. Also, if you create custom `ArrayList` where you have chainable methods, that return reference on the object you can do your lambda in one-line of code - this is because methods in original `ArrayList` are not chainable, for example `add` returns `boolean`. So if you create 2 custom classes you can achieve `merge` in one line, but it too complex, so better to use collectors - they will do all the job with one single line.
 * Collectors.groupingBy - ideal solution, where actual computation logic is hidden behind, and you have nice one-line functional programming solution to transform your original list of objects into custom map. It combines both of 2 words, it would create `ArrayList` only 3 times, each time for new unique key (not 5 times like with `merge` function), and it is really nice and beautiful solution.
 ```java
