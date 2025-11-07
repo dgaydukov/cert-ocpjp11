@@ -156,6 +156,7 @@ public class App {
 Rules:
 * switch variable can't be `null`, otherwise you'll get NPE
 * `default` can be anywhere even as first label - it's a good practice to put it the last
+  * This is different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement.
 * fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
     * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
     * if `i==3` then `case 3` would be entered and only 3 would be printed

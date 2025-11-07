@@ -711,6 +711,7 @@ And so we have different output, because if numeric addition take precedence we 
 15
 51
 ```
+Comparison operators have lower precedence than math operators: `boolean b = 1 + 2 > 5 - 3;` this code would compile and print `true`
 
 JVM store strings:
 * string pool - string literals that are available in compile time (`String s = "hello"`)
@@ -964,6 +965,8 @@ class App {
 Enhanced for loop:
 * also knows as for-each loop or simply foreach
 * simplified version of the traditional for loop introduced in Java 5
+* we can't reuse variable, we have to declare new one always: this is different from normal `for` loop, where you can reuse variable
+* variable is effectively final - you can also explicitly declare it `final`: this is different from normal `for` loop, where you can't make variable `final` and can reassign value
 ```java
 for (Type element : collection_or_array) {
     // use element
@@ -972,7 +975,7 @@ for (Type element : collection_or_array) {
 
 Jagged array - for multidimensional array, java doesn't have a concept of matrix like 2x3, so it has array of arrays, and memory layout not clear defined. This is why in java it's called jagged array. But in C# we can have 2 types of array, kind of matrix-based and jagged. Java doesn’t have the concept of single or multidimensional arrays, If the elements of an array are themselves arrays, we call it a multidimensional array but from the language perspective, it is still just an array.
 
-Array class name - java make up class name using followint notatioin: `{dimensions}{letter_of_type}`
+Array class name - java make up class name using following notation: `{dimensions}{letter_of_type}`
 Below is the list for letters:
 ```
 boolean Z
@@ -1444,7 +1447,7 @@ p1.equals(clone) => true
 ###### Classes
 There are 3 types of inheritance:
 * inheritance of type - if `class B extends A` we can say that class inherits type `A` and now it's type of `A`. Since class can implement multiple interfaces, java has multiple inheritance of type.
-* inheritance of behavior/implementation - if class extends other class or implement interface it inherit their behavior. You can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited), java has multiple inheritance of implementation.
+* inheritance of behavior/implementation - if class extends other class or implement interface it inherit their behavior. You can implement multiple interfaces (behavior of Constructors, static/instance initializers - are not inherited), java has multiple inheritance of implementation. Yet it's different from C++ where you can extend 2 classes that have the same method, and inside differentiate - java can't do this. So we can say that java partially (with limitations) support multiple implementation inheritance
 * inheritance of state - only class has state, so we can inherit state only when we `extend` another class. Since in java you can extend only 1 class, java doesn't support multiple inheritance of state
 
 Type vs state: classes, interfaces and enums - types. Since java support multiple interface implementation => java support multiple inheritance of types. 
@@ -1646,6 +1649,19 @@ class B extends A {
 ```
 printB => name: B, staticName: B
 printA => name: B, staticName: A
+```
+
+You can override method with abstract method:
+```java
+class ConsolePrinter{
+    void print(String s){
+        System.out.println(s);
+    }
+}
+abstract class Printer extends ConsolePrinter{
+    @Override
+    abstract void print(String s);
+}
 ```
 
 We can’t override variables, we can only hide them
