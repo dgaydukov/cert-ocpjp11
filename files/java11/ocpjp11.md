@@ -2504,6 +2504,17 @@ void sum (int a, int b){}
 private void sum (int a, int b){}
 int sum (int value1, int value2){}
 ```
+* exclusion of return type - make total sense:
+  * imagine if you would include return type into method signature - you would add ambiguity
+```java
+int getValue() { return 1; }
+String getValue() { return "one"; }
+
+// it would be not clear which one to call if you just call getValue()
+// you would have to always include assignment to make clear which one you would like to call
+String s = getValue();  // might work for one
+int x = getValue();     // might work for other
+```
 * method overloading - same name but different set of params, so your method is "overloaded" - means there are multiple possibilities with the same name
 * method overloading compilation error: happens only if you try to call it with ambiguous params, by default those 2 `sum` function are overloaded, and no errors, only if you try to call with ambiguous param, it became an issue
 * `sum(short, short)` is calling `sum(int a, Short b)`:
@@ -5907,7 +5918,7 @@ public class App {
         Map<Character, Integer> map1 = new HashMap<>();
         Map<Character, Integer> map2 = new HashMap<>();
         for(char ch: str.toCharArray()){
-            map1.merge(ch, 1, (oldValue, newValue) -> oldValue+newValue);
+            map1.merge(ch, 1, Integer::sum);
             map2.compute(ch, (key, oldValue) -> oldValue == null ? 1 : oldValue + 1);
         }
         System.out.println("map1 => " + map1);
@@ -6549,30 +6560,6 @@ oldMap => {a=5, b=6}
 newMap => {a=1, b=2}
 ```
 
-`Map.merge` very versatile method. We can solve a lot of tasks. Just imagine you need to calculate number of occurrences of names. The same can be achieved by using `Collectors` of stream.
-```java
-import java.util.*;
-import java.util.stream.Collectors;
-
-public class App {
-    public static void main(String[] args) {
-        List<String> names = new ArrayList<>(List.of("Jack", "Bob", "Janet", "Melanie", "Bob", "Melanie", "Bob", "Jack", "Melanie", "Bob"));
-        Map<String, Integer> map = new HashMap<>();
-        names.forEach(name -> map.merge(name, 1, (prev, curr) -> prev + curr));
-        System.out.println("map => " + map);
-        Map<String, Integer> collectorMap = names
-                .stream()
-                .collect(Collectors.toMap(s -> s, s -> 1, (s1, s2) -> s1 + s2));
-        System.out.println("collectorMap => " + collectorMap);
-    }
-}
-```
-```
-map => {Bob=4, Melanie=3, Janet=1, Jack=2}
-collectorMap => {Bob=4, Melanie=3, Janet=1, Jack=2}
-```
-
-As you see, no need for condition and use of `put` and `putIfAbsent` or `computeIfAbsent`. We can also rewrite it as `map.merge(name, 1, Integer::sum)`.
 Here is more complicated example. Imagine you have list of operations with start and end balance. And you need to calculate total balance for all days. (balance per day = start - end, and then sum all balances for all days per account)
 ```java
 import java.math.BigDecimal;
@@ -8709,6 +8696,7 @@ highestAndLowestAge => {Lowest=Person[name=Mary, age=40], Highest=Person[name=Ja
 Don't confuse:
 * map.compute - take key, and function with key/value (key is that you provided as first param) - where you put your logic - it's good to use when value creation is time-consuming, and you don't want to create it for each key
 * map.merge - take key,value and function with oldValue/value (same value as you provided as second param) - where you put merging logic. May not be ideal when creating value is resource-consuming. Because here, compare to `compute` you have to create value for each key, which may not be desired. When your value is `ArrayList`, you want to create it only once, and then add something to it, but here with `merge` you are forced to create `new ArrayList` each time you call it. It's good for simple accumulation, because it avoids boilerplate and allows to write concise code with method reference.
+* you can use `computeIfAbsent+put` instead of compute/merge for simpler code
 * create custom `Map` and add new `merge` with `Supplier`. In this case your value would be called only once. Also, if you create custom `ArrayList` where you have chainable methods, that return reference on the object you can do your lambda in one-line of code - this is because methods in original `ArrayList` are not chainable, for example `add` returns `boolean`. So if you create 2 custom classes you can achieve `merge` in one line, but it too complex, so better to use collectors - they will do all the job with one single line.
 * Collectors.groupingBy - ideal solution, where actual computation logic is hidden behind, and you have nice one-line functional programming solution to transform your original list of objects into custom map. It combines both of 2 words, it would create `ArrayList` only 3 times, each time for new unique key (not 5 times like with `merge` function), and it is really nice and beautiful solution.
 ```java
@@ -8734,6 +8722,7 @@ public class Test {
 
         Map<Integer, List<String>> computeMap = new HashMap<>();
         Map<Integer, List<String>> mergeMap = new HashMap<>();
+        Map<Integer, List<String>> map = new HashMap<>();
         MyHashMap<Integer, MyArrayList<String>> customMap1 = new MyHashMap<>();
         MyHashMap<Integer, MyArrayList<String>> customMap2 = new MyHashMap<>();
         list.forEach(p -> {
@@ -8748,6 +8737,7 @@ public class Test {
                 o.addAll(n);
                 return o;
             });
+            map.computeIfAbsent(p.age(), k -> new ArrayList<>()).add(p.name());
             customMap1.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), l -> l.addAndReturn(p.name()));
             customMap2.merge(p.age(), () -> new MyArrayList<>(List.of(p.name())), p.name(), MyArrayList::addAndReturn);
         });
@@ -8756,6 +8746,7 @@ public class Test {
 
         System.out.println("computeMap => " + computeMap);
         System.out.println("mergeMap   => " + mergeMap);
+        System.out.println("map        => " + map);
         System.out.println("customMap1 => " + customMap1);
         System.out.println("customMap2 => " + customMap2);
         System.out.println("collectMap => " + collectMap);
@@ -8805,6 +8796,7 @@ You can see that `customMap1/customMap2` different that in second version we use
 ```
 computeMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 mergeMap   => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
+map        => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 customMap1 => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 customMap2 => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}
 collectMap => {20=[Mike, Emmanuel, James], 40=[John], 30=[Jack]}

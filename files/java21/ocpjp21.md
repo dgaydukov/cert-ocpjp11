@@ -762,6 +762,12 @@ if (tempA && tempB) {
 }
 ```
 As you see, our local scope variable is removed in this case
+* for the same reason below code won't compile: "Scope for Pattern Variables in Expressions" - states that no scope rules apply to & (as opposed to && and instanceof)
+```java
+Object obj = 10;
+if(obj instanceof Integer i & i == 10) {
+}
+```
 * record deconstruction - because records have predefined set of instance variables on compile time, you can write code like this to get access to record values
 ```java
 public class App {
