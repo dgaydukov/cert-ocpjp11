@@ -260,8 +260,12 @@ public class App {
 ```
 5
 ```
-Java doesn’t allow variables to have the same name as keywords(if, else, while, class...) and literals (true, false, null). All others like class name, var ... perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
-
+Java doesn’t allow variables to have the same name as keywords(if, else, while, class...) and literals (true, false, null). All others like class name, `var ` perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
+For function arguments you can't use keyword `var`, yet if you are using lambda - you can, because lambda kind of anonymous class where types already defined, so you can use `var` keyword. Yet keep in mind in lambda you have to:
+* leave type for all arguments
+* use `var` for all arguments
+* use exact type for all arguments
+* you can't mix: like one argument empty, another with `var`
 
 char=>int conversion: Although we can assign `char` to `int`. We can’t assign `char` to `Integer`, autoboxing can’t do this.
 ```java

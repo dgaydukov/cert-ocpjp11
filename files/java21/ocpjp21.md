@@ -350,8 +350,8 @@ Above code works fine for `int`, but won't compile for `long`. This is specific 
 In addition, if the expression is a constant expression (§15.28) of type byte, short, char, or int:
 A narrowing primitive conversion may be used if the type of the variable is byte, short, or char, and the value of the constant expression is representable in the type of the variable.
 ```
-As you `long` is missed here on purpose. The reasoning is that long is used for very large numbers, and probably would never store small values like `byte/short/char`
-* you can use cast to assign any primitive value to any other primitive. Be careful of overflow. Result of below code is -128. It's simple - when convert to lower value, since int is 4 bytes and byte only 1, casting cut off 3 bytes leaving only last byte which is for 128 is `10000000`. Then java try to put this value into signed `byte`, but for signed byte this value is -128.
+`long` is missed here on purpose. The reasoning is that `long` is used for very large numbers, and probably would never store small values like `byte/short/char`
+* you can use cast to assign any primitive value to any other primitive. Be careful of overflow. Result of below code is -128. It's simple - when convert to lower value, since `int` is 4 bytes and `byte` only 1, casting cut off 3 bytes leaving only last byte which is for 128 is `10000000`. Then java try to put this value into signed `byte`, but for signed byte this value is -128.
 ```java
 int i = 128;
 byte b = (byte) i;
