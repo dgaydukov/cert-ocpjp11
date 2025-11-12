@@ -6052,7 +6052,8 @@ public class App {
         List<Integer> list = Arrays.asList(arr); // won't compile: incompatible types: inference variable T has incompatible bounds
         List<Integer> list2 = Arrays.asList(arr2);
     }
-}```
+}
+```
 
 `List.sublist` create view of original list, so all changes are reflected in original list. Yet if you modify (add/remove) original list and then try to traverse sublist you will get `ConcurrentModificationException`.
 ```java

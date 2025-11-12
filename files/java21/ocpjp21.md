@@ -770,6 +770,7 @@ if(obj instanceof Integer i & i == 10) {
 }
 ```
 * record deconstruction - because records have predefined set of instance variables on compile time, you can write code like this to get access to record values
+* you can change types with `var` and it would work
 ```java
 public class App {
     public static void main(String[] args) {
