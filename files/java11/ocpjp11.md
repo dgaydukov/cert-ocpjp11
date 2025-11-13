@@ -5299,13 +5299,14 @@ If you look into below code you will understand the power of extending:
 import java.util.ArrayList;
 import java.util.List;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         List<Integer> list = new ArrayList<>();
         list.add(1);
         list.add(2);
         list.add(3);
         System.out.println(average2(list));
+        System.out.println(average3(list));
         System.out.println(average1(list)); // won't compile because List<Integer> is not a subtype for List<Number>
     }
 
@@ -5323,12 +5324,19 @@ public class App {
         }
         return sum/list.size();
     }
+    public static double average3(List<? extends Number> list){
+        double sum = 0;
+        for (Number number: list) {
+            sum += number.doubleValue();
+        }
+        return sum/list.size();
+    }
 }
 ```
 
 Don't confuse:
 * type parameter - letter used in `<>`. For example `<E extends Number>`, here `E` is type parameter
-* wildcard - question mark used in `extends/super` like `<? extends Number>`. We may use it, when we don't need actual type. Foe example if you producer and only get elements, you may not need actual type, but cast to upper/bound type. If our code is `<E extends Number>`, you may not need to use `E` at all inside your code, in this case you use wildcard. Below 2 methods are identical: the only difference you can't refer to `E` in the second method. But if you don't need you can use it.
+* wildcard - question mark used in `extends/super` like `<? extends Number>`. We may use it, when we don't need actual type. If our code is `<E extends Number>`, you may not need to use `E` at all inside your code, in this case you use wildcard. Below 2 methods are identical: the only difference you can't refer to `E` in the second method.
 ```java
 public static <E extends Number> void print(List<E> list){}
 public static void print2(List<? extends Number> list){}
@@ -5340,8 +5348,9 @@ List<E extends Number> nums = new ArrayList<>(); // won't compile
 ```
 
 Lower bound:
-* can be used in variable declaration and in methods
-* can't be used with type parameter and inside classes
+* can be used in variable, method, class declaration - because such syntax is only allowed with `extends` keyword
+* type parameter declarations define a known type, not an unknown flexible "any supertype"
+* upper bound can be E or wildcard, yet lower bound - only wildcard
 ```java
 import java.util.ArrayList;
 import java.util.List;
@@ -5356,9 +5365,10 @@ public class App {
 }
 class LowerBound<E super Integer>{} // won't compile
 ```
-rules for lower bound:
+Rules for lower bound:
 * you can get only the most upper class - in most cases object
 * you can insert only the lowest class - the lower bound
+* you can pass any upper params like `List<Number>` or `List<Object>`
 * int our example you can add `Integer` and get `Object`
 ```java
 import java.util.List;
@@ -5382,12 +5392,15 @@ Wildcard usage:
 * upper bound `<? extends Number>` - everything below type including the type itself
   * add - nothing - because you can add any child of `Number` but you don't know which one exactly, so fo safety reason you better not to add anything
   * get - Number itself - you can get any child, which you can implicitly upcast to `Number` that's why you get it
+  * substitute with List of any subtype like `List<Integer>` or `List<Double>` or `List<Number>`
 * lower bound `<? super Number>` - everything above the type including the type itself
   * add - Number - you can add `Number` or its superclass, but at least the Number
   * get - Object - you can get `Number` or its superclass, so we upcast to the Object
+  * substitute with List of any supertype like `List<Number>` or `List<Object>`
 * unbounded `<?>` - same as `<? extends Object>` and `<? super Object>` - use it when you only need to get value (for example for logging) but need to be able to pass any value
   * add - nothing
   * get - Object
+  * substitute with any type
 
 generic casting: due to type erasure JVM not aware of exact type on runtime, this is way responsibility to check is lay on compilator which is not compiling such code.
 ```java
@@ -5430,7 +5443,7 @@ public class App {
     }
 }
 ```
-* So if we need to pass sybtype generic into parent we have to use PECS rules. Now this code compiles well
+* So if we need to pass subtype into parent we have to use PECS rules. Now this code compiles well
 ```java
 public class App {
     public static void main(String[] args) {
