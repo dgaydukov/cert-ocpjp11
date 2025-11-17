@@ -812,6 +812,26 @@ capacity => 27
 length => 11
 ```
 
+Don't confuse sb methods:
+* insert - insert String/StringBuilder at specified position
+* append - insert String/StringBuilder at the end - so it's the same as to call `sb.insert(sb.length(), str, start, end)`
+```java
+public class Test {
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder("hello");
+        sb.insert(0, sb, 0, 3);
+        System.out.println(sb);
+        sb = new StringBuilder("hello");
+        sb.append(sb, 0, 3);
+        System.out.println(sb);
+    }
+}
+```
+```
+abchello
+hellohel
+```
+
 We can also set:
 * capacity with `ensureCapacity` - if new capacity is bigger than old, new array is allocated with new capacity length
     * if new capacity is less than existing - nothing happens
@@ -1802,6 +1822,36 @@ public class App {
 }
 ```
 
+Class/Interface is immediately initialized before any of these:
+* instance of class is created
+* static method is invoked
+* static field is assigned
+* static non-final field is used
+```java
+class Parent{
+    static int ID = 1;
+    static {
+        System.out.println("Init Parent");
+    }
+}
+class Child extends Parent{
+    static {
+        System.out.println("Init Child");
+    }
+}
+public class Test {
+    public static void main(String[] args) {
+        System.out.println(Child.ID);
+    }
+}
+```
+Since static is called of `Parent`, static initializer of parent only called, and for `Child` it's not called. Also if `ID` was final, even parent static initializer won't be called
+```
+Init Parent
+1
+```
+Before class is initialized, first its super class initialized
+
 Static and instance initializers - order of execution:
 * first - static variable/block in order they are in code
 * second - instance variable/block of code, in order they are in code
@@ -1835,7 +1885,7 @@ Instance Initializer
 Constructor
 ```
 
-illegal forward reference:
+Illegal forward reference:
 * instance initializer can't access variable that declared after the block (same true for static)
 * you can access methods from initializers even though such methods were declared after the initializer
 * yet method can access such variable
@@ -12815,10 +12865,13 @@ Don't confuse:
 * `java.nio.file.NoSuchFileException` - file not found.
 * `java.nio.file.AccessDeniedException` - no permission to access file
 ```java
-import java.io.*;
-import java.nio.file.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
-public class App{
+public class Test {
     public static void main(String[] args) throws Exception{
         BufferedReader br1 = new BufferedReader(new FileReader(new File("abc"))); // throws FileNotFoundException
         BufferedReader br2 = Files.newBufferedReader(Paths.get("abc")); // throws NoSuchFileException if file not found, AccessDeniedException - no permission to open
@@ -13903,7 +13956,7 @@ person => Person[name=Jack, age=30]
 ```
 MessageFormat:
 * If you need to insert some values into your strings you can use this class
-* Although you can append values in the beginning/end of your messages, sometimes due to grammar rules, the place where you have to insert your value is different dependeing on the lanugage (for example in english it should be in the end but in Arabic it should be in the middle)
+* Although you can append values in the beginning/end of your messages, sometimes due to grammar rules, the place where you have to insert your value is different depending on the lanugage (for example in english it should be in the end but in Arabic it should be in the middle)
 * to resolve such issues you can use this class: `formatted=your price is {0} USD`
 ```java
 import java.text.MessageFormat;
@@ -15325,7 +15378,8 @@ public class App{
 null => oops
 ```
 
-4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces. Sealed classes/interfaces are a way to create a tagged union - are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week.
+4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces. 
+* Sealed classes/interfaces are a way to create a tagged union - are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week. Just like enums you can use it inside `switch` without `default` keyword.
 There are several rules when you create sealed class/interface:
 * classes in `permits` section should be already defined, otherwise it won't compile
 ```java
@@ -15347,18 +15401,12 @@ non-sealed interface Suv extends Car{}
 sealed interface Car permits SportCar, SuvCar, SuperCar{
     int getSpeed();
 }
-non-sealed interface SportCar extends Car{}
+final interface SportCar extends Car{}
+non-sealed interface SuvCar extends Car{}
 // compile error: sealed class must have subclasses
-sealed interface SuvCar extends Car{}
+sealed interface SuperCar extends Car{}
 // compile error: modifier sealed or non-sealed is expected
 interface SuperCar extends Car{}
-```
-* class can also be final
-```java
-sealed class Car{}
-
-final class SuvCar extends Car{}
-non-sealed class SportCar extends Car{}
 ```
 * you are not able to extend class until it explicitly in `permits` section
 ```java
@@ -15389,7 +15437,9 @@ final class SuperCar implements Car{
   }
 }
 ```
-* The sealed class and its permitted subclasses must belong to the same module, and, if declared in an unnamed module, to the same package. Otherwise you can get compilation error: Class is not allowed to extend sealed class from another package.
+* modules:
+  * if sealed class is in the named module - permitted subclasses must belong to the same module - otherwise it won't compile
+  * if sealed class is in the unnamed module - permitted subclasses must belong to the same package - otherwise compilation error: `Class is not allowed to extend sealed class from another package`
 * Sealed classes useful with combination of `switch` pattern matching. If you have several subclasses of `sealed` class, and in `switch` statement omit any of subclasses - you will get compilation error. So you have to explicitly either use all permitted subclasses or use `default` statement inside `switch`
 ```java
 public class App{

@@ -462,7 +462,10 @@ record Person(String name, int age) {
 record Person(int id) extends Object{} // won't compile
 ```
 * record like enum can implement interfaces and inherit their default method
-* it's final, you can't extend it, you also can't make it `abstract` or `sealed`
+* it's final:
+  * you can add `final` keyword explicitly - but it's redundant 
+  * you can't extend record from any other class, and you can't extend class from the record
+  * you can't make it `abstract` or `sealed`
 ```java
 record Person(int id){}
 class My extends Person{} // won't compile
@@ -507,12 +510,13 @@ record Person (String name, int age) {
     }
 }
 ```
-* compact constructor:
+* compact constructor - canonical constructor in compact form:
   * special type of constructor where you don't specify instance members, and add only validation logic
-  * initialization if instance members is done after your logic is run
+  * initialization of instance members is done after your logic is run
   * useful if you just want to add some validation logic
   * Can't be used together with canonical constructor - either one can be used not both
   * Don't confuse: for canonical constructor - you add instance fields into method declaration and define them, but with compact you don't, they would be aligned automatically
+  * you can modify fields in both compact & canonical constructors before initialization 
 ```java
 record Person (String name, int age) {
     public Person {
