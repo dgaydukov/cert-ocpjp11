@@ -8000,6 +8000,7 @@ average => 3.0
 sum => 15
 count => 5
 ```
+Method `boxed()` under-the-hood calls `mapToObj(Integer::valueOf)` and converting each stream into wrapper object
 Pay attention, that this method, sort values automatically. We also have such classes for long and double `LongSummaryStatistics` and `DoubleSummaryStatistics`. We can work with optional as with streams. Suppose we want to print Integer if it only 3 digits.
 ```java
 import java.util.*;
@@ -13576,6 +13577,7 @@ There are 3 types of modules:
 * unnamed module (UM) - simple jar(or modular jar) loaded from `--class-path`. The type of jar is not important, you can load from classpath both regular jar and modular jar. If you load modular jar, its `module-info.java` would be ignored, and it would behave just like regular jar file. Classes of UM can read all exported packages of all modules loaded from `--module-path`, yet because UM doesn't have a name, no module can use its packages.
 Access rules:
 * NM can have access all types from AM, but should require it in it's `module-info.java` file by its name, and exported/opened packages from other NM
+  * sealed class should have all subclasses in the same named module - so even if you export it, no other named module can reuse it, because to reuse - other module should have the same class that was defined in the original module, and this will cause compilation/running error
 * AM can access: only exported packages from NM, and all packages from other AM, [all packages from UM](/code/modular/script.sh) - here `calculator.jar` which loaded as AM, is accessing class from `printer.jar` which is loaded as UN.cd
   * AM implicitly exports all of its types
 * UM can access all types from both NM and AM, and all packages from other UM
@@ -13583,7 +13585,8 @@ Access rules:
   * just like AM, UM implicitly exports all of its types
 * If same type (same fully qualified name) declared in both named & unnamed module:
   * type from named module is used and type from unnamed module ignored
-  * if same type is loaded from both NM & AM - you get `java.lang.module.ResolutionException` on runtime
+  * sealed class should have all subclasses in the same package - so even if you export it, no other named module can reuse it, because to reuse - other module should have the same class that was defined in the original module, and this will cause compilation/running error
+  * if same type is loaded from both NM & AM - you get `java.lang.module.ResolutionException` on runtime, just as same type loaded from 2 NM
   * if NM doesn't export package, still any class loaded from module-path, both NM & AM would try to call type from module, not from UM, and if it's not exported you get `Exception in thread "main" java.lang.IllegalAccessError` on runtime
 Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
 * Bottom-up:

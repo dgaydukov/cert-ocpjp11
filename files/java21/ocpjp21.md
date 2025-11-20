@@ -716,6 +716,20 @@ rec => PersonRec[name=John, age=35]
 ```
 
 ###### Pattern Matching with instanceof
+* you can shadow the static/instance variable, but not local - reason is that instance/static namespace is qualified, you can always access it with `Class.Static` for static and `this.` for instance, yet for local there is no way to access it in case of shadowing
+```java
+class PatternMatching {
+    Object o1;
+    static Object o2;
+    public void m1(){
+        Object o3 = new Object();
+        Object obj = new Object();
+        if (obj instanceof Object o1) {}
+        if (obj instanceof Object o2) {}
+        if (obj instanceof Object o3) {} // won't compile: variable o3 is already defined in method m1()
+    }
+}
+```
 There were several enhancement to this expression in java 16, 21:
 * flow scoping - variable scope is within the flow it's declared. In this example we use inversion, so variable `str` would be available in the `else` clause, but not inside `if`
 ```java
