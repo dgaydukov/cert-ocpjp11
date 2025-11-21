@@ -1154,7 +1154,7 @@ public class App{
 # Problematic frame:
 # V  [libjvm.so+0xea86f3]
 #
-# Core dump will be written. Default location: Core dumps may be processed with "/usr/share/apport/apport %p %s %c %d %P %E" (or dumping to /home/diman/projects/my/ocpjp11/core.2136)
+# Core dump will be written. Default location: Core dumps may be processed with "/usr/share/apport/apport %p %s %c %d %P %E" (or dumping to /ocpjp11/core.2136)
 
 Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
 ```

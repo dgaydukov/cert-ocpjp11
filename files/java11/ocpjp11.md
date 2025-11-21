@@ -12445,7 +12445,7 @@ public class Test {
 
         System.out.println();
         // pay attention that root is the first element (so not included into names)
-        Path path = Paths.get("/home/diman/projects/my/ocpjp/src/main/java/com/java/test/text");
+        Path path = Paths.get("/my/ocpjp/src/main/java/com/java/test/text");
         System.out.println("root => " + path.getRoot());
         for (int i = 0; i < path.getNameCount(); i++) {
             System.out.println(i + " => " + path.getName(i));
@@ -12630,7 +12630,7 @@ We can use standard BFS and DFS to traverse data, or could use standard implemen
 ```java
 public class App {
     public static void main(String[] args) {
-        String absolutePath = "/home/diman/projects/my/mvnjava/files";
+        String absolutePath = "/my/mvnjava/files";
         Files.walk(Paths.get(absolutePath)).forEach(System.out::println);
         System.out.println();
         dfs(absolutePath).forEach(System.out::println);
@@ -12668,29 +12668,29 @@ public class App {
 }
 ```
 ```
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/test/java
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
+/my/mvnjava/files
+/my/mvnjava/files/test
+/my/mvnjava/files/test/java
+/my/mvnjava/files/main
+/my/mvnjava/files/main/scala
+/my/mvnjava/files/main/java
+/my/mvnjava/files/main/java/source
 
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/test/java
+/my/mvnjava/files
+/my/mvnjava/files/main
+/my/mvnjava/files/main/java
+/my/mvnjava/files/main/java/source
+/my/mvnjava/files/main/scala
+/my/mvnjava/files/test
+/my/mvnjava/files/test/java
 
-/home/diman/projects/my/mvnjava/files
-/home/diman/projects/my/mvnjava/files/test
-/home/diman/projects/my/mvnjava/files/main
-/home/diman/projects/my/mvnjava/files/test/java
-/home/diman/projects/my/mvnjava/files/main/scala
-/home/diman/projects/my/mvnjava/files/main/java
-/home/diman/projects/my/mvnjava/files/main/java/source
+/my/mvnjava/files
+/my/mvnjava/files/test
+/my/mvnjava/files/main
+/my/mvnjava/files/test/java
+/my/mvnjava/files/main/scala
+/my/mvnjava/files/main/java
+/my/mvnjava/files/main/java/source
 ```
 We can list directory's files & subdirectories with 2 ways (with old `java.io.File` api and new `java.nio.file.Files`)
 ```java
@@ -13681,7 +13681,7 @@ We can also use custom module inside maven project.
   <artifactId>module-service</artifactId>
   <version>1.0</version>
   <scope>system</scope>
-  <systemPath>/home/diman/projects/my/mvnjava/compiled/module/module.jar</systemPath>
+  <systemPath>/my/mvnjava/compiled/module/module.jar</systemPath>
 </dependency>
 ```
 Pay attention that groupId, artifactId and version can be any value.
@@ -14127,7 +14127,7 @@ class Printer{
 If you compile you will get following errors
 ```
 Warning:(13, 16) java: print() in com.java.test.at.Printer has been deprecated
-Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
+Information:java: /my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
 Information:java: Recompile with -Xlint:unchecked for details.
 ```
 There are many types supported by different compilers, but according to [jls-9.6.4.5](https://docs.oracle.com/javase/specs/jls/se11/html/jls-9.html#jls-9.6.4.5), There are 3 types all compilers should support, `@SuppressWarnings({"unchecked", "deprecation", "removal"})`:
@@ -14236,7 +14236,7 @@ public class App {
 }
 ```
 ```
-Information:java: /home/diman/projects/my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
+Information:java: /my/ocpjp/src/main/java/com/java/test/App.java uses unchecked or unsafe operations.
 Information:java: Recompile with -Xlint:unchecked for details.
 ```
 ```
