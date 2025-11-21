@@ -2932,7 +2932,9 @@ interface X{
 }
 ```
 
-We can call `default` interface method with `InterfaceName.super.methodName` keyword
+If you want to call parent method you can use `super` - but there are 2 exceptions:
+* interface default methods - doesn't support `super` - you must use `InterfaceName.super.methodName`
+* calling parent class method from inner class - you have to use `ParentClass.super.methodname`
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2958,12 +2960,27 @@ class A implements X, Y{
     }
 }
 ```
+As you see, we call super on interface with its name.
 ```
 a
 x
 y
 ```
-As you see, we call super on interface with its name.
+Example with inner class
+```java
+class Printer{
+    void print(){}
+}
+class Outer extends Printer{
+    void print(){}
+    class Inner{
+        void m1(){
+            Outer.this.print();
+            Outer.super.print();
+        }
+    }
+}
+```
 
 ###### Enums
 Features:
@@ -12396,15 +12413,16 @@ There are a few methods relating to `Path`:
 * `relativise` - try to get relative path of other against current
 * `Paths.get` internally use `Path.of` - static function.
 ```java
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
-        System.out.println("subpath(1,3) => " + Paths.get("/a/b/c/d").subpath(1,3));
-        // if start<=end we got IllegalArgumentException
-        try{
-            System.out.println("subpath(1,1) => " + Paths.get("/a/b/c/d").subpath(1,1));
-        } catch (IllegalArgumentException ex){
+        System.out.println("subpath(1,3) => " + Paths.get("/a/b/c/d").subpath(1, 3));
+        try {
+            // if start<=end we got IllegalArgumentException
+            System.out.println("subpath(1,1) => " + Paths.get("/a/b/c/d").subpath(1, 1));
+        } catch (IllegalArgumentException ex) {
             System.out.println(ex);
         }
         System.out.println();
@@ -12413,48 +12431,46 @@ public class App {
         System.out.println("normalize(../../d) => " + Paths.get("../../d").normalize());
         System.out.println();
         // resolve - tried to combine 2 paths into one
-        System.out.println(Paths.get("a/b/c").resolve(Paths.get("d/e/f")));
-        System.out.println(Paths.get("a/b/c").resolve(Paths.get("/d/e/f")));
-        System.out.println(Paths.get("/a/b/c").resolve(Paths.get("/d/e/f")));
-        System.out.println(Paths.get("a/b/c").resolve(Paths.get("a/b/c/d/e")));
+        System.out.println("\"a/b/c\".resolve(d/e/f) => " + Paths.get("a/b/c").resolve(Paths.get("d/e/f")));
+        System.out.println("\"a/b/c\".resolve(b/c/e) => " + Paths.get("a/b/c").resolve(Paths.get("b/c/e")));
+        System.out.println("\"a/b/c\".resolve(a/b/c/d/e) => " + Paths.get("a/b/c").resolve(Paths.get("a/b/c/d/e")));
         System.out.println();
         // resolveSibling - same as resolve, just remove last path
-        System.out.println(Paths.get("a/b/c").resolveSibling(Paths.get("d/e/f")));
+        System.out.println("\"a/b/c\".resolveSibling(d/e/f) => " + Paths.get("a/b/c").resolveSibling(Paths.get("d/e/f")));
         System.out.println();
         // try to find other pass against current
-        System.out.println(Paths.get("a/b/c").relativize(Paths.get("d/e/f")));
-        System.out.println(Paths.get("a/b/c").relativize(Paths.get("a/b/c/d/e")));
-        System.out.println(Paths.get("a/b/c").relativize(Paths.get("a")));
+        System.out.println("\"a/b/c\".relativize(d/e/f) => " + Paths.get("a/b/c").relativize(Paths.get("d/e/f")));
+        System.out.println("\"a/b/c\".relativize(a/b/c/d/e) => " + Paths.get("a/b/c").relativize(Paths.get("a/b/c/d/e")));
+        System.out.println("\"a/b/c\".relativize(a) => " + Paths.get("a/b/c").relativize(Paths.get("a")));
 
         System.out.println();
         // pay attention that root is the first element (so not included into names)
         Path path = Paths.get("/home/diman/projects/my/ocpjp/src/main/java/com/java/test/text");
         System.out.println("root => " + path.getRoot());
-        for(int i = 0; i < path.getNameCount(); i++){
+        for (int i = 0; i < path.getNameCount(); i++) {
             System.out.println(i + " => " + path.getName(i));
         }
     }
 }
 ```
 ```
-subpath(1,3) => b/c
+subpath(1,3) => b\c
 java.lang.IllegalArgumentException
 
-normalize(/a/b/../../d) => /d
-normalize(../../d) => ../../d
+normalize(/a/b/../../d) => \d
+normalize(../../d) => ..\..\d
 
-a/b/c/d/e/f
-/d/e/f
-/d/e/f
-a/b/c/a/b/c/d/e
+"a/b/c".resolve(d/e/f) => a\b\c\d\e\f
+"a/b/c".resolve(b/c/e) => a\b\c\b\c\e
+"a/b/c".resolve(a/b/c/d/e) => a\b\c\a\b\c\d\e
 
-a/b/d/e/f
+"a/b/c".resolveSibling(d/e/f) => a\b\d\e\f
 
-../../../d/e/f
-d/e
-../..
+"a/b/c".relativize(d/e/f) => ..\..\..\d\e\f
+"a/b/c".relativize(a/b/c/d/e) => d\e
+"a/b/c".relativize(a) => ..\..
 
-root => /
+root => \
 0 => home
 1 => diman
 2 => projects
