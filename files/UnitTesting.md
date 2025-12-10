@@ -61,6 +61,7 @@ Don't confuse:
 * `when(...) thenReturn(...)` - there are cases where you can't use
     * for spy: will call real method first, but then would return stub object
     * can't be used for void method
+Conclusion: since for `mock` both behave the same, but for `spy`, second example would actually call real method, which you don't want to avoid any side effects - it's better to always use `doReturn...when`
 
 ###### Mockito: multiple returns
 You know that with `Mockito` you can return values with `when/thenReturn`. But what if your method called many times, and you want to return different but consistent values. You can use `Answer` argument.

@@ -9,7 +9,7 @@
 * 1.6 [Arrays](#arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 * 1.8 [Pre/Post Increment](#prepost-increment)
-* 1.9 [Statement vs. Expression](#statement-vs-expression)
+* 1.9 [Statement vs., Expression](#statement-vs-expression)
 * 1.10 [Break Label](#break-label)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
@@ -1079,7 +1079,7 @@ public class App {
         objects[0] = new Object(); // throws java.lang.ArrayStoreException
         List<Integer> list = new ArrayList<>(List.of(1));
         List<Object> objectList = list; // won't compile
-        // for the same reason you can't create array of generics - because if you could you could reassign it to another type array
+        // for the same reason you can't create array of generics - because if you could - you could reassign it to another type array
         List<String> genericArr[] = new List<String>[10]; // won't compile
         List arr[] = new List[10];
     }
@@ -3651,7 +3651,7 @@ java.lang.NullPointerException
 ```
 
 `try-with-resources`:
-* guarantees that resources would be closed
+* guarantees that resources would be closed - resources closed as soon as we exit `try` block, even if we have `catch/finally`, by the time we enter any of it, resources already closed
 * to be eligible your class should implement either `Closeable` or `AutoCloseable`
 * Java7 team wanted a mechanism to label objects as be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
 * it works by inserting `try/finally` and wrapping your code inside `try` block with it - below is example where I showed how JVM handle closing the resources.
@@ -8461,6 +8461,7 @@ public class App {
         /**
           * average method exists only in Int/Long/DoubleStream and return OptionalDouble
           * in Stream we have 3 collectors averagingInt/Long/Double, that takes To/Int/Long/Double/Function and return double
+          * Don't confuse with sum() which returns int/long/double because mathematically sum([])=0, but average is - you need to divide by count, so average([])=undefined
           */
         IntStream intStream = IntStream.range(0, 5);
         OptionalDouble optionalDouble = intStream.average();
