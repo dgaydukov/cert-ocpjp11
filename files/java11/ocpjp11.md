@@ -3061,30 +3061,58 @@ SUBTRACT(10, 5) => 15
 
 Typesafe enum pattern:
 * you can use java class to imitate `enum` behavior
+* below is simple example of how you would create `enum` using java class before enums where introduced
 ```java
-class Day {
+import java.io.Serializable;
+
+class Day implements Comparable<Day>, Serializable {
+    public static final Day MON = new Day("MON", 0);
+    public static final Day TUE = new Day("TUE", 1);
+    public static final Day WED = new Day("WED", 2);
+    public static final Day THU = new Day("THU", 3);
+    public static final Day FRI = new Day("FRI", 4);
+    public static final Day SAT = new Day("SAT", 5);
+    public static final Day SUN = new Day("SUN", 6);
+    private static final Day[] DAYS = {MON, TUE, WED, THU, FRI, SAT, SUN};
+
     private String day;
-    private Day (String day) {
+    private int ordinal;
+    private Day (String day, int ordinal) {
         this.day = day;
+        this.ordinal = ordinal;
     }
     @Override
     public String toString() {
         return day;
     }
 
-    public static final Day MON = new Day("Monday");
-    public static final Day TUE = new Day("Tuesday");
-    public static final Day WED = new Day("Wednesday");
-    public static final Day THU = new Day("Thursday");
-    public static final Day FRI = new Day("Friday");
-    public static final Day SAT = new Day("Saturday");
-    public static final Day SUN = new Day("Sunday");
+    public int ordinal() {
+        return ordinal;
+    }
+
+    @Override
+    public int compareTo(Day d) {
+        return ordinal() - d.ordinal();
+    }
+
+    public static Day[] values() {
+        return DAYS;
+    }
+    public static Day valueOf(String d) {
+        for (Day day : DAYS) {
+            if (day.toString().equals(d)) {
+                return day;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant for " + d);
+    }
 }
 ```
 
 all enums implement 2 interfaces:
 * `Serializable` - you can serialize/deserialize any enum
-* `Comparable` so you can pass it into the map: below code would return -5 as `0-5= -5`
+* `Comparable` - sorted based on the `ordinal` value (so you can pass it into the map: below code would return -5 as `0-5= -5`)
+* you can explicitly implement both, but because code already implemented, you can't override method
 ```java
 public class App {
     public static void main(String[] args) {
@@ -3291,6 +3319,42 @@ enum Days{
 ```
 ```
 [6:Sat, Sun:7]
+```
+enum constructor can contain only `final static` variables:
+* enum constants created before any non-final static variables and initializers - you can see it from the below code
+* so enum constructor is not allowed to use non-final static variables to avoid problem with partial initialization where you use static variable, but it wasn't fully initialized
+```java
+public class Test{
+    public static void main(String[] args) {
+        Day d = Day.M;
+    }
+}
+
+enum Day {
+    M("Monday"), T("Tuesday");
+    private final String day;
+    Day(String day) {
+        System.out.println("constructor init: hashcode=" + hashCode() + ", day=" + day);
+        this.day = day;
+    }
+    @Override
+    public String toString() {
+        return day;
+    }
+    static {
+        System.out.println("static init");
+    }
+    {
+        System.out.println("instance init: hashcode=" + hashCode());
+    }
+}
+```
+```
+instance init: hashcode=1595428806
+constructor init: hashcode=1595428806, day=Monday
+instance init: hashcode=500977346
+constructor init: hashcode=500977346, day=Tuesday
+static init
 ```
 
 ###### Exceptions
