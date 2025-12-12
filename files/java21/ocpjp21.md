@@ -603,11 +603,6 @@ record Person(String name, int age) {
     }
 }
 ```
-* record serialization:
-  * serialized form - sequence of values derived from the record component fields
-  * during deserialization canonical constructor is called
-  * `serialVersionUID` is 0L by default
-  * can't be customized with `writeObject/readObject/readObjectNoData/writeExternal/readExternal`
 * generic records - first condition won't compile, because we don't know that it's type of `String`, but for second record, it's explicitly stated that `Address` would be type of `String`, so adding string works
 ```java
 public class App {
@@ -626,10 +621,12 @@ public class App {
 record Address<T> (T value){}
 record Person(String name, Address<String> address){}
 ```
-* serialization rules:
-  * record can be serialized but it also needs to implement `Serializable`
+* record serialization:
+  * record can be serialized but it needs to implement `Serializable`
   * you can't customize serialization rule. Compare to the class where you can customize by implementing `Serializable` and add private `writeObject/readObject` or implement `Externalizable` - for record those methods just won't be called - this is because record are immutable and state can't change after it was created. So adding custom methods may tamper with immutability.
   * canonical constructor is called - basically java create new record from scratch, just like you would create it with `new ...`. This is different from class, for which serialization rules are different.
+  * serialized form - sequence of values derived from the record component fields
+  * `serialVersionUID` is 0L by default
 ```java
 import java.io.Externalizable;
 import java.io.FileInputStream;

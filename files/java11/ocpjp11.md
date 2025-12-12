@@ -2985,10 +2985,10 @@ class Outer extends Printer{
 ###### Enums
 Features:
 * typesafe enum pattern - pattern to implement enums before Java5. Actually java devs saw the popularity of this pattern and decided to add this feature into java5
-* can't be instantiated with `new` keyword, even wihtin the enum itself - this is different from class with private constructor, inside such a class you can create new instance with `new` keyword, but inside enum you can't instantiate new enum instance
+* can't be instantiated with `new` keyword, even within the enum itself - this is different from class with private constructor, inside such a class you can create new instance with `new` keyword, but inside enum you can't instantiate new enum instance
 * can't extend other class, because all enums extends `java.lang.Enum`, but it can implement interface, can have methods and constructor
 * is implicitly final or sealed, you can't extend it
-* you can create anonymous subclasses for specific enum constants - see below for 2 enum constants we create anonymous class that implement abstract methods of enums
+* can have abstract methods, but all enum constants must implement it (see example below where 2 enum constants both implement abstract method `apply`)
 ```java
 public class App {
   public static void main(String[] args) {
@@ -3059,7 +3059,8 @@ ADD(10, 5) => 15
 SUBTRACT(10, 5) => 15
 ```
 
-Typesafe enum pattern
+Typesafe enum pattern:
+* you can use java class to imitate `enum` behavior
 ```java
 class Day {
     private String day;
@@ -3081,7 +3082,9 @@ class Day {
 }
 ```
 
-all enums implement `java.lang.Comparable` so you can pass it into the map: below code would return -5 as `0-5= -5`
+all enums implement 2 interfaces:
+* `Serializable` - you can serialize/deserialize any enum
+* `Comparable` so you can pass it into the map: below code would return -5 as `0-5= -5`
 ```java
 public class App {
     public static void main(String[] args) {
@@ -11437,6 +11440,40 @@ class Person implements Serializable {
     }
 }
 ```
+You can also use `ByteArrayOutputStream` if you want to serialize the object into byte array, without using file. Then you can either save your byte array, or work directly with it. I'm using `record` for cleaner code.
+```java
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
+public class Test {
+    public static void main(String[] args) {
+        Person p = new Person("Jack", 30);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (ObjectOutputStream out = new ObjectOutputStream(bos)) {
+            out.writeObject(p);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        System.out.println("raw bytes => " + bos);
+        try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()))) {
+            Person deserialized = (Person) in.readObject();
+            System.out.println("deserialized => " + deserialized);
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+record Person(String name, int age) implements Serializable {}
+```
+```
+raw bytes => �� sr com.java.test.Person         I ageL namet Ljava/lang/String;xp   t Jack
+deserialized => Person[name=Jack, age=30]
+```
 We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
 ```java
 import java.io.EOFException;
@@ -11529,9 +11566,9 @@ end of file
 deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
 ```
 If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise, we would get error. Since `Body` object inside `Person` doesn't implement `Serializible` we got error trying to serialize:
-* If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`.
-* If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`.
-* If body inside person is null, we won't get serialization error.
+* If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`
+* If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`
+* If body inside person is null, we won't get serialization error
 ```java
 import java.io.*;
 
@@ -11586,7 +11623,7 @@ Exception in thread "main" java.lang.RuntimeException: java.io.NotSerializableEx
 ```
 There are 3 ways we can customize serialization:
 * define `serialPersistentFields` array with fields to be serialized
-* define `writeObject` and `readObject` for custom serialization (if you want even more fine-grained control you can use `writeFields` and `readFields`) - these fields should be `private`, otherwise they won't be invoked during serialization/deserialization
+* define `writeObject` and `readObject` for custom serialization - these fields should be `private`, otherwise they won't be invoked during serialization/deserialization (if you want even more fine-grained control you can use `writeFields` and `readFields`)
 * implement `Externalizable` interface
 Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
 ```java
@@ -11829,8 +11866,8 @@ public Person() {
 }
 ```
 Java will overwrite all state that you set here, by using readExternal.
-Notice that different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface.
-The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData is not called, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
+Notice that different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface. If subclass will not implement this interface, error during serialization.
+The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
 If your class extends from non serializable class it should have default constructor, otherwise can't reconstruct object
 ```java
 import java.io.*;
@@ -11878,6 +11915,9 @@ class Person extends Human implements Serializable {
 ```
 
 Example of serializable child and non-serializable parent:
+* parent should have no-args constructor, otherwise: `java.io.InvalidClassException: com.java.test.Person; no valid constructor`
+* state of the parent won't be serialized, and would be default value after deserialization
+* state of the child is successfully serialized and deserialized
 ```java
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -11886,10 +11926,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public class App {
+public class Test {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("./data.ser"))) {
-            Person person = new Person("John", 35);
+            Person person = new Person("John", 30, "male");
             os.writeObject(person);
         }
         System.out.println();
@@ -11901,29 +11941,39 @@ public class App {
 }
 
 class Human{
+    protected String gender;
     public Human() {
         System.out.println("human no-args constructor");
     }
     {
         System.out.println("Human instance initialization");
     }
-    public Human(String name, int age) {
-        System.out.println("human 2 args constructor");
+    public Human(String gender) {
+        this.gender = gender;
+        System.out.println("human 1 args constructor: "+gender);
     }
 }
 final class Person extends Human implements Serializable {
-    public Person(String name, int age) {
-        super(name, age);
+    private String name;
+    private int age;
+    public Person(String name, int age, String gender) {
+        super(gender);
+        this.name = name;
+        this.age = age;
+    }
+    @Override
+    public String toString() {
+        return "Person[name=" + name + ", age=" + age + ", gender=" + gender + "]";
     }
 }
 ```
 ```
 Human instance initialization
-human 2 args constructor
+human 1 args constructor: male
 
 Human instance initialization
 human no-args constructor
-person => com.java.test.Person@64a294a6
+person => Person[name=John, age=30, gender=null]
 ```
 
 enum example:
@@ -11979,7 +12029,7 @@ Rules of changing serialized classes:
 * if some fields are removed from new class version, they just ignored during deserialization.
 * no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
 * if class is not serializable (doesn't implement `Serializable` interface) - if you try to serialize it, you get `NotSerializableException`
-* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized , so we have to call constructor for its proper initialization. For such parent class all instance initializer and no-arg constructor are called.
+* if serializable class has parent which is not serializable, then you can serialize it, but if you try to deserialize - parent no-arg constructor would be called. If parent doesn't have such constructor - `InvalidClassException`. This make sense because non-serializable parent needs to be instantiated, but it wasn't serialized, so we have to call constructor for its proper initialization. For such parent class all instance initializer and no-arg constructor are called.
 * enum - implicitly extends `ava.lang.Enum` which is `Serializable` so all enums can be serialized
 * record - serialized differently (see ocpjp21)
 Don't confuse:
@@ -11989,7 +12039,7 @@ SBE design:
 * xml schema - set layout & data type of message (which fields would be used)
 * compiler take the schema and generate optimized java file with java code, you use `SBEtool` to generate encoder/decoder java classes, that would convert binary back and forth
 * message - generated on runtime based on java file
-* no garbage - sbe use direct buffer, so no GC happening during message creation
+* no garbage - SBE use direct buffer, so no GC happening during message creation
 * use array as underlying storage, so cpu cache prefetching can expedite the process
 SBE better than java serialization:
 * no extra work to serialize parent classes, pay attention to transient, class initializers and so on - we just have simple set of fields as message, and all fields need to be serialized
