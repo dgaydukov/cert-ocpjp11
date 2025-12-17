@@ -511,10 +511,10 @@ record Person (String name, int age) {
 }
 ```
 * compact constructor - canonical constructor in compact form:
-  * special type of constructor where you don't specify instance members, and add only validation logic
-  * initialization of instance members is done after your logic is run
+  * short version of canonical constructor where you don't pass and init instance variables
+  * java appends to the end of such constructor initialization of instance members
   * useful if you just want to add some validation logic
-  * Can't be used together with canonical constructor - either one can be used not both
+  * Can't be used together with canonical constructor (well because it's the short version of canonical - so you can't have 2 canonical at the same time)
   * Don't confuse: for canonical constructor - you add instance fields into method declaration and define them, but with compact you don't, they would be aligned automatically
   * you can modify fields in both compact & canonical constructors before initialization 
 ```java

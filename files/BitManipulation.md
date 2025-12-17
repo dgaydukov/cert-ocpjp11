@@ -65,7 +65,7 @@ x|y => 5 / 101
 ```
 
 ### Basics
-There are 6 bit manipulation operators:
+There are 7 bit manipulation operators:
 * `&`   (bitwise AND operation) - result bit is 1 if both corresponding bits are 1
 * `|`   (bitwise OR operation) - result bit is 1 if at least one of the corresponding bits is 1
 * `^`   (bitwise XOR operation) - result bit is 1 if the corresponding bits are different
@@ -73,6 +73,14 @@ There are 6 bit manipulation operators:
 * `<<`  (shifts the bits of the number to the left by n) - equivalent to multiplying the number by 2 for each shift
 * `>>`  (shifts the bits of the number to the right by n) - equivalent to dividing the number by 2 for each shift
 * `>>>` (shifts the bits to the right, filling the leftmost bits with zeroes)
+
+### Boolean operators
+These 5 are only for booleans:
+* `&` (logical AND operation) - true if both are true
+* `&&` (short-circuit AND) - if first is false, no point to evaluate second one, just return false
+* `|` (logical AND operation) - true if either one is true
+* `||` (short-circuit AND) - if first is true, no point to evaluate the second, just return true
+* `^` (logical XOR) - returns true, if both are different. Since we need to know both values, there is no short-circuit operator for it
 
 ### BitSet
 * java class `java.util.BitSet` is used for bit manipulation

@@ -1214,7 +1214,14 @@ decimal representation of 99 => 153
 ```
 
 ###### Arrays.compare and Arrays.mismatch
-These 2 functions are used to compare 2 arrays and found their common prefix.
+These 2 functions are used to compare 2 arrays and found their common prefix:
+* `mismatch` - find common prefix (where arrays differ):
+  * -1 - if arrays identical
+  * positive value - index of first non-matching element
+* `compare` - (how arrays differ):
+  * 0 - if arrays identical
+  * mismatch at `i` - result of comparing elements of this index
+  * if one is subarray - the difference of length
 ```java
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -1223,7 +1230,7 @@ public class App{
     public static void main(String[] args) {
         /**
          * When compare alphabet arrays:
-         * Arrays.compare and str.compareTo => difference between these letters as left - right
+         * Arrays.compare and str.compareTo => difference between first mismatch letter as left - right
          * Array.mismatch => length of common prefix
          */
         char[] arrHello = {'h', 'e', 'l', 'l', 'o'};
@@ -13093,7 +13100,7 @@ write, writeUTF, writeBoolean and so on... But there is no method writeString.
 ```
 r   - read, trying to write thows IOException
 rw  - read and write
-rwd	- read and write syncronously. All updated flushed to the disk immediately
+rwd	- read and write syncronously. All updates flushed to the disk immediately
 rws	- same as previous + updates to meta data flushed to the disk immediately
 ```
 ```java
