@@ -4709,6 +4709,29 @@ Period          +           -             +                 +
 Duration        -           +             +                 +
 ```
 
+between:
+* same method name for both classes, `static` calculate the difference between 2 dates
+* can be negative if second value is after the first
+```java
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Period;
+
+public class Test {
+    public static void main(String[] args) {
+        Period p = Period.between(LocalDate.parse("2025-12-10"), LocalDate.parse("2025-12-01"));
+        Duration d = Duration.between(LocalDateTime.parse("2025-12-02T10:00:00"), LocalDateTime.parse("2025-12-01T18:30:00"));
+        System.out.println("period: " + p);
+        System.out.println("duration: " + d);
+    }
+}
+```
+```
+period: P-9D
+duration: PT-15H-30M
+```
+
 Calculate difference between two localtime and compare it to n seconds
 ```java
 import java.time.Duration;
@@ -13032,8 +13055,8 @@ hello world
 hello world
 ```
 Don't confuse:
-* `java.io.FileNotFoundException`  - file not found, or no permission to access it.
-* `java.nio.file.NoSuchFileException` - file not found.
+* `java.io.FileNotFoundException`  - file not found, or no permission to access it, throws by legacy `java.io`: `FileInputStream/FileOutputStream/FileReader/RandomAccessFile`
+* `java.nio.file.NoSuchFileException` - file not found, thrown by `java.nio.file`: `Files.readAllBytes/Files.newBufferedReader/Files.move`
 * `java.nio.file.AccessDeniedException` - no permission to access file
 ```java
 import java.io.BufferedReader;
@@ -15624,6 +15647,7 @@ final class SuperCar implements Car{
 * modules:
   * if sealed class is in the named module - permitted subclasses must belong to the same module - otherwise it won't compile
   * if sealed class is in the unnamed module - permitted subclasses must belong to the same package - otherwise compilation error: `Class is not allowed to extend sealed class from another package`
+* so if your codebase is a valid module extending classes may be anywhere inside it, but if it's just a java project - you have to put extended classes into the same package as sealed class: `java: class com.java.test.Test in unnamed module cannot extend a sealed class in a different package`
 * Sealed classes useful with combination of `switch` pattern matching. If you have several subclasses of `sealed` class, and in `switch` statement omit any of subclasses - you will get compilation error. So you have to explicitly either use all permitted subclasses or use `default` statement inside `switch`
 ```java
 public class App{
