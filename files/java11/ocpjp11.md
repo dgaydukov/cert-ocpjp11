@@ -74,7 +74,7 @@
 * 10.3 [5 ways to read file](#5-ways-to-read-file)
 * 10.4 [NIO channels](#nio-channels)
 * 10.5 [Directory searching](#directory-searching)
-* 10.6 [Path resolve and relativise](#path-resolve-and-relativise)
+* 10.6 [Path resolve and relativize](#path-resolve-and-relativize)
 * 10.7 [mark, reset, skip](#mark-reset-skip)
 * 10.8 [Files copy, move, delete](#files-copy-move-delete)
 * 10.9 [Data traversal](#data-traversal)
@@ -4653,7 +4653,7 @@ For time intervals we have 2 classes:
 * `Period` - used for days, months, years
 * `Duration` - for days, hours, minutes and seconds. Although you can set duration for 365 days - so a year, it’s not the best practise. Also you can easily set a duration for 1 year, 2 days and 3 seconds, but it has no constructor for this. You should convert to the least measure and pass it to duration.
 * `Duration.toString` always return `PT` (stands for Period of Time) and then duration itself.
-* Period of 1 day and Duration of 24 hours similar but conceptually different. If you have DST event, and you add period of 1 day, it would just increase date on 1 day without affecting time. But adding 24 hours, will take time into account, and would produce different final time.
+* Period of 1 day and Duration of 24 hours similar but conceptually different. If you have DST event, and you add period of 1 day, it would just increase date on 1 day without affecting time. But adding `Duration.ofDays(1)` would actually add 24 hours and will take time into account, and would produce different final time.
 ```java
 import java.time.Duration;
 import java.time.Period;
@@ -4700,10 +4700,12 @@ PT0.001S
 PT0.000000001S
 ```
 
-Period works only with dates, duration with time.
+Period works only with dates, duration with time:
+* yet both implement `TemporalAmount` and can be passed into `plus` method of each class
+* but when you try to pass unsupported `TemporalAmount` you get exception: `UnsupportedTemporalTypeException: Unsupported unit: Seconds` (same true to passing `Period` to `LocalTime`)
 ```
             LocalDate    LocalTime   LocalDateTime    ZonedDateTime
-Period          +           -             -                 -
+Period          +           -             +                 +
 Duration        -           +             +                 +
 ```
 
@@ -7504,6 +7506,23 @@ hello world
 ```
 Although `NewCounter` is valid functional interface (has only one abstract method `doIt`), we call not `doIt`, but count method => which is default and already defined. So that's why in second `forEach` we're calling not lambda defined in newCounter, but default method. If you declare count `static` it won't compile, cause static can be called from interface object directly.
 
+Object methods like `equals/toString/hashCode` not count as abstract methods:
+* if you change abstract method name `str => toString` code would stop to compile: `no abstract method found in interface com.java.test.StringProvider`
+* although those methods are pure abstract, because they from `java.lang.Object` we can't reuse them as functional interface
+* reason: every functional implementation is guaranteed to have these 3 methods anyway - since any implementation implicitly extends `Object` it would have those 3, so they don't count
+```java
+public class Test {
+    public static void main(String[] args) {
+        test(()->"hello");
+    }
+    public static void test(StringProvider provider) {}
+}
+
+interface StringProvider {
+    String str();
+}
+```
+
 You can use annotation `@FunctionalInterface` to check whether `interface` is functional or not
 ```java
 @FunctionalInterface
@@ -7515,6 +7534,13 @@ interface X{
 interface Y{
     void m1();
     void m2();
+}
+
+@FunctionalInterface //compile error: no abstract methods found
+interface Z{
+    String toString();
+    boolean equals(Object o);
+    int hashCode();
 }
 ```
 
@@ -12529,10 +12555,16 @@ src/main/java/test.txt
 src/main/java/test.txt
 ```
 
-###### Path resolve and relativise
+###### Path resolve and relativize
 There are a few methods relating to `Path`:
-* `resolve` - try bo combine 2 paths into one. If second path absolute, it uses it
-* `relativise` - try to get relative path of other against current
+* `resolve` - try bo combine 2 paths into one. If second path absolute - return it. Math addition of 2 path.
+* `relativize` - try to get relative path of other against current. If any path is absolute but another not - `IllegalArgumentException: 'other' is different type of Path`. Math subtraction.
+```
+p.relativize(p.resolve(q)).equeas(q) == true
+p.resolve(q) = P + Q
+p.relativize(q) = Q - P
+p.relativize(p.resolve(q)) = (P + Q) - P = Q
+```
 * `Paths.get` internally use `Path.of` - static function.
 ```java
 import java.nio.file.Path;
@@ -13763,7 +13795,12 @@ Rule for package exposure:
 * each module has a `module-info.java` file with package declarations:
   * no declaration - package is hidden from outside world and can be used only inside module
   * exports - module exports the package to the outside world, package can be used with limitation: reflection API not available
+    * only public and protected (nested) type of a package are exported: package-private and private not exported
+    * package-split:
+      * when two or more modules have the package with same name
+      * java modules prohibit this and refuse to compile such module 
   * opens - modules opens full access to the package including deep reflection
+  * `exports .. to ..` & `opens .. to ..` - same as previous 2, but you limit the scope. By default you `exports/opens` package to all modules, but you can limit the receiving modules by specifying exact modules to which you are ready to export.
 * Look into below 2 code statements, one would compile and run other would fail:
 ```java
 sun.misc.Unsafe unsafe1 = sun.misc.Unsafe.getUnsafe(); // compiles fine
@@ -13814,8 +13851,14 @@ Pay attention that groupId, artifactId and version can be any value.
 Don't confuse:
 * service - interface providing some service/features (can be a concrete class, but usually just an interface)
 * service provider - concrete implementation of service
-Java modules - simplified process to work with services. You have a service in module `printers` called `printers.Printer`. You have 1 concrete implementation in module `console` called `concole.ConsolePrinter`. Consumer shouldn't know about concrete implementation, he just needs to know about service - there are 3 steps:
-1. export service provider as service - its `module-info.java` should look like this:
+Simplified process to work with services. You have a service in module `printers` called `printers.Printer`. You have 1 concrete implementation in module `console` called `concole.ConsolePrinter`. Consumer shouldn't know about concrete implementation, he just needs to know about service - there are 3 steps:
+1. create normal module that export the interface:
+```java
+module printers {
+    exports printers.Printer;
+}
+```
+2. create service provider:
 ```java
 module console {
     requires printers;
@@ -13823,14 +13866,14 @@ module console {
 }
 ```
 Although you can directly `exports console.ConsolePrinter`, the best practice not to export concrete implementation from service provider module to avoid any dependency on such concrete implementation, because the whole idea of service provider module is to hide concrete implementation and export it as service.
-2. require service module in the consumer module: we have new keyword `uses` by which we indicate that we want to use service, but we don't require module with concrete implementation
+3. require service module in the consumer module: we have new keyword `uses` by which we indicate that we want to use service, but we don't require module with concrete implementation
 ```java
 module consumer {
     requires printers;
     uses printers.Printer;
 }
 ```
-3. Inside consumer module you use `java.util.ServiceLoader` to load all available on the `module-path` providers and use any of them. Ideally service should have methods like `getName` to uniquely identify the concrete implementation, because you can have multiple providers at the same time, but need only the specific one.
+4. Inside consumer module you use `java.util.ServiceLoader` to load all available on the `module-path` providers and use any of them. Ideally service should have methods like `getName` to uniquely identify the concrete implementation, because you can have multiple providers at the same time, but need only the specific one.
 There are some rules to service provider:
 * service implementation should be public class and top level or nested static (it can't be nested instance)
 * service implementation should have either default no-arg constructor or `public static T provider` that return instance of the class
