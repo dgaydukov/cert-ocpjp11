@@ -5587,8 +5587,8 @@ public class App {
 ###### PECS (producer extends consumer super)
 In a nutshell, three easy rules to remember PECS:
 * use covariance `<? extends T>` wildcard if you need to retrieve object of type T from a collection (producer - returns values)
-* use Contravariance `<? super T>` wildcard if you need to put objects of type T in a collection (consumer - add values)
-* use Invariance/non-variance `T` if you need to satisfy both
+* use contravariance `<? super T>` wildcard if you need to put objects of type T in a collection (consumer - add values)
+* use invariance/non-variance `T` if you need to satisfy both
 Generic subtyping rule:
 * This code won't compile `List<Number> numbers = new ArrayList<Integer>();` to avoid potential problem, when you can assign to `List<Number>` a list of integers, and then you would be able to add double, because `Double` is subtype of `Number`, but adding double to list of integers is wrong. So with generic special rules applied.
 * Because of this rule, you can't put generic subtype into main type.
@@ -5642,37 +5642,36 @@ public class App {
     }
 }
 ```
-
+PECS example:
 ```java
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         // we can get Object and B(and above), but can add only null
-        List<? extends B> extendsB = new ArrayList<>();
-        extendsB.add(null);
-        extendsB.add(new B()); // won't compile
-        B b = extendsB.get(0);
-        A a = extendsB.get(0);
-        Object obj = extendsB.get(0);
+        List<? extends A> producer = new ArrayList<>();
+        producer.add(null);
+        producer.add(new B()); // won't compile
+        A a = producer.get(0);
+        Object obj = producer.get(0);
 
         // in unbounded generic we can get only Object, and put only null, cause List<?> is the same as List<? extends Object>
-        List<?> unbounded = new ArrayList<>(); 
-        Object obj = unbounded.get(0);
+        List<?> unbounded = new ArrayList<>();
+        Object obj2 = unbounded.get(0);
         unbounded.add(null);
 
         // we can get only object, but can add B(and below)
-        List<? super B> superB = new ArrayList<>();
-        B b2 = superB.get(0); // won't compile
-        Object obj2 = superB.get(0);
-        superB.add(new B());
-        superB.add(new C());
+        List<? super C> consumer = new ArrayList<>();
+        C c = consumer.get(0); // won't compile
+        Object obj3 = consumer.get(0);
+        consumer.add(new B()); // won't compile
+        consumer.add(new C());
 
 
-        List<B> listB = new ArrayList<>();
-        D d = new D();
-        m1(listB, d);
-        m2(listB, d); // won't compile
+        List<B> lb = new ArrayList<>();
+        m1(lb, new D());
+        m2(lb, new D()); // won't compile
     }
     // here the problem that we can pass List<B> and any child of A (including those unrelated to B), m2 solves this problem
     private static void m1(List<? extends A> list , A a){}
@@ -5691,17 +5690,15 @@ public class App {
 
 class A{}
 class B extends A{}
-class D extends A{}
 class C extends B{}
-
-interface X{}
-
-/**
- * We can inherent generics from multiple interfaces
- * A - can be class or interface, X (and so on) - can be only interfaces
- * So we can add everything that extends A and implements X. If A itself implements X, we can add just A and all it's children
- * Yet you can't use it like List<? extends A & X> - won't compile
- */
+class D extends A{}
+```
+Multiple generic inheritance:
+* We can inherit generics from multiple interfaces
+* `A` - can be class or interface, `X` (and so on) - can be only interfaces
+* So we can add everything that extends A and implements `X`. If `A` itself implements X, we can add just `A` and all it's children
+* Yet you can't use it like `List<? extends A & X>` - won't compile
+```java
 class Container<T extends A & X>{
     private List<T> list;
     public void add(T value){
@@ -5712,24 +5709,40 @@ class Container<T extends A & X>{
     }
 }
 
-/**
- * recursive generics
- * If we omit A1<T> and just write <T extends A1>, than we could write
- * class B1 extends A1<C1>{}
- * class C1 extends A1<B1>{};
- * 
- */
-class A1<T extends A1<T>> implements Comparable<T>{
+class A{}
+interface X{}
+```
+Recursive Type Bounding:
+* allows for subclass to be comparable only with the same type. If you write `class A<T> implements Comparable<T>`, when you create subclasses you can write `class B extends A<String>` and basically you can compare your `B` with `String`. But you don't want this, you want to be able to compare only with type `A`, that's why you usee recursive, with this approach above code for `B` won't compile: `method compareTo in class com.java.test.A<T> cannot be applied to given types`
+* still one downside is that you can write `class B extends A<C>{}` so you can compare with all subchildren. But if both `B/C` extends from `A` this problem won't arise
+```java
+class A<T extends A<T>> implements Comparable<T>{
     @Override
     public int compareTo(T t) {
         return 0;
     }
 }
-class B1 extends A1<B1>{}
-class C1 extends A1<C1>{}
+class B extends A<B>{}
+class C extends A<C>{}
 ```
-Because a compile error: both methods have same erasure. This also won’t work in parent-child. Cause from compiler perspective it’s overloading, but from jvm it’s overriding, that’s why compiler won’t accept if one method in parent class and another in child.
-The exception if overriding method has `List<anything>` but overridden just `List`.
+* get me problem - another example where recursive is useful: class `B` can be compiled, but `getMe` would return `String` not the `B`. But using recursive generics - compiler would fail `B` creation and force you to use type `B`
+```java
+public class Test{
+    public static void main(String[] args) {
+        B b = new B();
+        b.getMe().print();
+    }
+}
+
+class A<T>{
+    public T getMe(){
+        return (T) this;
+    }
+}
+class B extends A<String>{
+    public void print(){}
+}
+```
 
 Be careful with new generic variable. Here in method m2 we declare new generic variable, but name it the same as main one T. So inside this method T is different generic than outside.
 ```java
@@ -5743,31 +5756,29 @@ class A<T>{
     }
 }
 ```
-
-Be careful. Since we create MyType without generic (raw) compiler stripe all generic from test method, and you can pass List<String> to List<Integer>.
-If you add type during creation like `MyType<Object> type = new MyType();` you will get compile error. This example shows, that if you are using generic set some type at least <?>.
+Type erasure:
+* when you use a raw type, Java disables all generic type checking for that entire class instance, not just for the type parameter T
+* we create `A` without generic (raw) compiler stripe all generic from test method, and you can pass `List<String>` to `List<Integer>`
+* If you add type during creation like `A<Object> a = new A<>();` you will get compile error. This example shows, that if you are using generic set some type at least `A<?> a = new A<>();`
 ```java
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
-        MyType type = new MyType();
+        A a = new A();
         List<String> list = new ArrayList<>();
-        type.test(list);
+        a.test(list);
     }
 }
 
-class MyType<T>{
+class A<T>{
     public void test(List<Integer> list){
         System.out.println("list => " + list);
     }
 }
 ```
-```
-list => []
-```
-
-Pay attention when we extend or implement generic interface and don't set its generic type. As you see although MusicPlayer can take only Music (or it's children) as generic param, this generic doesn't go to Player. And since Player has no generic we can pass any object into `musicPlayer.play`. Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
+* same true for when we extend or implement generic interface and don't set its generic type. As you see although MusicPlayer can take only Music (or it's children) as generic param, this generic doesn't go to Player. And since Player has no generic we can pass any object into `musicPlayer.play`. Also even though Both interfaces set generic boundaries, you can still declare both of them without generics. In this case you can pass anything you want into play.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -5869,7 +5880,7 @@ class A{}
 class B extends A{}
 ```
 * so with array you can pollute array with other values which would throw `ArrayStoreException` on runtime - that's why generics add compile-time check to make sure you will have less runtime errors. Because of type erasure JVM can't throw `ArrayStoreException`, and if code could compile, you would successfully add wrong type to generic, and ony when you get it you will get `ClassCastException`.
-* invariant - for the above reason, because compare to array you can reassuring generic to supertype, they are considered invariant
+* arrays are covariant, but generics `invariant` - you can't reassign generic to supertype 
 Unlike arrays, generic collections are not reified, which means that all generic information is removed from the compiled class, so `List<String>` would be just `List` on runtime. For example `void m(List<CharSequence> cs)`, `void m(List<String> s)`, and `void m(List<SomeOtherClass> o)` are not different method signatures at all. If you remove the type specification, they all resolve to the same signature i.e. `void m(List x)`. So if you put them into one class you will got compile error, due to the type erasure. But if you put them into parent-child class you will also get error, but reason is different. From compile perspective - it's valid overloading, but from JVM it's valid overriding, that's why compiler won't compile to avoid confusion. The exception is when you override generic type with non-generic for example you can override `List<String>` with just `List`, but not vice versa.
 Don't get confused by the presence of <T> in the code. The same rules of overriding still apply. The T in <T> is called as the `type` parameter. It is used as a placeholder for whatever type is actually used while invoking the method. For example, if you call the method `<T> List<T> transform(List<T> list)` with `List<String>`, T will be typed to String. Thus, it will return List<String>. If, in another place, you call the same method with `Integer`, 
 T will be typed to `Integer` and therefore, the return type of the method for that invocation will be `List<Integer>`. Overriding example
