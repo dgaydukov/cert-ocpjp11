@@ -5423,6 +5423,7 @@ public class App {
     }
 }
 ```
+
 ###### Type erasure
 Type erasure - java by default remove types from generics and change it for object, and later make class casts like
 ```java
@@ -5439,11 +5440,15 @@ String x = (String) list.get(0);
 
 Don't confuse:
 * upper bound `<T extends Number>` - we can define any class with its upper bound, where we can use anything up to `Number`
-* lower bound `<T super Number>` - doesn't exist in java, maybe because it's not too useful
+* lower bound `<T super Number>` - doesn't exist in java, only supported for wildcards (? super T). This is because such type create confusion, with upper bound you are 100% know that `T` is a `Number` and you can call it's methods. But with lower bound, what is `T` is it `Number/Serializable/Object`. Because `T` can be `Object` compiler can only allow to call `Object` methods which is not useful.
 ```java
 class UpperBound<T extends Number> {}
 class LowerBound<T super Number> {} // won't compile
 ```
+Don't confuse:
+* declaration - `T` is used to declare a specific but unknown type that you will use throughout the class or method
+* usage - Wildcard `?` is used to constrain what kind of types a collection or reference can hold. The only reason for `super` is to allow a method to accept a list into which you can safely put value (Consumer in PECS)
+
 Since you can implement multiple interfaces, your upper bound may be an intersection of several interfaces
 ```java
 interface X{}
@@ -5514,7 +5519,7 @@ List<E extends Number> nums = new ArrayList<>(); // won't compile
 ```
 
 Lower bound:
-* can be used in variable, method, class declaration - because such syntax is only allowed with `extends` keyword
+* can't be used in variable, method, class declaration - because such syntax is only allowed with `extends` keyword
 * type parameter declarations define a known type, not an unknown flexible "any supertype"
 * upper bound can be E or wildcard, yet lower bound - only wildcard
 ```java
@@ -5563,7 +5568,7 @@ Wildcard usage:
   * add - Number - you can add `Number` or its superclass, but at least the Number
   * get - Object - you can get `Number` or its superclass, so we upcast to the Object
   * substitute with List of any supertype like `List<Number>` or `List<Object>`
-* unbounded `<?>` - same as `<? extends Object>` and `<? super Object>` - use it when you only need to get value (for example for logging) but need to be able to pass any value
+* unbounded `<?>` - same as `<? extends Object>` - use it when you only need to get value (for example for logging) but need to be able to pass any value
   * add - nothing
   * get - Object
   * substitute with any type
