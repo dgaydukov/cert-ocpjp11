@@ -1859,7 +1859,42 @@ Init Parent
 ```
 Before class is initialized, first its super class initialized
 
-Static and instance initializers - order of execution:
+order of execution - variables:
+* all static variable init first
+* all instance variable init with default values
+* constructor `super()` is called first
+* all instance variables init to assigned values
+* constructor body executed
+```java
+class A {
+    public A() {
+        m1();
+    }
+    public void m1() {
+        System.out.println("m1");
+    }
+}
+class B extends A {
+    int i = 1;
+    public void m1() {
+        System.out.println(i);
+    }
+    public static void main(String[] args) {
+        A a = new B();
+        a.m1();
+    }
+}
+```
+Now that you know the logic, you see why first time it prints 0, because when `super` is called instance var is not init to any assigned value. If you change it to `static` it would print 1.
+If you make it final:
+* because it's literal value, it would inline `1` directly inside `m1`, and would print 11 - BUT this is because of compiler inlining, not because order is changed, order of initialization for instance vars stay the same
+* if you assign `Integer.valueOf(4)` you would get 0 
+```
+0
+1
+```
+
+order of execution - static and instance initializers:
 * first - static variable/block in order they are in code
 * second - instance variable/block of code, in order they are in code
 * third - constructor
@@ -3855,26 +3890,21 @@ In the old way, we have to write finally and close resources manually, moreover 
 
 Suppressed exception:
 * exception that is thrown in inside `try-with-resources` when it's trying to close resources
-* so if both `try` and `close` method throws exception, java would throw exception from `try` and add into it's `Throable[]` all exception it caught during closing rehouses: if you have 1 exception in try and 2 while closing, java would throw exception inside `try` block and attach 2 into array of suppressed exceptions that you can get with `ex.getSuppressed()`
+* so if both `try` and `close` method throws exception, java would throw exception from `try` and add into it's `Throable[]` all exception it caught during closing: if you have 1 exception in try and 2 while closing, java would throw exception inside `try` block and attach 2 into array of suppressed exceptions that you can get with `ex.getSuppressed()`
 * if there is no exception in `try` but only when closing resources - java would throw first exception, and all others add to suppressed: - the goal is to throw only 1, and all other just add into this array so you can iterate over it later
-* Although close method throws CloseResourceException after getConnection, this exception is not propagated, but instead appends as suppressed exception
+* Although close method throws `CloseResourceException` after `getConnection`, this exception is not propagated, but instead appends as suppressed exception
 * if we throw exception in finally, it will overwrite getConnection exception
 ```java
 import java.util.Arrays;
 
-public class App {
+public class Test {
     public static void main(String[] args){
-        try{
-            run();
+        try(MyResource r = new MyResource()){
+            Connection c = new Connection();
+            c.getConnection();
         } catch (Exception ex){
             System.out.println("ERR: " + ex);
             System.out.println("suppressed: " + Arrays.toString(ex.getSuppressed()));
-        }
-    }
-    public static void run() throws Exception{
-        Connection c = new Connection();
-        try(MyResource r = new MyResource()){
-            c.getConnection();
         }
     }
 }
@@ -12082,7 +12112,7 @@ class Human{
         System.out.println("human no-args constructor");
     }
     {
-        System.out.println("Human instance initialization");
+        System.out.println("Human instance init");
     }
     public Human(String gender) {
         this.gender = gender;
@@ -12104,10 +12134,10 @@ final class Person extends Human implements Serializable {
 }
 ```
 ```
-Human instance initialization
+Human instance init
 human 1 args constructor: male
 
-Human instance initialization
+Human instance init
 human no-args constructor
 person => Person[name=John, age=30, gender=null]
 ```
