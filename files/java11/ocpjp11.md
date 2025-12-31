@@ -5253,7 +5253,7 @@ When we parse we don't use French locale, and default locale is used, all comma 
 y/Y - year   (yy/YY-20 or yyyy/YYYY-2020)
 q   - quarter of the year (q-1, qq-01, qqqq-1st quarter)
 M/L - month  (M/L-2, MM/LL-02, MMM/LLL-Feb, MMMM/LLLL-February)
-    * in english both the same, but in some locate they would be different in russian: M - марта, L - Март, to signify (of marth, or March)
+    * in english both the same, but in some locate they would be different in russian: M - марта, L - Март, to signify (of march, or March)
 w   - week of the year (w-7, ww-07)
 W/F - week of the month (W-3, F-3)
 d   - day in month (d-9, dd-09)
