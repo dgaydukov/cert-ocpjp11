@@ -15,7 +15,7 @@
   * `-Xms` - set initial heap size
   * `-Xmx` - set max heap size, example `java -Xms1024 -Xmx2048m app.jar` - set heap size of 1GB and up to 2GB
 * type - refers to class/enum/interface/record or any primitive type, basically any variable is a type. 2 types exists: reference type and primitive type
-* `import` keyword - doesn't import anything, it jus help user to avoid FQCN (fully qualified class name) to use in the code, so to keep code cleaner and shorter. Yet under-the-hood java uses import statements as FQCN if you declare just class names in java code. That's why you can have duplicate imports and there is no error, because no import happens, all import statements are just declarations
+* `import` keyword - doesn't import anything, it helps user to avoid FQCN (fully qualified class name) to use in the code, so to keep code cleaner and shorter. Yet under-the-hood java uses import statements as FQCN if you declare just class names in java code. That's why you can have duplicate imports and there is no error, because no import happens, all import statements are just declarations
 * there is no subpackage concept, if you do `import com.java.*` it will import only all classes, not all subpackages, so `import com.java.*.*` is invalid statement. you can't import package/class that doesn't exist
 * java expect project structure to map to package name, so when you compile with `javac` use `-d` option - it will direct compiler to create directory structure based on package names
 * if you have multiple java files and need to compile, first you need to compile independent class and then dependent. But you can pass all classes to compiler, and it would decide on dependency itself. You can call `javac -d . A.java B.java C.java` - compiler would compile all off them. Even simpler solution is `javac -d . *.java`
@@ -70,12 +70,18 @@ class Person {
     }
 }
 ```
-* initializer can't throw exception, such code won't compile
+* initializer can't throw exception, such code won't compile. And you can't even throws (even conditional) checked exception.
 ```java
 class Person {
     {
         // compile error: initializer must be able to complete normally
         throw new RuntimeException("oops");
+    }
+    {
+        // this works fie, cause it's conditional
+        if (5==5){
+            throw new RuntimeException("oops");
+        }
     }
     public Person() {
         throw new RuntimeException("oops");
@@ -87,8 +93,8 @@ class Person {
   * initializer - only once, because all initializers are called during object creation
 
 Don't confuse:
-* statically-typed language - data type is defined during compile-time and can't change during runtime (in Java int can't be converted to boolean)
-* dynamically-typed language - where data type can be changed during runtime (in JavaScript there are no strong types, you can assign any value like int/boolean/String to variable). This is perfectly valid code for JS:
+* statically-typed language - data type is defined during compile-time and can't change during runtime (in Java `int` can't be converted to `boolean`)
+* dynamically-typed language - where data type can be changed during runtime (in JavaScript there are no strong types, you can assign any value like `int/boolean/String` to variable). This is perfectly valid code for JS:
 ```javascript
 var v = 1;
 v = true;
@@ -131,11 +137,12 @@ public class Test {
 ```
 
 ###### Switch statement
-Only String, byte, short, int, char (and their wrappers Byte, Short, Integer, Char) and enums can be a type of switch variable. All switch labels must be compile-time constants. The reason is that Java/C++/C implement switch as jump (branch) table, `TABLESWITCH` instruction in Java, where the location to jump to is effectively looked up in a table. Switch can be empty-bodied (not labels & default). `boolean/Boolean` - can't be used in switch statement, because only 2 values is possible and simple if/else should be enough.
+Only `byte/short/char/int/String` (and their wrappers `Byte/Short//Character/Integer`) and enums can be a type of switch variable. All switch labels must be compile-time constants. The reason is that Java/C++/C implement switch as jump (branch) table, `TABLESWITCH` instruction in Java, where the location to jump to is effectively looked up in a table. Switch can be empty-bodied (not labels & default). `boolean/Boolean` - can't be used in switch statement, because only 2 values is possible and simple if/else should be enough.
 `long` can't be used in:
 * array index - because it's too much for continuous array, and max array size in java is `Integer.MAX_VALUE`
 * label in case statement - again problem is that long is too long, even int is too high value, but it's used because int is default value in java
-  Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
+
+Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
 ```java
 public class App {
     static public final void main(String[] args) {
@@ -153,10 +160,30 @@ public class App {
     }
 }
 ```
+
 Rules:
-* switch variable can't be `null`, otherwise you'll get NPE
+* switch variable can't be `null`, otherwise you'll get NPE - yet with new pattern matching syntax you can use it. `default` is redundant here, because `I` is a `sealed` class and only 2 children exists.
+```java
+public class Test {
+    public static void main(String[] args) {
+        I value = null;
+        String str = switch (value){
+            case A a -> "a";
+            case B b -> "b";
+            case null -> "null";
+            default -> "not recognized";
+        };
+        System.out.println(str);
+    }
+}
+sealed interface I permits A, B{}
+record A() implements I{}
+record B() implements I{}
+```
+
 * `default` can be anywhere even as first label - it's a good practice to put it the last
   * This is different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement.
+  * `null` - is not part of `default` but is a separate label, this is done for backward compatability. Yet we can omit `null` label - no compilation error.
 * fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
     * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
     * if `i==3` then `case 3` would be entered and only 3 would be printed

@@ -507,31 +507,6 @@ A   B   A^B
 ```
 
 ###### Wrapper classes
-```java
-public class App{
-    public static void main(String[] args) {
-        // Decimal declaration and possible chars are [0-9]
-        int decimal =  495;
-        System.out.println("decimal => " + decimal);
-        // HexaDecimal declaration starts with 0X or 0x and possible chars are [0-9A-Fa-f]
-        int hex =  0X1EF;
-        System.out.println("hex => " + hex);
-        // Octal declaration starts with 0 and possible chars are [0-7]
-        int octal =  0757;
-        System.out.println("octal => " + octal);
-        // Binary representation starts with 0B or 0b and possible chars are [0-1]
-        int binary =  0b111101111;
-        System.out.println("binary => " + binary);
-    }
-}
-```
-```
-decimal => 495
-hex => 495
-octal => 495
-binary => 495
-```
-    
 All wrapper classes has also static method `valueOf`:
 * `Character` - 1 method that accepts primitive `char`
 * `Boolean/Float/Double` - 2 methods that accept primitive & String
