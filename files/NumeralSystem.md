@@ -9,6 +9,18 @@ Java support only 4 types of literal:
 * hex (base-16) - prefix with `0x` or `0X` with digits 0-9 and letters a-e
 
 ```java
+int binary = 0b111;
+int octal = 0111;
+int decimal = 111;
+int hex = 0x111;
+System.out.println("binary=" + binary + ", octal=" + octal + ", decimal=" + decimal + ", hex=" + hex);
+```
+result, as you see the higher the base the bigger the actual decimal number would be
+```
+binary=7, octal=73, decimal=111, hex=273
+```
+
+```java
 public class Test{
     public static void main(String[] args) {
         // Decimal declaration and possible chars are [0-9]
@@ -42,6 +54,7 @@ Example of hex floating point:
 ```
 1.1p0 => (1 + 1 * 16**-1) * 2**0 = 1.0625
 1.1p4 => (1 + 1 * 16**-1) * 2**4 = 17
+0x1.123p3 = (1 + 1 * 16**-1 + 2 * 16**-2 + 3 * 16**-3) * 2**3 = 8.568359375
 ```
 Java code
 ```java

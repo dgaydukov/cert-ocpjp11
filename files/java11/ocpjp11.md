@@ -2549,6 +2549,7 @@ class B implements A {
 when a class implements 2 interfaces with the same:
 * variable (static) - code won't compile: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
 * default method - code won't compile: `types com.java.test.A and com.java.test.B are incompatible; class com.java.test.C inherits unrelated defaults for print() from types com.java.test.A and com.java.test.B`
+  * unless one interface extends another and overrides the method - in this case we effectively have only 1 version of such method
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2579,6 +2580,40 @@ interface B {
     }
 }
 class C implements A, B{} // won't compile
+```
+
+If class implements 2 interfaces and one override another:
+* no compilation error
+* java treat it as one single overridden method
+```java
+interface X {
+    default String name(){
+        return "x";
+    }
+}
+interface Y extends X {
+    default String name(){
+        return "y";
+    }
+}
+class A implements X, Y {}
+```
+
+If class implements 2 interfaces:
+* one hs abstract method
+* another has default, but extends the first
+* no compilation error and ambiguity
+* implementing `X` is redundant because it's already included into `Y`
+```java
+interface X {
+    String name();
+}
+interface Y extends X {
+    default String name(){
+        return "y";
+    }
+}
+class A implements X, Y {}
 ```
 
 method signature:

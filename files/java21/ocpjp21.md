@@ -41,23 +41,7 @@ During method call, variables are copied into local variables of the method, so 
 * `var` is a shortcut, just like `import`, when you use it, under-the-hood JVM just translate your code into full name. Because it's shortcut you can write `var var = 1`.
 * variable created from auto-generated code starts from `_` or `$`.
 * literal - something that literally represent fixed value and can't be changed (for example value 5 can't be changed to anything else except integer value 5)
-* formats:
-  * binary - start with `0B` or `Ob`
-  * decimal - normal format 10-based, starts from any number 1-9
-  * octal format (8-based) - should start with `0`
-  * hex `0X` or `0x`
-```java
-int binary = 0b111;
-int octal = 0111;
-int decimal = 111;
-int hex = 0x111;
-System.out.println("binary=" + binary + ", octal=" + octal + ", decimal=" + decimal + ", hex=" + hex);
-```
-result, as you see the higher the base the bigger the actual decimal number would be
-```
-binary=7, octal=73, decimal=111, hex=273
-```
-* `this` is `final` variable, you can't reassign new value to it.
+* `this` is `final`, you can't reassign new value to it.
 ```java
 class Person {
     private String name;
@@ -182,7 +166,7 @@ record B() implements I{}
 ```
 
 * `default` can be anywhere even as first label - it's a good practice to put it the last
-  * This is different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement.
+  * different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement.
   * `null` - is not part of `default` but is a separate label, this is done for backward compatability. Yet we can omit `null` label - no compilation error.
 * fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
     * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
