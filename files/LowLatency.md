@@ -2526,22 +2526,4 @@ public class App {
         }
     }
 }
-
-public class Test extends Thread {
-    private static int counter;
-
-    @Override
-    public void run() {
-        counter++;
-        System.out.println(counter);
-    }
-
-    public static void main(String[] args) {
-        for (int i = 0; i < 10; i++) {
-            synchronized (Test.class) {
-                new Test().start();
-            }
-        }
-    }
-}
 ```
