@@ -10,11 +10,13 @@
   * [XOR](#xor)
   * [Bit masking](#bit-masking)
 * [Tricks](#tricks)
-    * [Odd or even](#odd-or-even)
-    * [Power of 2](#power-of-2)
-    * [Number of 1 bits](#number-of-1-bits)
-    * [Reverse bits](#reverse-bits)
-
+  * [Odd or even](#odd-or-even)
+  * [Power of 2](#power-of-2)
+  * [Number of 1 bits](#number-of-1-bits)
+  * [Reverse bits](#reverse-bits)
+  * [Binary swapping](#binary-swapping)
+  * [Converting between upper and lower-case](#converting-between-upper-and-lower-case)
+      
 ###### Bitwise and Bit Shift Operators
 There are 2 types of bitwise:
 * unary
@@ -277,3 +279,9 @@ void swap(){
 }
 ```
 To explain, how it works, we need to keep in mind that `A ^ A = 0`.
+
+##### Converting between upper and lower-case
+There are exactly 32 "letters" between `A-a`. Not 26, but 32, this is done on purpose so you have 2**5. Having this, we can now easily switch between lower/upper-case using bit manipulation:
+* convert to lower-case - `char lower = (char) (upper | 32);`
+* convert to upper-case - `char upper = (char) (lower & ~32);`
+* toggle `char toggled = (char) (letter ^ 32);`
