@@ -2293,18 +2293,31 @@ class B{}
 
 Overloading resolution. Java tries to find the `exactMatch => widening => autoboxing => varags`
 ```java
-public class App {
+public class Test {
     void print(int x){}
     void print(long x){}
     void print(Integer x){}
     void print(int... x){}
     public static void main(String[] args) {
-        App app = new App();
-        app.print(5);
+        Test app = new Test();
+        int i = 5;
+        app.print(i);
     }
 }
 ```
 by default `(int x)` would be called. If we comment it, `(long x)` would be called, if we comment that, `(Integer x)` would be called, and finally `(int... x)` would be called.
+
+Don't confuse:
+* unboxing + widening - allowed, like `Integer -> int -> long`
+* widening + boxing => not allowed, like `int -> Integer -> Long`, once you boxed, you have 2 different type
+```java
+Integer i = 1;
+long l = i;
+
+int a = 1;
+Long b = (long)a; // won't compile
+Long c = (long)a;
+```
 
 varags method param:
 * it is just synthesis sugar for array, under-the-hood it converts all arguments passed into array
@@ -2882,7 +2895,7 @@ color => null, getColor => null
 color => red, getColor => null
 ```
 
-If class extends other class and implement interface with same final static variable we got compile error. The same true if class implement 2 interfaces with same variable.
+If class extends other class and implement interface with same final static variable we got compile error. The same true if class implement 2 interfaces with same variable (yet both version would compile unless you explicitly make a call to this variable)
 ```java
 public class App{
     public static void main(String[] args) {
@@ -3005,6 +3018,7 @@ interface Y{
     }
 }
 class A implements X, Y{
+    @Override
     public void print(){
         System.out.println("a");
         X.super.print();
@@ -11742,7 +11756,7 @@ end of file
 deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
 ```
 If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise, we would get error. Since `Body` object inside `Person` doesn't implement `Serializible` we got error trying to serialize:
-* If we change it to `transient private Body body;` it won't be serialized => `Person [name=Mike, age=30, null]`
+* If we change it to `transient private Body body;` it won't be serialized, and would be set to `null` when we deserialize => `Person [name=Mike, age=30, null]`
 * If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`
 * If body inside person is null, we won't get serialization error
 ```java
@@ -12380,6 +12394,21 @@ public class App {
                 // correct way
                 //os.write(buff, 0, count);
             }
+        }
+    }
+}
+```
+By default when you open `FileOutputStream` it would completely overwrite the content, but if you add second arg as `true` it would append to the end-of-file. Running several times you will see several lines added. 
+```java
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class Test {
+    public static void main(String[] args) {
+        try (FileOutputStream os = new FileOutputStream("./data.txt", true)) {
+            os.write("hello world!\n".getBytes());
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 }
