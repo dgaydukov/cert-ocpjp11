@@ -6444,6 +6444,57 @@ public class App{
 }
 ```
 
+Collection sublists - you need to distinguish the following collection creation methods for exam which return what and where you can modify:
+* `List<Integer> list = List.of(1,2,3);` - create unmodifiable `List`, you can't `add/set/remove`
+* `List<Integer> list = new ArrayList<>(List.of(1,2,3));` - create complete new copy of list, you can `add/set/remove`
+* `List<Integer> list2 = List.copyOf(list);` - create unmodifiable unrelated copy of `list` (frozen snapshot), you still can't `add/set/remove`, but changes in `list` not reflected here
+* `List<Integer> list2 = Collections.unmodifiableList(list);` - create unmodifiable view of original list (doesn't copy the data, but wrap original list in security guard), you still can't `add/set/remove`, but changes in `list` are visible here
+* `List<Integer> list2 = list.subList(0, list.size()-1);` - create modifiable view of original list, changes here and in original list reflected to each other. It's comparable to previous, the only difference is this view is open for modifications.
+* `List<Integer> list = Arrays.asList(arr);` - tricky one, create fixed size unmodifiable with exception to `set` view of original array, yet changes like `set` made in array and here reflected both ways
+```java
+import java.util.Arrays;
+import java.util.List;
+
+public class Test {
+    public static void main(String[] args) {
+        var arr = new Integer[]{1,2,3};
+        List<Integer> list = Arrays.asList(arr);
+        list.set(0, 8);
+        arr[1] = 8;
+        System.out.println(list);
+        System.out.println(Arrays.toString(arr));
+    }
+}
+```
+```
+[8, 8, 3]
+[8, 8, 3]
+```
+* `Map keySet/values` - create view that you can't add, but can remove, and it reflected on the original map
+```java
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+public class Test {
+    public static void main(String[] args) {
+        Map<Integer, String> map = new HashMap<>();
+        map.put(1, "a");
+        map.put(2, "b");
+        map.put(3, "b");
+        Set<Integer> keys = map.keySet();
+        Collection<String> values = map.values();
+        keys.remove(1);
+        values.remove("b");
+        System.out.println(map);
+    }
+}
+```
+```
+{3=b}
+```
+
 ###### Array and Enumeration to List and back
 Array to List. When convert from array to list, they both become linked and change in one is reflecting in another. Moreover, such a list is fixed like an array. You can change values, but can’t add new one. If you don’t want this use `new ArrayList<>(Arrays.asList(arr))`.
 ```java
