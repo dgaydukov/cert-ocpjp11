@@ -13918,13 +13918,13 @@ Access rules:
   * if same type is loaded from both NM & AM - you get `java.lang.module.ResolutionException` on runtime, just as same type loaded from 2 NM
   * if NM doesn't export package, still any class loaded from module-path, both NM & AM would try to call type from module, not from UM, and if it's not exported you get `Exception in thread "main" java.lang.IllegalAccessError` on runtime
 Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
-* Bottom-up:
+* Bottom-up (add jars to module-path one-by-one):
   * first convert C.jar (A.jar and B.jar can still be run from classpath, since from classpath you can access all packages)
   * second convert B.jar (A.jar still can be loaded from classpath and access all packages)
   * finally convert A.jar -> now all are named modules run from `--module-path`
-* Top-down:
-  * first convert A.jar (add reference to B from its module-info). In this case both A.jar and B.jar is loaded from `--module-path`, B - automatic module, and C.jar loaded from classpath
-  * second convert B.jar (add reference to C from its module-info). In this case All 3 loaded from --module-path, C - automatic module
+* Top-down (convert top and run all from module-path):
+  * first convert A.jar (add reference to B from its module-info). Now all 3 jars loaded from `--module-path` (A - named module, B and C - AM)
+  * second convert B.jar (add reference to C from its module-info). Now all 3 jars loaded from `--module-path` (A and B - named module, C - AM)
   * finally convert C.jar
 If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `module-path` (in this case named module loaded as named module, others as automatic modules). Top-down is more preferable, because we don't need to wait for other jars to became modules, we can just start from our modules, and put all other jars into `module-path`. Once other teams/companies modularize their jars, we don't need to change anything, it would be working. The only case, if during modularization they decided to change names of module/package - in this case you would need to change your command. But if they just modularize - no change would be required from your side.
 Inside `module-info.java` we can:
@@ -15848,6 +15848,7 @@ Compare to standard threads, you can create millions of virtual threads. `Thread
 
 3. Sequenced collections - elements inside have defined encounter order:
 * interface SequencedCollection<E> extends Collection<E>
+  * there is no method `get` only `getFirst/getLast` to fetch first/last elements, but no random access to any element inside
 * SequencedSet<E> extends SequencedCollection<E>
 * interface SequencedMap<K, V> extends Map<K, V>
 Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections. Now with this collections you get access to first/last element, by adding/removing either first/last element. And traversal order is guaranteed.
