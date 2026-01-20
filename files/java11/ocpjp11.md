@@ -1110,6 +1110,51 @@ Arrays.equals(arr1, arr2) => true
 Arrays.compare(arr1, arr2) => 0
 ```
 
+Don't confuse:
+* method `equals` is not overridden for array, so it's using default `Object` method which is just compare reference
+* to compare arrays you have to use `equals/deepEquals` from `Arrays`
+  * `Arrays.equals` - shallow copy, check each elements using `equals`, if element itself array, and since array doesn't have `equals` compare by reference
+  * `Arrays.deepEquals` - using deep comparison, recursively calling itself to compare all the children
+* for other classes like String/List it's overridden and compare by content
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class Test {
+    public static void main(String[] args) {
+        int[] arr1 = {1,2,3};
+        int[] arr2 = {1,2,3};
+        System.out.println("arr1 == arr2 => "+(arr1 == arr2));
+        System.out.println("arr1.equals(arr2) => "+arr1.equals(arr2));
+        System.out.println("Arrays.equals(arr1, arr2) => "+Arrays.equals(arr1, arr2));
+
+        System.out.println();
+        List<Integer> list1 = new ArrayList<>(List.of(1, 2, 3));
+        List<Integer> list2 = new ArrayList<>(List.of(1, 2, 3));
+        System.out.println("list1 == list2 => "+(list1 == list2));
+        System.out.println("list1.equals(list2) => "+list1.equals(list2));
+
+        System.out.println();
+        int[][] mda1 = {{1,2,3},{4,5,6}};
+        int[][] mda2 = {{1,2,3},{4,5,6}};
+        System.out.println("Arrays.equals(mda1, mda2) => "+Arrays.equals(mda1, mda2));
+        System.out.println("Arrays.deepEquals(mda1, mda2) => "+Arrays.deepEquals(mda1, mda2));
+    }
+}
+```
+```
+arr1 == arr2 => false
+arr1.equals(arr2) => false
+Arrays.equals(arr1, arr2) => true
+
+list1 == list2 => false
+list1.equals(list2) => true
+
+Arrays.equals(mda1, mda2) => false
+Arrays.deepEquals(mda1, mda2) => true
+```
+
 If you need to split string on multiple keys, you can use regex `[]`
 ```java
 import java.util.Arrays;
