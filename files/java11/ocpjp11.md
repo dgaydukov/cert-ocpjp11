@@ -526,7 +526,7 @@ public class App {
 1_000_000 based 2 => 64
 abcde based 36 => 17325410
 ```
-Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of `Boolean.TRUE` & `Boolean.FALSE`) or may return cached object. For `Integer`, by default cached valued -128..127, but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing (which basically uses `valueOf` under-the-hood) using cached objects, but `constructor` always create new object.
+Try to always use `valueOf` - the reason is that constructor - always create new object in memory, but valueOf will either return singleton (in case of `Boolean.TRUE` & `Boolean.FALSE`) or may return cached object. For `Integer`, by default cached valued [-128..127], but you can add more cached value using `-XX:AutoBoxCacheMax`. Then you can get 2 integers and compare them use `obj1==obj2`, and although they are object, because they are cached, they would refer to the same underlying object in memory. So `valueOf` and autoboxing (which basically uses `valueOf` under-the-hood) using cached objects, but `constructor` always create new object.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -560,6 +560,13 @@ public class App{
 
     }
 }
+```
+Same holds true for increment/decrement, when you call `++/--` actually 3 actions happens under-the-hood (box, increment, autobox). Below code would print true for [-128..127], but false for all other values.
+```java
+Integer i = 100, j = i;
+i--;
+i++;
+System.out.println(i==j);
 ```
 
 `String.valueOf` - very versatile method, can take all primitive types, char[], and Object.
