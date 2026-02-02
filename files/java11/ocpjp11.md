@@ -4361,7 +4361,7 @@ class Outer {
 
 Method class and lambda can access only `effectively final` variables:
 * this limitation is related to scope and lifetime and made on purpose
-* lifetime of method variables is method execution, and when method is returned, all variables are cleared from the stack. But lambda/class may outlive the method, they may be returned and continue to live after method returned. In this case having non-final method variables may be confusing. Moreover, lambda/class create new scope, and copy values. So if we pass non-final method variables to lambda/class, it's confusing what should happen with them, if we are changing them inside lambda/class. For this reason to avoid confusion there is hard requirement to use either final or effectively final variables inside lambda/class
+* lifetime of method variables is method execution, and when method is returned, all variables are cleared from the stack. But lambda/class may outlive the method, they may be returned and continue to live after method returned. In this case having non-final method variables may be confusing. Moreover, lambda/class create closure (don't confuse with variable scope), and copy values. So if we pass non-final method variables to lambda/class, it's confusing what should happen with them, if we are changing them inside lambda/class. For this reason to avoid confusion there is hard requirement to use either final or effectively final variables inside lambda/class. Lambda doesn't create its own scope, yet it create a room for variables.
 
 ###### Anonymous classes
 Anonymous classes - can be created out of interface/abstract/concrete classes by implementing class body on the fly. They can't:
@@ -6939,45 +6939,28 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         var operations = List.of(
-            new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
-            new Operation("2", new BigDecimal("10"), new BigDecimal("20")),
-            new Operation("3", new BigDecimal("10"), new BigDecimal("20")),
-            new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
-            new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
-            new Operation("2", new BigDecimal("10"), new BigDecimal("20"))
+                new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
+                new Operation("2", new BigDecimal("10"), new BigDecimal("20")),
+                new Operation("3", new BigDecimal("10"), new BigDecimal("20")),
+                new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
+                new Operation("1", new BigDecimal("10"), new BigDecimal("20")),
+                new Operation("2", new BigDecimal("10"), new BigDecimal("20"))
         );
         Map<String, BigDecimal> mergeMap = new HashMap<>();
         operations.forEach(op -> {
-            mergeMap.merge(op.getAccount(), op.getEndAmount().subtract(op.getStartAmount()), BigDecimal::add);
+            mergeMap.merge(op.account(), op.endAmount().subtract(op.startAmount()), BigDecimal::add);
         });
         System.out.println("mergeMap => " + mergeMap);
 
-        Map<String, BigDecimal> collectorMap = operations.stream().collect(Collectors.toMap(Operation::getAccount, op->op.getEndAmount().subtract(op.getStartAmount()), BigDecimal::add));
+        Map<String, BigDecimal> collectorMap = operations.stream().collect(Collectors.toMap(Operation::account, op->op.endAmount().subtract(op.startAmount()), BigDecimal::add));
         System.out.println("collectorMap => " + collectorMap);
     }
 }
-class Operation {
-    private final String account;
-    private final BigDecimal startAmount;
-    private final BigDecimal endAmount;
-    public Operation(String account, BigDecimal startAmount, BigDecimal endAmount) {
-        this.account = account;
-        this.startAmount = startAmount;
-        this.endAmount = endAmount;
-    }
-    public String getAccount() {
-        return account;
-    }
-    public BigDecimal getStartAmount() {
-        return startAmount;
-    }
-    public BigDecimal getEndAmount() {
-        return endAmount;
-    }
-}
+
+record Operation(String account, BigDecimal startAmount, BigDecimal endAmount) {}
 ```
 ```
 mergeMap => {1=30, 2=20, 3=10}
