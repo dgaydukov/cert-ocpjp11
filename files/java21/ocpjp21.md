@@ -840,4 +840,17 @@ Thread.Builder virtualThread = Thread.ofVirtual();
 platformThread.start(()-> System.out.println("platformThread"));
 virtualThread.start(()-> System.out.println("virtualThread"));
 ```
+create thread but don't start immediately
+```java
+Thread platform =  new Thread(() -> {});
+Thread virtual =  Thread.ofVirtual().unstarted(()->{});
+System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
+platform.start();
+virtual.start();
+System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
+```
+```
+false => true
+false => true
+```
 * thread pinning - virtual thread with `synchonized` pinned to the platform thread on which they run, that means if your thread is taking too long, it may starve the system, so virtual thread are designed to run small/fast jobs. But if you use `ReentrantLock` it won't be pinned - this is one more advantage to use explicit locking.
