@@ -1591,7 +1591,7 @@ Parent.value => 1
 
 Java chooses the `most specific` match:
 * if we have 2 methods with Object/String and pass null - String would be chosen - because it's more specific than Object
-* if we have 2 specific with Integer/String and pass null - compilation error
+* if we have 2 methods with Integer/String and pass null - compilation error, because neither is more specific
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -1671,8 +1671,7 @@ class B extends A{
 Method overriding vs method hiding: 
 * overriding - override instance method
 * hiding - override static method
-The difference is - when we override method it’s overridden in both child and parent class, but when we hide it - it’s only for child class. 
-Notice when we call `printA`, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
+The difference is - when we override method it’s overridden in both child and parent class, but when we hide it - it’s only for child class. Notice when we call `printA`, the `getName` return B not A, since it’s overridden in B, so it’s call method from B, but `getStaticName` call it from A.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1722,9 +1721,9 @@ abstract class Printer extends ConsolePrinter{
 }
 ```
 
-We can’t override variables, we can only hide them
+We can’t override variables, we can only hide them: both instance and static
 ```java
-public class App {
+public class Test {
     public static void main(String[] args) {
         B b = new B();
         b.printB();
@@ -1733,24 +1732,25 @@ public class App {
 }
 class A {
     protected int i = 1;
+    protected static int j = 1;
     public void printA(){
-        System.out.println("printA => i: " + i);
+        System.out.println("printA => i: " + i+", j: " + j);
     }
 }
 class B extends A {
     protected int i = 2;
+    protected static int j = 2;
     public void printB(){
-        System.out.println("printB => i: " + i);
+        System.out.println("printB => i: " + i+", j: " + j);
     }
 }
 ```
 ```
-printB => i: 2
-printA => i: 1
+printB => i: 2, j: 2
+printA => i: 1, j: 1
 ```
 
-Polymorphism is the ability to pass one object as type of another. Here instance `b` is reference to object `B`, but its type is `A`. Since it’s type is A it’s value is limited, so we can call only methods available in A. 
-The point here if we override some method from A in B, then when we call these methods, they will be called from B. To call all B methods, we must cast it to type B.
+Polymorphism is the ability to pass one object as type of another. Here instance `b` is reference to object `B`, but its type is `A`. Since it’s type is `A`, its value is limited, so we can call only methods available in A. The point here if we override some method from A in B, then when we call these methods, they will be called from B. To call all B methods, we must cast it to type B.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -1775,12 +1775,12 @@ class B extends A {
 ```
 There are 2 types of polymorphism:
 * compile-time polymorphism (overloading) - when methods have the same name, but different arguments. So we can call them, and java knows in compile time what method we are calling, based on arguments. Although there is an argument, that there is no strict compile-time polymorphism in java, yet we can count method overloading as compile-time polymorphism.
-* runtime polymorphism (overriding) - this is classical polymorphism where we pass reference. The problem is that on compile time, java can't know what reference would be passed. If both classes A & B, implements interface X, and we pass X as param, java can't know what implementation would be used, because we can change it dynamically during execution. 
+* runtime polymorphism (overriding) - this is classical polymorphism with exact signature (method name + exact list of params). The problem is that on compile time, java can't know what reference would be passed. If both classes `A` and `B`, implements interface `X`, and we pass `X` as param, java can't know what implementation would be used, because we can change it dynamically during execution. 
 That's why we can say that java supports both:
 * compile-time polymorphism - when we overload methods
 * runtime polymorphism - when we override (extend/implement) and pass reference
 
-We can cast to parent without parenthesis (without explicit casting). But casting to child requires explicit casting, otherwise it won't compile with `java: incompatible types: com.java.test.A cannot be converted to com.java.test.B`.
+We can cast to parent without parenthesis (without explicit casting). But casting to child requires explicit casting, otherwise it won't compile with `java: incompatible types: com.java.test.A cannot be converted to com.java.test.B`. Because every child is a parent, but parent may be a child, or may not.
 ```java
 public class App {
   public static void main(String[] args) {
@@ -1914,8 +1914,8 @@ class B extends A {
 ```
 Now that you know the logic, you see why first time it prints 0, because when `super` is called instance var is not init to any assigned value. If you change it to `static` it would print 1.
 If you make it final:
-* because it's literal value, it would inline `1` directly inside `m1`, and would print 11 - BUT this is because of compiler inlining, not because order is changed, order of initialization for instance vars stay the same
-* if you assign `Integer.valueOf(4)` you would get 0 
+* because it's literal value, it would inline `1` directly inside `m1`, and would print `1 1` - BUT this is because of compiler inlining, not because order is changed, order of initialization for instance vars stay the same
+* if you assign `Integer.valueOf(1)` you would get 0 
 ```
 0
 1
@@ -2032,7 +2032,7 @@ public class App {
 }
 ```
 
-Second  - lazy loading, create instance the first time we call static method `.getInstance`. The downside is that we can’t make instance `final`. So it’s up to the code to guarantee that we won’t reassign new value.
+Second - lazy loading, create instance the first time we call static method `.getInstance`. The downside is that we can’t make instance `final`. So it’s up to the code to guarantee that we won’t reassign new value.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -2185,7 +2185,7 @@ public class App {
     }
 }
 ```
-Use of volatile can decrease performance, and in case of lazy Singleton you need it only once, and in 99% cases your object would be already created and just used. To write more performant code you can introduce local variable. Look at `localRef`, it seems redundant, but since init happens only once, and in most cases it won't be `null`, and we return it, rather than `instance`, perfromance significatnly improved.
+Use of volatile can decrease performance, and in case of lazy Singleton you need it only once, and in 99% cases your object would be already created and just used. To write more performant code you can introduce local variable. Look at `localRef`, it seems redundant, but since init happens only once, and in most cases it won't be `null`, and we return it, rather than `instance`, performance significantly improved.
 ```java
 class Singleton{
     private Singleton(){}
@@ -2367,7 +2367,7 @@ Integer i = 1;
 long l = i;
 
 int a = 1;
-Long b = (long)a; // won't compile
+Long b = a; // won't compile: incompatible types: int cannot be converted to java.lang.Long
 Long c = (long)a;
 ```
 
@@ -2401,7 +2401,7 @@ public class App {
 Exception in thread "main" java.lang.NullPointerException: Cannot read the array length because "<local2>" is null
 ```
 
-Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Notice that field/method can't be `abstract static`.
+Class with `main` method also can be `abstract`. The reason, is that we can call `static` methods on `abstract` class. Fields and static methods - can't be `abstract`, only instance methods.
 ```java
 abstract class App {
     abstract void calculate();
@@ -2480,7 +2480,7 @@ class B extends A{
     }
 }
 ```
-3. exception - overridden method can throw fewer/narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell (see my task for interview questions on accounts)
+3. exception - overridden method can throw fewer/narrower exception. Java support this on compile level for checked exception. Yet for unchecked like `RuntimeException` it can't enforce it, so we can see code smell
 
 If you necessarily have to use overriding with subtype param, you can use generics
 ```java
@@ -2509,7 +2509,7 @@ class A{}
 class B extends A{}
 ```
 
-This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2 were we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able to call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
+This is done on purpose to protect you. Look at below example, now we have overloading, and you can call 2 `print` on `child` instance. But imagine that we could override. Then the question, which exactly out of 2, are we allowed to call? At first, you could only call `print(B b)` - because it's overriding. But this would break Liskov principle, cause you should be able to call on child `print(A a)`. To avoid any confusion in java params should be identical for overriding.
 ```java
 public class App {
     public static void main(String[] args) {
