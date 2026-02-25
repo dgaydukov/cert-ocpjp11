@@ -3240,12 +3240,27 @@ Exception in thread "main" java.lang.IllegalArgumentException: No enum constant 
 ```
 As you can see, both enums implements interface, and we can pass this interface into both of them.
 
-By default, enum keys are the same as values
+By default:
+* key - constant name returned with `name()` function - final and can't be overridden
+* value - the field you define inside - returned by `toString()` - by default return `name` but you can override and return your custom value
+  * if constructor have many params - value is the state of enum or combination of all params
+* ordinal - int value of the number of element inside enum
 ```java
+public class Test {
+    public static void main(String[] args) {
+        System.out.println(WeekDays.SATURDAY.toString());
+        System.out.println(WeekDays.SATURDAY.name());
+    }
+}
+
 enum WeekDays{
     SATURDAY,
     SUNDAY;
 }
+```
+```
+SATURDAY
+SATURDAY
 ```
 But we can override it and can have values differ from keys. Here both constant and value are the same - SATURDAY. If we want to customize text we should add private constructor. If we want to get string values (not constants), we should define 2 additional methods
 ```java
@@ -3279,6 +3294,11 @@ enum WeekDays{
     public String toString(){
         return value;
     }
+    // won't compile, name - is final, always return constant name itself
+    @Override
+    public String name(){
+        return value;
+    }
 
     // this method to get enum value from custom string value
     public static WeekDays fromValue(String str){
@@ -3299,7 +3319,7 @@ WeekDays.values() => [Saturday, Sunday]
 WeekDays.valueOf(SATURDAY) => Saturday
 WeekDays.fromValue(Saturday) => Saturday
 ```
-**Pay attention that `valueOf` expects enum constant, and if passed string (like Saturday) IllegalArgumentException would be thrown. That's why we have implemented method `fromValue` to search by string value.
+Pay attention that `valueOf` expects enum `name`, and if passed string (like Saturday) `IllegalArgumentException` would be thrown. That's why we have implemented method `fromValue` to search by string value.
 `values()` - returns array of keys, not list or array of values. But if we override `toString` then when you call `Arrays.toString(WeekDays.values())` you will get array of values, cause you get array of keys, and then they all transform to string.
 
 Another important issue, is that `enum` is a static nested class. So it can't be inside inner class or be declared as local variable. But it was changed in java 16 as part of `JEP-395`
@@ -3310,15 +3330,14 @@ public class App {
         enum My{}
     }
     class Person{
-        enum My{} // compiler error (inner classes can't have static declaration)
+        enum My{} // compiler error - before java 16: (inner classes can't have static declaration): 
     }
     public static void main(String[] args){
         class MyClass{};
-        enum MyEnum{}; // compile error (enum must not be local)
+        enum MyEnum{}; // compile error - before java 16: (enum must not be local)
     }
 }
 ```
-**Enum can't be extended from other classes (cause all enums are implicitly extended from `java.lang.Enum`, yet it can implement interfaces). Class can't be extended from enum (cause all enums are implicitly final).
 
 Unlike a regular class in enum's constructor you can't access non-final static fields. This is because `enum` constructor called before all `static` fields have been initialized, so to avoid partial initialization we have such rule.
 ```java
@@ -3341,6 +3360,57 @@ enum Days{
     }
 }
 ```
+This is related to how enum is loaded:
+* normal classes - static block is run when class is loaded into memory
+* in enum constants = are `public static final instances` of the `Enum` class - and because java init static in the order they appeared, enum constants execute before other static, except for final
+```java
+public class Test {
+    public static void main(String[] args) {
+        Printer p = new Printer("local");
+        System.out.println();
+        Days s = Days.SAT;
+    }
+}
+
+class Printer{
+    private String name;
+    public Printer(String name){
+        this.name=name;
+        System.out.println("Init printer="+name);
+    }
+    static{
+        System.out.println("static printer init");
+    }
+    {
+        System.out.println("instance printer init="+name);
+    }
+}
+
+enum Days {
+    SAT("Sat");
+
+    private String day;
+    Days(String day) {
+        System.out.println("Init enum with="+day);
+        this.day = day;
+    }
+    static {
+        System.out.println("static enum init");
+    }
+    {
+        System.out.println("instance enum init="+day);
+    }
+}
+```
+```
+static printer init
+instance printer init=null
+Init printer=local
+
+instance enum init=null
+Init enum with=Sat
+static enum init
+```
 
 In enum declaration constants should go first. 
 ```java
@@ -3353,7 +3423,7 @@ enum Days{
     String s;
 }
 ```
-Yet this code is fine. It's normal enum with empty declaration. The ; indicates the end of the enum identifiers list. Apparently you can have an empty enum list, but you must have one.
+Yet this code is fine. It's normal enum with empty declaration. The ; indicates the end of the enum identifiers list. Apparently you can have an empty enum list, but there is no practical usage.
 ```java
 enum Days{
     ;
@@ -3392,42 +3462,6 @@ enum Days{
 ```
 ```
 [6:Sat, Sun:7]
-```
-enum constructor can contain only `final static` variables:
-* enum constants created before any non-final static variables and initializers - you can see it from the below code
-* so enum constructor is not allowed to use non-final static variables to avoid problem with partial initialization where you use static variable, but it wasn't fully initialized
-```java
-public class Test{
-    public static void main(String[] args) {
-        Day d = Day.M;
-    }
-}
-
-enum Day {
-    M("Monday"), T("Tuesday");
-    private final String day;
-    Day(String day) {
-        System.out.println("constructor init: hashcode=" + hashCode() + ", day=" + day);
-        this.day = day;
-    }
-    @Override
-    public String toString() {
-        return day;
-    }
-    static {
-        System.out.println("static init");
-    }
-    {
-        System.out.println("instance init: hashcode=" + hashCode());
-    }
-}
-```
-```
-instance init: hashcode=1595428806
-constructor init: hashcode=1595428806, day=Monday
-instance init: hashcode=500977346
-constructor init: hashcode=500977346, day=Tuesday
-static init
 ```
 
 ###### Exceptions
