@@ -2559,7 +2559,7 @@ class A implements I{}
 ```
 
 Interfaces can have 2 methods:
-* `default` - can be only called on instance of class that implements interface. Was added in java 8, for backward compatibility, when your interface already have implementations, and if you just add abstract method, the code is broken and won't compile until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
+* `default` - can be only called on instance of class that implements interface. Was added in java 8, for backward compatibility, when your interface already have implementations, and if you add abstract method, the code is broken and won't compile until you implement such abstract method in all classes. But if you add default method, nothing is broken (assuming no name collision).
 * `static` - can only be called on interface itself.
 ```java
 public class App {
@@ -2665,7 +2665,7 @@ class A implements X, Y {}
 ```
 
 If class implements 2 interfaces:
-* one hs abstract method
+* one has abstract method
 * another has default, but extends the first
 * no compilation error and ambiguity
 * implementing `X` is redundant because it's already included into `Y`
@@ -2704,9 +2704,6 @@ int x = getValue();     // might work for other
 ```
 * method overloading - same name but different set of params, so your method is "overloaded" - means there are multiple possibilities with the same name
 * method overloading compilation error: happens only if you try to call it with ambiguous params, by default those 2 `sum` function are overloaded, and no errors, only if you try to call with ambiguous param, it became an issue
-* `sum(short, short)` is calling `sum(int a, Short b)`:
-  * short is widened to int
-  * short is autoboxed into Short
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -2726,40 +2723,9 @@ public class Test {
 }
 ```
 * subtype for primitives:
-  * `double > float > long > int > char`
-  *                         `int > short > byte`
+  * `double > float > long > int > short > byte`
+  *                         `int > char`
   * so if you have 2 methods that take `int` and `short` and you pass `byte` then method with `short` would be called as the more specific
-
-If class implements 2 interfaces with same signature default method, but one override another, no compile error.
-```java
-public class App {
-    public static void main(String[] args) {
-        A a = new C();
-        B b = new C();
-        C c = new C();
-        System.out.println(a.getValue());
-        System.out.println(b.getValue());
-        System.out.println(c.getValue());
-    }
-}
-interface A{
-    default String getValue(){
-        return "A";
-    }
-}
-interface B extends A{
-    default String getValue(){
-        return "B";
-    }
-}
-class C implements A, B{}
-```
-```
-B
-B
-B
-```
-Since `B` is `A`. implementing both A, B is redundant so it the same as just implement only `B`. That’s why from compile perspective it’s like implementing only `B`, since no compile error. And if you try to call this method on class instance, you will get it from `B`.
 
 If class implements 2 interfaces, and both have the method with same signature, but one is abstract, another one is default, class is required to redeclare it: `com.java.test.A is not abstract and does not override abstract method print() in com.java.test.X`
 ```java
@@ -2775,18 +2741,7 @@ interface Y{
 
 class A implements X, Y{} // compilation error
 ```
-The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract in another implementation of this interface. Yet it works fine in case class has method's implementation, or if `Y extends X`
-```java
-interface X{
-    void print();
-}
-
-class A{
-    public void print(){}
-}
-
-class B extends A implements X{}
-```
+The reason, is that JLS protect you, in case you accidentally add default method to some interface, you should still stick to contract of another interface.
 
 Same interface can't have abstract and default/static method of same name - compilation error:
 ```java
@@ -2829,7 +2784,7 @@ A
 A
 A
 ```
-As you see, no matter how we call it, we always call method print from class A.
+As you see, no matter how we call it, we always call method print from class `A` due to runtime polymorphism
 
 In java we can cast to intersection of 2 types:
 * You can only have 1 class but have multiple interfaces
@@ -2868,7 +2823,7 @@ interface Y{
 
 You can override final variables, but not methods:
 * when `final` applied to field - it has nothing to do with inheritance, it just means that this field can only be initialized in constructor
-* hiding/shadowing of filed - when you redeclare field in a subclass you don't override it but hide, overriding is applied only for methods, not for fields
+* hiding/shadowing of filed - when you redeclare field in a subclass you don't override it - you hide, overriding is applied only for methods, not for fields
 * so we have 2 types of inheritance:
   * polymorphism - only for instance methods - replace original method with its own implementation
   * hiding - for instance fields, for static fields and methods, hide original version, but it still lives inside object, and we can access it by casting
@@ -3004,7 +2959,7 @@ interface Y extends X{
 
 interface inheritance:
 * interface can extend one or more interfaces
-* interface only inherits abstract and default methods
+* interface only inherits abstract and default methods, and fields, but not static methods
 * interface doesn't inherit static methods - there is no way you can call static methods of parent interface - this is different from classes. But with classes you can inherit only 1 class, but with interface you can extend multiple interfaces, and in this case if 2 interfaces has same static method, which one would you inherit. The problem with default method is simpler, because default methods stored inside instance, but static methods are global. So inherit and storing static methods on the interface would be problematic.
 * interface inherits fields (they only static final) and you can access them from both the interface and it's instance - but if you have 2 variables with the same name, just like with classes such code would compile, but if you try to access such variable you get compilation error
 * if interface extends 2 interfaces with same default method or one default and one abstract - same rules as for class are applied. You have to remove ambiguity by redeclare such method either as abstract or default. Here different from concrete class, if you have 2 interfaces with same default - you can redeclare it as abstract.
@@ -3051,7 +3006,7 @@ interface X{
 
 If you want to call parent method you can use `super` - but there are 2 exceptions:
 * interface default methods - doesn't support `super` - you must use `InterfaceName.super.methodName`
-* calling parent class method from inner class - you have to use `ParentClass.super.methodname`
+* calling parent class method from inner class - you have to use `ParentClass.this.methodname`
 ```java
 public class App {
     public static void main(String[] args) {
