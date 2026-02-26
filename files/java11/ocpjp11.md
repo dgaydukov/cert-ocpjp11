@@ -3508,7 +3508,10 @@ Exception in thread "main" java.lang.RuntimeException: 3
 	at com.java.test.App.main(App.java:13)
 ```
 
-If you have checked exception you can’t catch them until they are clearly thrown from the method itself
+If you have checked exception you can’t catch them until they are clearly thrown from the method itself:
+* can be fixed by throwing exception from the method itself
+* It just declares that this method may throw checked exception `private static void print() throws MyException{}` - so you don't need to actually throw `MyException` inside this function
+* only true to checked exception - because we are forced to catch them, for unchecked (runtime) you can catch them
 ```java
 public class App {
     public static void main(String[] args) {
@@ -3522,8 +3525,6 @@ public class App {
 }
 class MyException extends Exception{}
 ```
-This can be fixed by throwing exception from the method itself. It just declares that this method may throw checked exception `private static void print() throws MyException{}` - so you don't need to actually throw `MyException` inside this function.
-This only true to checked exception - because we are forced to catch them, for unchecked (runtime) you can catch them.
 
 You can catch any type of exception: unchecked(RuntimeException), checked(Exception) and errors(Error). So technically you can handle any of `Throwable` subclasses. But it’s better never to catch Errors, cause of some you will not be able to recover
 ```java
@@ -3677,10 +3678,11 @@ public class App {
         throw new FileNotFoundException();
     }
 }
-
 ```
   
-If you have multiple catch you can't reassign ex, because the type is the OR of several exceptions
+If you have multiple catch you can't reassign `ex`:
+* because JLS is declared such variable implicitly `final`
+* this is done to protect you, cause such variable is a or of several classes and reassign to anything else can break code
 ```java
 public class App{
   public static void main(String[] args){
@@ -3697,8 +3699,8 @@ class Ex2 extends RuntimeException{}
 ```
 
 For checked only (not for `RuntimeException`) exception when overriding method there is a rule:
-* any method - only more specific exception
-* constructor - only more generic exception
+* any method - itself or more specific exception
+* constructor - itself or more generic exception
 As you see `B1.method` - compile error, cause we try to throw more generic (and we can throw only less - children and exception itself), but for C1.constructor - compile error, cause we can only throw less generic. The reason is for method we have to use liskov principle and to throw less generic, but construct make call to super, so here we can call only more generic. So with method we go-down, but with constructor we call-up.
 ```java
 class MyException extends RuntimeException{}
