@@ -3055,6 +3055,34 @@ class Outer extends Printer{
 }
 ```
 
+Adding `throw` to method declaration:
+* you can add but not actually throw anything - it would compile - this maybe useful for `future-proof`, if you believe that method may throw exception in the future, you may add it now. Because otherwise, if you leave it and add later, then users of your code would have to recompile their codebase, otherwise it won't compile with new version.
+* you can define both parent and child in `throw` - although redundant but still compiles
+```java
+class Test{
+    void m1() throws Exception{}
+    void m2() throws Exception, IOException {}
+}
+```
+
+Exceptions in initializers:
+* for static - you are not allowed to throw checked exception - such code won't compile
+* for instance - you can, but you have to catch such exception in all constructors
+```java
+class Test{
+    Test() throws Exception{
+    }
+    static {
+        if (true)
+            throw new Exception(); // won't compile
+    }
+    {
+        if (true)
+            throw new Exception();
+    }
+}
+```
+
 ###### Enums
 Features:
 * typesafe enum pattern - pattern to implement enums before Java5. Actually java devs saw the popularity of this pattern and decided to add this feature into java5
@@ -3750,15 +3778,6 @@ public class App {
     }
 }
 ```
-As you see we catch `MyCheckedException`, so if child throws it parent, the catch would be broken, that’s why child can throw only more specific (children) exceptions. For constructors, it’s the other way around.
-```java
-try{
-    new A1();
-} catch (MyCheckedException ex) {
-    System.out.println(ex);
-}
-```
-We can catch `MyCheckedException` itself, it’s parent Exception, but not child `MySecondCheckedException`. And this is the exact reason, why when we override constructor we can throw only exception itself or more generic, cause when we create object, it will invoke its parent that throws more specific exception.
 
 Constructor more generic is easily explained when you look into below code: When you create `new B()`, inside first constructor of `A` is called, so that's why `B` constructor should be either identical or wider. Otherwise it's illogical. But methods called in inverted way, like up-down, so for method only less-generic exception is allowed.
 ```java
@@ -3831,7 +3850,9 @@ java.lang.NullPointerException
 * to be eligible your class should implement either `Closeable` or `AutoCloseable`
 * Java7 team wanted a mechanism to label objects as be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
 * it works by inserting `try/finally` and wrapping your code inside `try` block with it - below is example where I showed how JVM handle closing the resources.
-* resources closed in reverse order of declaration, `catch/finally` are executed after resources closed
+* resources closed in reverse order of declaration:
+  * `catch/finally` are executed after resources closed
+  * each resource closed in separate `try/catch` so even if one throws exception all others would be closed in separate blocks, but all those exceptions would be appended as `suppressed`
 * usually `public void close() throws IOException` - so if you create for example `BufferedReader` without try-with-resource, it would work fine, but if you wrap it into it, then code won't compile and request that you explicitly handle exception.
 ```java
 import java.io.BufferedReader;
@@ -3957,7 +3978,7 @@ In the old way, we have to write finally and close resources manually, moreover 
 
 Suppressed exception:
 * exception that is thrown in inside `try-with-resources` when it's trying to close resources
-* so if both `try` and `close` method throws exception, java would throw exception from `try` and add into it's `Throable[]` all exception it caught during closing: if you have 1 exception in try and 2 while closing, java would throw exception inside `try` block and attach 2 into array of suppressed exceptions that you can get with `ex.getSuppressed()`
+* so if both `try` and `close` method throws exception, java would throw exception from `try` and add into its `Throwable[]` all exceptions it caught during closing: if you have 1 exception in try and 2 while closing, java would throw exception inside `try` block and attach 2 into array of suppressed exceptions that you can get with `ex.getSuppressed()`
 * if there is no exception in `try` but only when closing resources - java would throw first exception, and all others add to suppressed: - the goal is to throw only 1, and all other just add into this array so you can iterate over it later
 * Although close method throws `CloseResourceException` after `getConnection`, this exception is not propagated, but instead appends as suppressed exception
 * if we throw exception in finally, it will overwrite getConnection exception
@@ -4069,34 +4090,6 @@ public class App {
 inside catch
 inside finally
 value => 2
-```
-
-Adding `throw` to method declaration:
-* you can add but not actually throw anything - it would compile - this maybe useful for `future-proof`, if you believe that method may throw exception in the future, you may add it now. Because otherwise, if you leave it and add later, then users of your code would have to recompile their codebase, otherwise it won't compile with new version.
-* you can define both parent and child in `throw` - although redundant but still compiles
-```java
-class Test{
-    void m1() throws Exception{}
-    void m2() throws Exception, IOException {}
-}
-```
-
-Exceptions in initializers:
-* for static - you are not allowed to throw checked exception - such code won't compile
-* for instance - you can, but you have to catch such exception in all constructors
-```java
-class Test{
-    Test() throws Exception{
-    }
-    static {
-        if (true)
-            throw new Exception(); // won't compile
-    }
-    {
-        if (true)
-            throw new Exception();
-    }
-}
 ```
 
 ###### Nested Types
