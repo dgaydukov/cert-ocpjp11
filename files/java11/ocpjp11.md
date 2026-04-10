@@ -260,7 +260,7 @@ public class App {
 ```
 5
 ```
-Java doesn’t allow variables to have the same name as keywords(if, else, while, class...) and literals (true, false, null). All others like class name, `var ` perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
+Java doesn’t allow variables to have the same name as keywords `if, else, while, class...` and literals `true, false, null...`. All others like class name, `String, var ` perfectly fine. In case of conflict between variable name and className, if variable in scope it’s variable name.
 For function arguments you can't use keyword `var`, yet if you are using lambda - you can, because lambda kind of anonymous class where types already defined, so you can use `var` keyword. Yet keep in mind in lambda you have to:
 * leave type for all arguments
 * use `var` for all arguments
@@ -279,7 +279,6 @@ long l = i;
 // won't compile
 Long l2 = i; 
 ```
-
 
 Even though multiplication is associative, if somewhere we have assignment code, associative is lost. Keep in mind that execution is happens from left to right. That's why in below example associativity is lost and we have 2 completely different results.
 ```java
@@ -324,7 +323,7 @@ public class App {
 As you see, since `a=97`, we can’t use char & int here, cause they are basically duplicates.
 
 ###### Numeric promotion
-Numeric promotion - result of math operation (+,-,*,/,&,>>) is promoted to the highest type (short+long => long), if two types are equal and less than int (byte, short) they are promoted to int.
+Numeric promotion - result of math operation (+,-,*,/,&,>>) is promoted to the highest type (short+long => long), if two types are equal and less than int (byte/short/char) they are promoted to int.
 ```java
 public class App{
     public static void main(String[] args) {
@@ -478,7 +477,7 @@ false
 ```
 As you see, the same result, but in second case we execute all operands, but in first only first - cause it’s already enough to determine the output.
 
-Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign b to true and it always work. In production code it’s better to use `true == b`. In this case if you omit one `=`, compiler will show error, cause that would mean you are trying to assign value to keyword `true`.
+Although you can compare only boolean value, be careful of following code. As you see we omit one `=`, and hence code works not as we expected, cause in condition we just reassign `b` to `true` and it always work. In production code it’s better to use `true == b`. In this case if you omit one `=`, compiler will show error, cause that would mean you are trying to assign value to keyword `true`.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -497,7 +496,7 @@ got it
 b => true
 ```
 
-Binary XOR can't be short circuit because it needs to evaluate both expression - return true if operands are different, so it needs to evaluate both expression to understand their value, and only in this case it can evaluate the expression, this is the reason why short circuit can't be applied here.
+Binary XOR (`^` operator) can't be short circuit because it needs to evaluate both expression - return true if operands are different, so it needs to evaluate both expression to understand their value, and only in this case it can evaluate the expression, this is the reason why short circuit can't be applied here.
 ```
 A   B   A^B
 0   0   0
@@ -510,8 +509,8 @@ A   B   A^B
 All wrapper classes has also static method `valueOf`:
 * `Character` - 1 method that accepts primitive `char`
 * `Boolean/Float/Double` - 2 methods that accept primitive & String
+    * `Float f = Float.valueOf(1.1);` - generate compile error, cause 1.1 is `double`
 * `Byte/Short/Integer/Long` - 3 methods that accept primitive & String & `string+radix`
-  * `Float f = Float.valueOf(1.1);` - generate compile error, cause 1.1 - double.
   * radix - is param for numeric system, in range 2..36, so using it we can convert not only to 10-based system, but all the way from 2 to 36
 Radix example:
 ```java
@@ -553,7 +552,7 @@ public class App{
 
         boolean b1 = false, b2 = false;
         /**
-         * won't compile cause boolean operation has precedence over assign
+         * won't compile because equality operator has precedence over assignment
          * so it would be like (b1==b2)=true => true=true => which is invalid exception
          */
         if(b1 == b2 = true){}
@@ -616,7 +615,7 @@ public class App{
 b2=true, i2=1, f2=1.1
 Exception in thread "main" java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer
 ```
-Autoboxing - is implicit conversion between primitive types like int => Integer, boolean => Boolean and so on (totally 8 types). We can use it when working with List of integers, boolean and so on. 
+Autoboxing - is implicit conversion between primitive types like `int` => `Integer`, `boolean` => `Boolean` and so on (totally 8 types). We can use it when working with List of integers, boolean and so on. 
 
 We can remove by value when we pass value. But since we can remove by index also, when we remove from integer, autoboxing doesn’t work. List understand that we remove by index. So if you want to remove integer from a list by value, use conversion
 ```java
