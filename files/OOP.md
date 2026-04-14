@@ -35,11 +35,10 @@ public class Test {
 @Getter
 @RequiredArgsConstructor
 class Person {
-    @Delegate
-    private final Printer printer = new Printer();
-
     private final String name;
     private final int age;
+    @Delegate
+    private final Printer printer;
 }
 
 class Printer {
@@ -57,14 +56,13 @@ Keep in mind that delegation doesn't automatically add inheritance, here if we t
 @Getter
 @RequiredArgsConstructor
 class Person {
-    private final Printer printer = new Printer();
-    
+    private final String name;
+    private final int age;
+    private final Printer printer;
+
     public void print(String msg) {
         printer.print(msg);
     }
-
-    private final String name;
-    private final int age;
 }
 
 class Printer {
@@ -81,6 +79,8 @@ class Printer {
 * AOP design pattern is based on decorators where you add logic before/after the method call, and supply your proxy object instead of original object - so adding additional features without modifying original class
 * lombok `@Delegate` annotation is similar or one of use-cases of decorator - the only difference with lombok you don't have the ability to extend the behavior, what it does - just add same logic into new class without adding additional behavior.
 ```java
+import lombok.RequiredArgsConstructor;
+
 public class Test {
     public static void main(String[] args) {
         Printer console = new ConsolePrinter();
@@ -100,11 +100,10 @@ class ConsolePrinter implements Printer {
     }
 }
 
+@RequiredArgsConstructor
 class DecoratedPrinter implements Printer {
     private final Printer printer;
-    public DecoratedPrinter(Printer printer) {
-        this.printer = printer;
-    }
+
     @Override
     public void print(String msg) {
         System.out.println("decorated printer before the call...");

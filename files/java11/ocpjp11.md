@@ -7103,17 +7103,9 @@ set with compatator that returns 0 => [1]
 ```
 
 How sets work:
-* CopyOnWriteArraySet (use internally `CopyOnWriteArrayList`) - uniqueness is guaranteed by `equals` method. CopyOnWriteArrayList (thread-safe implementation of `ArrayList`):
-    * use volatile array as internal structure
-    * all write methods `add/set/remove` are `synchronized`, inside they add/remove new value and then replace array
-    * get is not synchronized, it just returns element from array. Since array is volatile, once write operation is done, it would be replaced, and volatile guarantee happened-before, so read would always read the latest value
-    * since under-the-hood implementation is based on array, `contains` takes O(n) time
-    * if you want `contains` to run O(1) you have to use `ConcurrentHashMap.newKeySet` or combine `AtomicReference` with `HashSet` and replace set on each modification (atomic use volatile inside, so on replace it would guarantee happened-before)
-    Don't confuse:
-    * volatile array - means whole object is volatile. If you just change one element in one thread, it may be not visible in another. But if you replace whole array (with 1 new element) in first thread, then new value would be seen from second thread. Basically `CopyOnWriteArrayList` is doing this
-    * array of volatile elements - you can use one of `AtomicLongArray/AtomicIntegerArray/AtomicReferenceArray`
 * HashSet (use internally `HashMap`) - uniqueness is guaranteed by `hashcode/equals` method (first compare by `hashcode` and if they match then use `equals`, so it would be same bucket with LinkedList)
 * TreeSet (use internally `TreeMap`) - uniqueness is guaranteed by `compare/compareTo` methods
+* CopyOnWriteArraySet (use internally `CopyOnWriteArrayList`) - uniqueness is guaranteed by `equals` method.
 ```java
 import java.util.HashSet;
 import java.util.List;

@@ -38,9 +38,9 @@ There are multiple versions of JDK builds by different vendors:
 
 
 Don't confuse:
-* OpenJDK - community JDK mainly developed and maintained by Oracle with some features from other companies like RedHat, Amazon, Azul. It doesn't have concept of LTS. Every 6 months new version is released, and that's all. Older versions are not updated with any changes, that's why for OpenJDK you have to always use latest version, otherwise you risk some bugs or problems.
-* Oracle JDK - proprietary JDK by Oracle based on OpenJDK with concept of LTS (long-term support) where some versions like 8/11/17/21 are maintained and supported for many years. So the main difference from OpenJDK is some additional features and LTS. For example latest LTS is 21, but latest java is 24. So for OpenJDK you have to download java24, because java21 for OpenJDK is already outdated, nobody update and patch it. But for Oracle you can download java 21 and use it long time, because Oracle would update/patch it with changes.
-* others - all other JDK from Amazon, Red Hat, Azul and so on, basically is raw OpenJDK with some additional features added on top based on company. For example Azul concentrate a lot on performance so their JDK is the same OpenJDK but with a lot of performance tuning for faster code execution. So we can say that OpenJDK is a baseline for all other JDK.
+* OpenJDK - community JDK mainly developed and maintained by Oracle with some features from other companies like RedHat, Amazon, Azul. It doesn't have concept of LTS. Every 6 months new version is released, and that's all. Older versions are not updated with any changes, that's why for OpenJDK you have to always use latest version, otherwise you risk some bugs and problems (like security bugs that nobody fixes).
+* Oracle JDK - proprietary JDK by Oracle based on OpenJDK with concept of LTS (long-term support) where some versions like 8/11/17/21 are maintained and supported for many years. So the main difference from OpenJDK is some additional features and LTS. For example latest LTS is 21, but latest java is 24. So for OpenJDK you have to download java24, because java21 for OpenJDK is already outdated, nobody updates and patches it. But for Oracle you can download java 21 and use it long time, because Oracle will update/patch it with changes.
+* others - all other JDK from Amazon, Red Hat, Azul and so on, basically is raw OpenJDK with some additional features added on top based on company. For example Azul concentrates a lot on performance so their JDK is the same OpenJDK but with a lot of performance tuning for faster code execution. So we can say that OpenJDK is a baseline for all other JDK.
 
 Which JDK to choose out of 3(open, oracle, amazon):
 * Use OpenJDK for free, but upgrade every 6 months to get updates
@@ -69,7 +69,7 @@ Java HotSpot(TM) 64-Bit Server VM
 /Library/Java/JavaVirtualMachines/jdk-21.0.7.jdk/Contents/Home
 ```
 But if you run console command `java --version`, you can see all the output from console including versions and JDK build.
-Java come as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exists. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my MacOS terminal, I can see this:
+Java comes as part of JDK (java development kit) which can have multiple builds by multiple companies. The default one is OpenJDK build by Oracle, but other builds exist. You can get your build by running this command `java --version` - you will see not only version but JDK build. I have several builds installed, so if I run on my MacOS terminal, I can see this:
 ```shell
 # run this command for multiple JDKs
 java -XX:+PrintCommandLineFlags -version
