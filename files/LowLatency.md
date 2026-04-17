@@ -20,7 +20,7 @@
 * 17 [Java Flight Recorder](#java-flight-recorder)
 
 ### Basics
-When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using unsafe or direct bytebuffer) and manually store all fields there.
+When you build low-latency system you should think how to store your data in memory. Not just use objects with getters/setters, but actually create objects that store data in off-heap (using `Unsafe/VarHandle/ByteBuffer`) and manually store all fields there.
 change java version for Linux:
 * first install several java versions, so you can switch between them
 * you can switch both `java` and `javac` independently, for example you can compile under java8, and run under java11
@@ -32,7 +32,8 @@ sudo update-alternatives --config javac
 # switch java version in intelliJ
 File => Project Structure => Project SDK (chose either 8 or 11)
 ```
-why MS Windows shows disk size less than they are 100gb = 93gb. Answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units), yet we have JEDEC (Joint Electron Device Engineering Council)  where each increasing on 1024, take a look at this table
+
+Why MS Windows shows disk size less than they are 100gb = 93gb. Answer is simple, disk 1gb=1000mb, 1mb=1000kb, 1kb=1000bytes, this is the standard in SI (International System of Units), yet we have JEDEC (Joint Electron Device Engineering Council)  where each increasing on 1024, take a look at this table
 ```
         SI        JEDEC
 kilo    10**3     2**10
@@ -40,15 +41,15 @@ mega    10**6     2**20
 giga    10**7     2**30
 tera    10**12    2**40
 ```
-so windows just flip system of unit, 100gb in si became 93gb in JEDEC `100*10**9/2**30=93.13`
+so windows just flip system of unit, 100gb in SI became 93gb in JEDEC `100*10**9/2**30=93.13`
 
 ### CPU and Cache
 there are 3 types of memory:
 * memory - main memory of PC called RAM
-* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size, since most modern pc are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit. For pc that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7bi, for pc that works with numbers word-addressable memory is better, cause integer is 4byte
+* registers - cpu internal memory, the fastest memory available. it's size equal for cpu word size. if our cpu architecture is 32bit, then register size - 32bit, if 64bit - register size 64bit. this number should be multiple of memory unit size, since most modern PC are byte-addressable with memory unit size=8bit, or 1 byte, both 32 and 64 equally divide into 8bit. For PC that works mostly with text byte-addressable memory is better - cause min size of char in ascii is 7 bits, for PC that works with numbers word-addressable memory is better, cause integer is 4byte
 * cpu cache - memory built-in inside cpu (there are several layers inside, but for us it doesn't matter, all we care is that cpu has its own built-in memory). So when cpu needs data, it will read from memory into cache, and at some point flush data from the cache back to memory
 * cache line - small memory block that is read from memory or flushed back to memory (you don't need to read/flush whole cache). With cpu cache we have the following problem: how we can store memory location from which we read single byte. if we would store it in cache, and memory unit size is up to 32 bit, so for each byte in cpu cache we should store 4 bytes with memory address. This is not reasonable, so instead cpu cache store cache line - 64bytes and first byte's memory address which is 4bytes, useful cache size - size of only data without memory unit address, most cpu caches shows only this number, so if cache size 256 byte with 4 lines, full size 4 x (64 + 4) = 272 bytes. When cpu needs data, it goes to cache, if data in cache - cache hit, if data not there - cache miss, cpu will load data from memory and overwrite cache. Cache controller - to avoid constant cache miss, this device try to predict which memory cpu will need next and in the background constantly overwrite cache from main memory, using different algos like LRU (least recently used).
-  There are 2 types of architecture of cpu:
+There are 2 types of architecture of cpu:
 * instruction set architecture (called just architecture) - a set of instructions, data types, registers that cpu can execute
   instruction sets can be of different architectural complexity:
     * CISC (complex instruction set computer) - has many special instructions that rarely used in practice
@@ -96,15 +97,11 @@ there are 3 types of memory:
 bytecode - kind of IR (intermediate representation) for JIT compilers.
 There are 2 main compilers:
 * gcc (GNU Compiler Collection) - compiler written mostly in C consists of 2 parts
-    * frontend - parsing part, read source code from programming language (gcc for C, g++ for C++, gccgo for Go, gcj for Java)
-      and transform it into AST (abstract syntax tree). Compiler optimization and static code analysis applied on this stage.
-      and finally turn the tree into IR called RTL (register transfer language) - intermediate language independent on the cpu architecture
+    * frontend - parsing part, read source code from programming language (gcc for C, g++ for C++, gccgo for Go, gcj for Java) and transform it into AST (abstract syntax tree). Compiler optimization and static code analysis applied on this stage.
+     and finally turn the tree into IR called RTL (register transfer language) - intermediate language independent on the cpu architecture
     * backend - generate machine code for specific cpu architecture (like RISC or VLIW) from RTL, also include link-time optimization.
-* llvm - originally Low Level Virtual Machine, yet this name was removed, cause now it's umbrella project for compilers to many languages
-  written in c++, set of tech which can be used to develop frontend for any programming language and backend for any cpu architecture.
-  it can accept RTL from gcc, do optimization and generate machine code
-  it can generate static machine code or use JIT (just-in-time) similar to java
-  Java compilers:
+* llvm - originally Low Level Virtual Machine, yet this name was removed, cause now it's umbrella project for compilers to many languages written in c++, set of tech which can be used to develop frontend for any programming language and backend for any cpu architecture. it can accept RTL from gcc, do optimization and generate machine code. it can generate static machine code or use JIT (just-in-time) similar to java
+Java compilers:
 * gcj (not maintained since 2017) can compile java source code to either machine code of JVM bytecode
 * llvm java frontend - would translate java source code into bytecode
 * javac (written in java) is part of JDK, and transform java source code into bytecode    
@@ -139,8 +136,8 @@ Don't confuse 2 types of compilers:
 * AOT (ahead-of-time) - precompile everything into machine code. machine code files stored in the disk
   hotspot - compiler of jvm:
 * OSR (On Stack Replacement) - switch execution during runtime from interpreted to compiled, useful when hotspot identify function as hot
-  while it was running. if function use loop - such optimization may be useful. when it occur, jvm is paused and stack frame is replaced
-  by compiled frame. By default, each function is interpreted until certain point when it became hot and then it compiled to machine code.
+  while it was running. if function use loop - such optimization may be useful. when it occurs, jvm is paused and stack frame is replaced
+  by compiled frame. By default, each function is interpreted until certain point when it became hot, and then it compiled to machine code.
 * biased locking - optimization by jvm, when thread release the lock, jvm keeps lock, in case thread would reacquire the lock, so it can happen very fast,  if different thread try to acquire lock, then bias should be removed
 * deoptimization - when compiled code may not be called next time, and again unoptimized interpreted code may run
 ```java
@@ -170,7 +167,7 @@ There are 2 modes how you can run java (hotspot optimize execution based ont the
 CPU provides 2 types of memory model:
 * strong memory model - all processors see exactly the same value for all memory location
 * weak memory model - special cpu instruction called memory barriers, needed to flush/invalidate cache and see main memory values. Recent trend in cpu design favor weak model, cause it allows greater scalability between multiple cores.
-  JMM - describes how threads share memory. This make sense for multithreading programming. If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
+JMM - describes how threads share memory. This make sense for multithreading programming. If you are running single thread, everything is straightforward. Problems arise when multiple threads interact with each other:
 * how memory is shared between multiple threads
     * each thread runs in separate cpu which has its own cache - copy of memory
     * so if one thread change value, it's changed in cpu cache, that means memory & second cpu cache has obsolete value
@@ -180,7 +177,7 @@ CPU provides 2 types of memory model:
       thread1 => `x=1;y=2;` If thread2 reads `y` and it's value is 2, x can still be 0, cause compiler re-order lines of code
 * within thread `as-if-serial` semantics should be observed
   compiler may introduce any useful code re-organization as long as within single thread code would work as it was written
-  Cache Coherence:
+Cache Coherence:
 * cpu algo (most popular algo - MESI) that ensures that cache always read the most recent data from cache
 * there are 4 states cache line in MESI protocol:
     * invalid - cache line is obsolete, you can't read from it
@@ -198,14 +195,19 @@ compiler may change order of line 1 & 2 as it want or run in parallel, but both 
 Don't confuse:
 * parallel code running in multiple threads - multithreading programming
 * parallel execution of instructions inside single thread - can be used by cpu inside single cpu to speed up (when java compiler re-organize code, it may do so to run some lines non-dependent in parallel)
-  JVM:
+JVM:
 * each thread has its own stack where local variables stored:
     * primitive types (byte/short/int/long/boolean) - variable itself stored in the stack
     * complex types - reference to object stored in stack, object itself stored in heap
 * heap - contains all objects created by java app
-  On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
-  Rules:
-* if 2 or more thread reading an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value in his cache, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
+On hardware we don't have stack/heap, so variables from stack/heap stored in memory, and can be copied into cache
+Rules:
+* By default, java doesn't use any cache coherency, but once you start using below keywords - these commands utilize JMM and use cpu cache coherency to make sure the latest updated data is shared among all caches:
+  * volatile (memory barrier) - any thread reading the variable sees most up-to-date value
+  * synchronized (monitors & locks) - flush all variables into main memory upon exiting the block
+  * VarHandle / Unsafe (fences) - allows you to trigger cache coherency for a single operation without the overhead of a full lock
+  * final (freezing) - once construction is over, variable will not change
+* if 2 or more thread reading an object, until you use `volatile` or `synchronized` there is no guarantee that changes by one thread would be visible to others. This make sense, cause one thread may change value, but not yet flush it to memory. So in memory and other thread's cache old value reside. `volatile` keyword make sure that cpu cache flush changes to memory immediately after value changed, and all other threads always read from memory
 * if 2 or more thread writing to object, even if you use `volatile` we may have condition where 2 threads will flush some results without coordinating with each other. if 2 threads increment value by 1, then value=3, but since each will flush its own copy, final value in memory would be 2
   So to summarize you can say:
 * `volatile` - single write + multiple reads
@@ -215,32 +217,34 @@ Don't confuse:
     * writes - all values before volatile flushed to memory, reads - once volatile is read, all values after are read from memory
     * overuse of `volatile` - forbid many useful compiler optimization, so your code is slower
 * `synchronized`  - multiple writes + multiple reads
-  JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and don't do any optimization. so don't overuse native methods cause it again slow down performance
-  Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier. Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
+JNI (java native interface) - also prevent code optimization, cause JVM can't read inside, so it assumes the worst case and doesn't do any optimization. Don't overuse native methods cause it again slow down performance
+Memory barrier or memory fence - special instruction that requires CPU or compiler to enforce ordering on memory operations before & after barrier. Since modern compiler optimize the code, it may result in out-of-order-execution, and it's fine in single-threaded apps, it can be a problem in multithreaded apps, so such barrier prohibit optimization for memory operations.
   There are 4 types of memory barrier:
 * LoadLoad - all loads before barrier, happens before loads after barrier
 * LoadStore - all loads before barrier, happens before stores after barrier
 * StoreStore - all stores before barrier, happens before stores after barrier
 * StoreLoad - all loads before barrier, happens before stores after barrier
-  Memory basics:
-  proc can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern pc. So byte - the smallest addressable unit in computer - also called memory location. each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
-  Don't confuse:
-* physical address - real memory address unit represented as integer. system software or OS request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
+
+Memory basics:
+CPU can only access byte, so there is no way to read/write single bit, only whole byte, 8 bit, can be read at a time, that's why although boolean can be stored in single bit `true/false` - it's size still a byte in modern PC. So byte - the smallest addressable unit in computer - also called memory location. Each memory location store either binary data or decimal data. Memory address - fixed-length unsigned integer
+Don't confuse:
+* physical address - real memory address unit represented as integer. System software or OS request cpu to direct hardware device (memory controller) to use memory bus to get content of single memory unit (8 bits) to access it's content
 * logical address - software create virtual memory space in which running program is read/write data for each running process. then MMU create mapping between logical and physical memory, so your program doesn't care to work with main memory. Your program works with virtual memory just like with main memory, and in background OS provides mapping between logical and physical memory. We need this abstraction cause otherwise different programs will write directly into physical memory effectively overwriting each other and constantly getting `memory corrupted` error.
-  VM (virtual memory) guarantee:
+VM (virtual memory) guarantee:
 * one program can't read memory data from another program, otherwise program could hack each-other and cause trouble
 * more than one virtual address can refer to same physical address
 * virtual memory space can be larger than physical one, by using VM paging - also called swapping
-  MMU (memory management unit):
+
+MMU (memory management unit):
 * called also PMMU (paged memory management unit) - cause works based on pages
 * perform transition of virtual memory addresses into physical addresses
 * divides virtual memory into pages each is power 2 (usually in KB)
 * paging - the process to write data from physical memory into disk, so RAM acts as cache to main memory
-  if you work with c/c++ and use pointers then 2 cases are possible:
+if you work with c/c++ and use pointers then 2 cases are possible:
 * if you run your program in OS like windows/linux - for sure you are using virtual memory address space
 * if you run your program without OS or you are writing OS kernel - then you would access physical memory directly
-  There are 2 types of memory address resolution:
-1. byte-addressable - each byte has its own address. Data larger than byte stored in sequence of consecutive addresses. Most modern pc are byte-addressable. yet there are many example of cpu architecture that is word-addressable. This is due to historical reason, since computer works mostly with text and single byte should store single character, since back then ASCII was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit. Also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
+There are 2 types of memory address resolution:
+1. byte-addressable - each byte has its own address. Data larger than byte stored in sequence of consecutive addresses. Most modern PC are byte-addressable. yet there are many example of cpu architecture that is word-addressable. This is due to historical reason, since computer works mostly with text and single byte should store single character, since back then ASCII was the main format for char encoding, 8bit was enough to store single char, so we have 1 byte = 8 bit. Also for cpu it's simpler to work with byte then word - imagine you need to change symbol:
 * byte - you just read it and modify
 * word - cpu reads whole word into register, then do iteration find desired symbol and modify it - as you see algo is much complex here
 2. word-addressable - minimal memory address size is processor word. CPU word can be of size 16/24/32/64 bit, has its own memory address. For example for 32bit cpu - each 32 bits or 4 bytes would have single address. For 64 - each 64 bits or 8 bytes would have separate address. There were a few decimal-addressable machines, but they are not used nowadays
@@ -248,9 +252,9 @@ Don't confuse:
 * address size - size of memory unit, mostly 8 bits in byte-addressable system
 * word size - feature of computer architecture, how many bits cpu can process at one time. this also denote the max number of address space cpu can access. so for 32bit architecture - 2**32 bytes or 4gb can be accessed - that's why for this architecture max 4GB RAM is supported. that also means that 32bit architecture - can read/write 4 bytes at once, and 64 - 8 byte at once, yet some earlier 8bit could access 16bit memory and 16bit architecture - 20bit memory via memory segmentation.
 
-Memory visibility:
+Memory visibility hack:
 * official way is to use `volatile` - this ensures memory visibility
-* there are several functions which are not officially ensure memory visibility - but have it as side effect - if you uncomment any of the 3 lines, you will have practical visibility and the code would not stuck forever:
+* there are several functions which are not officially ensure memory visibility - but have it as side effect - if you uncomment any of the 3 lines, you will have practical visibility and the code will not be stuck forever:
   * System.out.println - due to its internal implementation of `println` which acquires lock on `PrintStream` object to ensure correctness when several thread try to log, it ensures that all read made before this call, would be visible after the call
   * `Thread`
     * `Thread.onSpinWait` - due to internal implementation of `onSpinWait` which calls `nop` instruction which flush CPU cache - you may observe memory visibility as side effects
@@ -607,13 +611,13 @@ Algos:
 Don't confuse:
 * generational GC - use young/old generations (from java 21 ZGC is generational: ` -XX:+UseZGC -XX:+ZGenerational`)
     * based on the "Weak generational hypothesis" - most objects die young.
-* non-generational GC - doesn't distinguish objects by their lifetime (shenandoah originally non-generational, there is proposal to make it generational from java25 [JEP-521](https://openjdk.org/jeps/521))
-  Don't confuse:
+* non-generational GC - doesn't distinguish objects by their lifetime (shenandoah originally non-generational, there is proposal to make it generational from java25 [JEP-521](https://openjdk.org/jeps/521)). Since java25, shenandoah is not experimental but standard product and support multi-generational GC.
+Don't confuse:
 * MinorGC - clean the young generation space (Eden)
 * MajorGC - clean the old generation space (tenured)
 * FullGC - when both MinorGC and MajorGC runs, usually happens like this:
     * JVM need memory - it runs MinorGC, moves some object into old generation
-    * If there is space in the oldGen, JVM just move objects there an stop GC cycle
+    * If there is space in the oldGen, JVM just moves objects there and stops GC cycle
     * If not enough space in the oldGen, JVM runs MajorGC to free up memory in the oldGen
 
 There are 3 types of GC:
@@ -659,7 +663,8 @@ Viewing GC logs (using GCViewer tool):
 * `-Xlog:gc*::time` - add timestamp to gc logs
 * `-Xlog:safepoint` - as combination of `-XX:+PrintGCApplicationConcurrentTime` and `XX:+PrintGCApplicationStoppedTime`
 You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off GC completely, but app may fail with OutOfMemoryException
-  GC throughput:
+
+GC throughput:
 * the percentage of app running vs. gc running (for example 98% GC throughput means that app code running 98% of time and GC running 2% of total time)
 * to calculate such throughput you need determine the time spent in garbage collection versus the time spent running the application
 * You should use `jstat` utility to calculate throughput
@@ -732,6 +737,7 @@ You can run app without GC by adding `-XX:+UseEpsilonGC` - this would switch off
 * `-XX:+UseShenanodoahGC` -
   SATB - snapshot at the beginning, algo used to mark unreachable objects. We need this algo, cause we run marking at the same time as app is running. So if we don't do this, while we run, app may change reference and we can accidentally remove used object. Example. A->B->C. If we start marking, we go to A, then B, but at the same time B is no longer point to C, A is point to C now. But since we already passed A, we won't know this. So it's better to make snapshot of object graph at the beginning and use it for marking. When we run concurrent compact - we need to move object into new memory space. But since we have multiple threads read/write into this object to avoid situation where 2 threads write into 2 different copies
   we have read/write barrier - where once we create new copy we put pointer into first, and all links that read/write go to new copy through the pointer
+
 Don't confuse:
 * serial GC - use one thread to run GC
 * parallel GC - use multiple threads to run GC
@@ -1147,7 +1153,7 @@ public class App{
 ```
 # A fatal error has been detected by the Java Runtime Environment:
 #
-#  SIGSEGV (0xb) at pc=0x00007fa6425266f3, pid=2136, tid=2138
+#  SIGSEGV (0xb) at PC=0x00007fa6425266f3, pid=2136, tid=2138
 #
 # JRE version: OpenJDK Runtime Environment (11.0.9.1+1) (build 11.0.9.1+1-Ubuntu-0ubuntu1.18.04)
 # Java VM: OpenJDK 64-Bit Server VM (11.0.9.1+1-Ubuntu-0ubuntu1.18.04, mixed mode, sharing, tiered, compressed oops, g1 gc, linux-amd64)
@@ -1816,7 +1822,7 @@ public class App{
 ```
 
 ### Low latency logging
-The whole idea is that we use some non-blocking queue, so the executing threads not blocked (waste time) for log writing, it just add log messages to some non-blocking queue, and then we have some logger thread, that actually does logging. You can implement it yourself with any lock-free multi-threading queue, but there are 2 solutions available:
+The whole idea is that we use some non-blocking queue, so the executing threads not blocked (waste time) for log writing, it just adds log messages to some non-blocking queue, and then we have some logger thread, that actually does logging. You can implement it yourself with any lock-free multi-threading queue, but there are 2 solutions available:
 * [chronicle logger](https://github.com/OpenHFT/Chronicle-Logger) - use chronicle queue under the hood
 * [async log4j2](https://logging.apache.org/log4j/2.x/manual/async.html) - use lmax disruptor under the hood
 
@@ -2414,7 +2420,7 @@ Brief introduction:
 * you can use it if you don't/can't modify original code, so you add this agent code to modify your original code on byte code level
 * aeron logs using this tool for logging - in order to avoid scattered log statement all around the code, they decided to use java agent instead
 * logic is similar to javassist, where you weave agent code into your own, and kind of enhancing the functionality of your code without actually modifying it (again kind of Reflection)
-  There are 2 types of loading:
+There are 2 types of loading:
 * static (use of `premain` method) - calling it as separate jar in java command: `java -javaagent:agent.jar -jar app.jar`
     * you need to add `Premain-Class : com.java.test.JavaAgent` entry to manifest
 * dynamic (use of `agentmain` method) - use java API to integrate call into the code: use `VirtualMachine` java class

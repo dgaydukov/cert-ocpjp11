@@ -14,12 +14,12 @@
 * stack size is limited to 64KB, but you can increase with `-Xss` settings, yet heap is unlimited from java perspective and is limited only by available RAM
   * `-Xms` - set initial heap size
   * `-Xmx` - set max heap size, example `java -Xms1024 -Xmx2048m app.jar` - set heap size of 1GB and up to 2GB
-* type - refers to class/enum/interface/record or any primitive type, basically any variable is a type. 2 types exists: reference type and primitive type
+* type - refers to `class/enum/interface/record` or any primitive type, basically any variable is a type. 2 types exists: reference type and primitive type
 * `import` keyword - doesn't import anything, it helps user to avoid FQCN (fully qualified class name) to use in the code, so to keep code cleaner and shorter. Yet under-the-hood java uses import statements as FQCN if you declare just class names in java code. That's why you can have duplicate imports and there is no error, because no import happens, all import statements are just declarations
 * there is no subpackage concept, if you do `import com.java.*` it will import only all classes, not all subpackages, so `import com.java.*.*` is invalid statement. you can't import package/class that doesn't exist
 * java expect project structure to map to package name, so when you compile with `javac` use `-d` option - it will direct compiler to create directory structure based on package names
 * if you have multiple java files and need to compile, first you need to compile independent class and then dependent. But you can pass all classes to compiler, and it would decide on dependency itself. You can call `javac -d . A.java B.java C.java` - compiler would compile all off them. Even simpler solution is `javac -d . *.java`
-* java has `pass-by-value` semantics because in both cases for primitive & reference type you pass actual value (either primitive value or value of memory address for reference type). Any variable just contain raw-number, and it's JVM job to interpret this number as either real number int/long/char in case for primitive type, or as memory address on the heap in case of reference type. But variable in java would always contain just raw number. So if you pass either primitive or reference param into function and assign new value to this param. Original value won't be changed: in below example both int and `obj` are the same, although were changed inside function. But because of `pass-by-value`, you can't change the value. You can change it inside function scope, but this doesn't affect outside variables.
+* java has `pass-by-value` semantics because in both cases for primitive & reference type you pass actual value (either primitive value or value of memory address for reference type). Any variable just contain raw-number, and it's JVM job to interpret this number as either real number `int/long/char` in case for primitive type, or as memory address on the heap in case of reference type. But variable in java would always contain just raw number. So if you pass either primitive or reference param into function and assign new value to this param, original value won't be changed: in below example both int and `obj` are the same, although were changed inside function. But because of `pass-by-value`, you can't change the value. You can change it inside function scope, but this doesn't affect outside variables.
 ```java
 public class App {
     public static void main(String[] args) {
@@ -36,7 +36,7 @@ public class App {
     }
 }
 ```
-During method call, variables are copied into local variables of the method, so i & obj, inside `call` are copies of original values of i & obj from `main` method.
+During method call, variables are copied into local variables of the method, so `i` & `obj`, inside `call` are copies of original values of i & obj from `main` method.
 * `int x = y = 1` is invalid, because initialization happens from left to right, `y` should be declared first. Yet this code is fine `int y; int x = y = 1;` because we declared `y` first, so `y=1` just works because `y` was already declared before.
 * `var` is a shortcut, just like `import`, when you use it, under-the-hood JVM just translate your code into full name. Because it's shortcut you can write `var var = 1`.
 * variable created from auto-generated code starts from `_` or `$`.
@@ -54,7 +54,7 @@ class Person {
     }
 }
 ```
-* initializer can't throw exception, such code won't compile. And you can't even throws (even conditional) checked exception.
+* initializer can't throw exception, such code won't compile. And you can't throw (even conditional) checked exception.
 ```java
 class Person {
     {
