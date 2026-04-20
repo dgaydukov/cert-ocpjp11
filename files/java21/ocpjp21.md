@@ -166,7 +166,7 @@ record B() implements I{}
 ```
 
 * `default` can be anywhere even as first label - it's a good practice to put it the last
-  * different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement.
+  * different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement - compiler protects you by manage ordering and if you put `default` on top or any super-class before children you get compilation error: `this case label is dominated by a preceding case label`
   * `null` - is not part of `default` but is a separate label, this is done for backward compatability. Yet we can omit `null` label - no compilation error.
 * fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
     * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
@@ -238,7 +238,7 @@ public class App {
 ```
 * patten matching with `switch`:
   * you have old and new syntax to use patten matching
-  * `break` is required for old syntax - if you miss first `break` code won't compile with error `illegal fall-through to a pattern`, yet you can miss last `break` before `default`
+  * `break` is required for old syntax - if you miss first `break` code won't compile with error `illegal fall-through to a pattern`, yet you can miss last `break` before `default` - in this case last case + default - both would be executed
     * in new syntax you can have `break` inside curly brackets, but it's not required
   * exhaustive - such switch should include all possible use-cases or `default` keyword
   * order of `case` - it should be in growing order `Integer => Number => Object` if you change the order you get compilation error: `this case label is dominated by a preceding case label`
@@ -330,8 +330,8 @@ byte b = 100;
 short s = b;
 int i = s;
 ```
-* since byte/short/int/long are signed and char is unsigned, you can:
-  * assign char to int/long
+* since `byte/short/int/long` are signed and `char` is unsigned, you can:
+  * assign `char` to `int/long`
   * can't assign without casting anything to `char`
 ```java
 char c = 100;
@@ -339,9 +339,9 @@ int i = c;
 long l = c;
 ```
 * floating point are the highest numbers:
-  * you can assign byte/short/char/int/long to float
-  * you can assign all to double
-  * you can't assign float to int/long, although float is 4 bytes and long is 8, float storing higher number
+  * you can assign `byte/short/char/int/long` to `float`
+  * you can assign all to `double`
+  * you can't assign `float` to `int/long`, although `float` is 4 bytes and `long` is 8, `float` storing higher number
 ```java
 int i = 100;
 long l = 100;
@@ -429,7 +429,7 @@ class WeirdCompiler {
     }
 }
 ```
-So in both cases you have `static final` var that is not supposed to change, yet in one case compilation works fine, yet in another it fails. This is because java designed it in such way, cause many devs use `if` statements for debug purposes, so they change one value for `DEBUG` and all code inside `if` would be visible or not. That's why java designers decided to let `if` statement with `static final` still be reachable and not produce compile error. Yet with `while` here is obviously no utility, that's why in this case it shows compilation error of unreachable code. If you remove `final` it would work fine.
+So in both cases you have `static final` variable that is not supposed to change, yet in one case compilation works fine, but in another it fails. This is because java designed it in such way, cause many devs use `if` statements for debug purposes, so they change one value for `DEBUG` and all code inside `if` would be visible or not. That's why java designers decided to let `if` statement with `static final` still be reachable and not produce compile error. But with `while` here is obviously no utility, that's why in this case it shows compilation error of unreachable code. If you remove `final` it would work fine.
 
 ###### Nested Types
 Since java16 with `JEP-395`, you can have static members for inner classes, and behavior may look a bit confusing
@@ -451,7 +451,7 @@ class Outer {
     }
 }
 ```
-See that `inner1` and `inner2` are 2 completely unrelated classes, each has its own parent, which are also unrelated. You should expect that static fields inside `Inner` would also be unrelated, but they actually are and shared across all instances of `Inner` class. This may look confusing at first, that's why java designers originally prohibit this behavior to avoid such confusion, but since adding `record` they have to relax this rule, and now you can have static members inside inner classes.
+See that `inner1` and `inner2` are 2 completely unrelated classes, each has its own parent, which are also unrelated. You should expect that static fields inside `Inner` would also be unrelated, but they actually are related and shared across all instances of `Inner` class. This may look confusing at first, that's why java designers originally prohibit this behavior to avoid such confusion, but since adding `record` they have to relax this rule, and now you can have static members inside inner classes.
 ```
 inner1.i => 1
 inner1.i => 2
@@ -472,11 +472,11 @@ record Person(String name, int age) {
 ```java
 record Person(int id) extends Object{} // won't compile
 ```
-* record like enum can implement interfaces and inherit their default method
-* it's final:
-  * you can add `final` keyword explicitly - but it's redundant 
-  * you can't extend record from any other class, and you can't extend class from the record
-  * you can't make it `abstract` or `sealed`
+* record like enum can implement interfaces and inherit their default method:
+  * it's implicitly `final` - you can add `final` keyword explicitly - but it's redundant 
+  * you can't extend record from any other class - because any `record` is automatically inherited from `Record` class
+  * and you can't extend class from the record - because any `record` is `final`
+  * you can't make it `abstract` or `sealed` (because nobody can extend from it, so `final` class can't be `sealed`)
 ```java
 record Person(int id){}
 class My extends Person{} // won't compile

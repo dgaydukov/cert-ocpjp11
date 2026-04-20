@@ -15733,7 +15733,7 @@ null => oops
 
 4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces. 
 * Sealed classes/interfaces are a way to create a tagged union - are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week. Just like enums you can use it inside `switch` without `default` keyword.
-There are several rules when you create sealed class/interface:
+There are several rules when you create `sealed` type:
 * classes in `permits` section should be already defined, otherwise it won't compile
 ```java
 // this code won't compile with error: can't resolve symbol SportCar
@@ -15749,17 +15749,15 @@ sealed interface Car {
 
 non-sealed interface Suv extends Car{}
 ```
-* child classes should be clearly defined as either `sealed` or `no-sealed` - if you try to create subclass without explicitly stating this, you will get compilation error 
+* child classes should be clearly defined as either `final/sealed/non-sealed` - if you try to create subclass without explicitly stating this, you will get compilation error 
 ```java
-sealed interface Car permits SportCar, SuvCar, SuperCar{
-    int getSpeed();
-}
-final interface SportCar extends Car{}
-non-sealed interface SuvCar extends Car{}
+sealed class Car permits SportCar, SuvCar, SuperCar, Truck{}
+final class SportCar extends Car{}
+non-sealed class SuvCar extends Car{}
 // compile error: sealed class must have subclasses
-sealed interface SuperCar extends Car{}
+sealed class SuperCar extends Car{}
 // compile error: modifier sealed or non-sealed is expected
-interface SuperCar extends Car{}
+class Truck extends Car{}
 ```
 * you are not able to extend class until it explicitly in `permits` section
 ```java
