@@ -1916,7 +1916,7 @@ class=class com.koloboke.collect.impl.hash.MutableLHashSeparateKVLongObjMap, map
 * for map use:
     * putReturnsNull(true) - this won't return prev value on put, so it would generate less garbage (cause old value needs to be retreived and returned as object)
     * use special values like `LongValue` instead of `Long`
-    * keys & values must be serializable to be stored in file, otherwise nothing would be stored, you get `ClassCastException: class com.java.test.Person cannot be cast to class java.io.Serializable`
+    * keys & values must be serializable to be stored in file, otherwise nothing would be stored, you get `ClassCastException: class com.java.test.PersonBeam cannot be cast to class java.io.Serializable`
 ```java
 import net.openhft.chronicle.queue.ChronicleQueue;
 import net.openhft.chronicle.queue.ExcerptAppender;
@@ -2068,7 +2068,7 @@ class Person implements Serializable {
 persistedMap => {1=Person(name=jack, age=30)}
 ```
 Using [Chronicle-Values](https://github.com/OpenHFT/Chronicle-Values)
-In this case we don't need to use `averageValueSize`, if we use we get `IllegalStateException: Size of interface com.java.test.Person instances is constant and statically known, shouldn't be specified via averageValueSize() or averageValue() methods`
+In this case we don't need to use `averageValueSize`, if we use we get `IllegalStateException: Size of interface com.java.test.PersonBeam instances is constant and statically known, shouldn't be specified via averageValueSize() or averageValue() methods`
 ```java
 import net.openhft.chronicle.bytes.Byteable;
 import net.openhft.chronicle.bytes.Bytes;
@@ -2115,8 +2115,8 @@ interface Person extends Byteable {
 }
 ```
 ```
-personMaxSize=15, offHeapPerson=com.java.test.Person$$Native@bbcc4fca
-persistedMap => {net.openhft.chronicle.core.values.LongValue$$Heap@f4242=com.java.test.Person$$Heap@bbcc4fca}
+personMaxSize=15, offHeapPerson=com.java.test.PersonBeam$$Native@bbcc4fca
+persistedMap => {net.openhft.chronicle.core.values.LongValue$$Heap@f4242=com.java.test.PersonBeam$$Heap@bbcc4fca}
 ```
 There is library chronicle-wire for serialization/deserialization:
 * you can implement `readMarshallable/writeMarshallable` from `Marshallable` for custom read/write, by default all fields are serialized

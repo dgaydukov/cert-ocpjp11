@@ -6687,7 +6687,7 @@ class Person{
 }
 ```
 ```
-{com.java.test.Person@0=1, com.java.test.Person@0=1}
+{com.java.test.PersonBeam@0=1, com.java.test.PersonBeam@0=1}
 ```
 Although hashcode are same, yet we still have 2 objects
 * if you have poorly written `hashcode`, then bucket would use `TreeMap` otherwise `LinkedList`
@@ -8148,7 +8148,7 @@ public static Comparator<Person> sort() {
 ```
 You can also achieve this by implementing `Comparable<T>` interface:
 * If we remove `implements Comparable<Person>` we would get compile time error, cause sort expects list of T extends Comparable
-* If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.Person cannot be cast to class java.lang.Comparable`
+* If we change `List<Person> people` => `List people`, code will compile but throw `java.lang.ClassCastException: class com.java.test.PersonBeam cannot be cast to class java.lang.Comparable`
 ```java
 import java.util.*;
 
@@ -11590,7 +11590,7 @@ Today Java serialization not used, because other types of serialization exits:
 * web development and microservice architecture - json/xml
 * low latency app - protobuf/SBE/chronicle
 There is a [good article](https://www.infoworld.com/article/2164139/the-java-serialization-algorithm-revealed-2.html) but it's from 2009, things have changed a bit for the last 15 years. Yet both java11 and java21 exam still has questions for serialization. Apparently knowing the basics will help understand other third-party popular tools.
-When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called. Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object. It searches all parents until it found one that doesn't implement `Serializable` and have default constructor, (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.Person; no valid constructor`), and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor. Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`. Always use `serialVersionUID` variable, if doubt just set `private static final long serialVersionUID = 1;`. Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and your deserialization will fail. Java serialization is binary serialization, so your file would have binary content (compare to xml/json). You can decode this binary file for one of below example with following command
+When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called. Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object. It searches all parents until it found one that doesn't implement `Serializable` and have default constructor, (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.PersonBeam; no valid constructor`), and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor. Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`. Always use `serialVersionUID` variable, if doubt just set `private static final long serialVersionUID = 1;`. Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and your deserialization will fail. Java serialization is binary serialization, so your file would have binary content (compare to xml/json). You can decode this binary file for one of below example with following command
 ```
 $ hexdump -C text
 
@@ -11619,8 +11619,8 @@ class Person implements Serializable {}
 ```
 Using command line
 ```
-serialver -classpath target/classes com.java.test.Person
-#com.java.test.Person:    private static final long serialVersionUID = 1733576120003020849L;
+serialver -classpath target/classes com.java.test.PersonBeam
+#com.java.test.PersonBeam:    private static final long serialVersionUID = 1733576120003020849L;
 ```
 When you create instance of `ObjectOutputStream` you can pass either `BufferedOutputStream` or `FileOutputStream`: both would work fine, but it's recommended to always pass buffered instance, because it would be faster due to internal buffer. Yet passing just file stream would work. This is why some examples below pass file stream and others buffered stream.
 Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail. You can also get serial number from binary data itself:
@@ -12087,7 +12087,7 @@ class Person implements Externalizable {
         return "Person [name=" + name + ", age=" + age + "]";
     }
 
-    // you need to have no-arg constructor, otherwise you will get exception: InvalidClassException: com.java.test.Person; no valid constructor
+    // you need to have no-arg constructor, otherwise you will get exception: InvalidClassException: com.java.test.PersonBeam; no valid constructor
     public Person() {
         System.out.println("Person no-arg constructor called");
     }
@@ -12166,7 +12166,7 @@ class Person extends Human implements Serializable {
 ```
 
 Example of serializable child and non-serializable parent:
-* parent should have no-args constructor, otherwise: `java.io.InvalidClassException: com.java.test.Person; no valid constructor`
+* parent should have no-args constructor, otherwise: `java.io.InvalidClassException: com.java.test.PersonBeam; no valid constructor`
 * state of the parent won't be serialized, and would be default value after deserialization
 * state of the child is successfully serialized and deserialized
 ```java
@@ -14944,7 +14944,7 @@ class Person {
 name: Jack, age: 30
 
 package: com.java.test
-className: com.java.test.Person
+className: com.java.test.PersonBeam
 superClass: java.lang.Object
 number of annotations: 0
 number of interfaces: 0

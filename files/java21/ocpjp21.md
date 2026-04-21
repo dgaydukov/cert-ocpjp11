@@ -493,13 +493,9 @@ record Person (String name, int age) {
         if (age > 99) {
             throw new IllegalArgumentException("Age is too big");
         }
-        validate(age);
         validateAge(age);
         this.name = name;
         this.age = age;
-    }
-    private void validate(int age){
-        validateAge(age);
     }
     public Person () {
         this("dummy", 99);
@@ -539,7 +535,7 @@ record Person (String name, int age) {
 ```
 If record doesn't implement interface, if you try to check if it's instance of interface, the code won't compile:
 * this make sense because `record` is always `final` class
-* since for `final` class we know that it will not have any subclasses that can in theory implement this interface - it's knows on compile-time that record doesn't implement ths interface
+* since for `final` class we know that it will not have any subclasses that can in theory implement this interface - it's known on compile-time that record doesn't implement this interface
 ```java
 public class App {
     public static void main(String[] args) {
@@ -564,13 +560,13 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
-        Person p1 = new Person("John", 30);
+        PersonBeam p1 = new PersonBeam("John", 30);
         System.out.println("p1=" + p1);
         System.out.println("name=" + p1.getName() + ", age=" + p1.getAge());
 
-        Person2 p2 = new Person2("John", 30);
+        PersonRecord p2 = new PersonRecord("John", 30);
         System.out.println("p2=" + p2);
         System.out.println("name=" + p2.name() + ", age=" + p2.age());
     }
@@ -579,18 +575,18 @@ public class App {
 @RequiredArgsConstructor
 @Getter
 @ToString
-class Person {
+class PersonBeam {
     private final String name;
     private final int age;
 }
 
-record Person2(String name, int age) {}
+record PersonRecord(String name, int age) {}
 ```
 We have to use 3 lombok annotations to achieve same result. Also pay attention to getter names, `record` doesn't follow JavaBean standard
 ```
-p1=Person(name=John, age=30)
+p1=PersonBeam(name=John, age=30)
 name=John, age=30
-p2=Person2[name=John, age=30]
+p2=PersonRecord[name=John, age=30]
 name=John, age=30
 ```
 * record may have static but not instance initializers
@@ -609,22 +605,28 @@ record Person (String name, int age) {
   * should not throw exception
 ```java
 record Person(String name, int age) {
-    String name() throws RuntimeException{ // wont' compile
+    String name() throws RuntimeException { // wont' compile
         return name;
     }
 }
 ```
-* generic records - first condition won't compile, because we don't know that it's type of `String`, but for second record, it's explicitly stated that `Address` would be type of `String`, so adding string works
+* generic records:
+  * first condition won't compile - `T` can be anything from `Address` and we can't deconstruct object `address` into generic T
+  * second condition - we fix it by removing generic type
+  * third condition - explicitly stated that `Address` would be type of `String`, so adding string works
 ```java
-public class App {
+public class Test {
     public static void main(String[] args) {
         Object address = new Address<>("street");
         Object person = new Person("John", new Address<>("street"));
         if (address instanceof Address<String>(var value)) { // won't compile
             System.out.println(value);
         }
+        if (address instanceof Address(var value)) {
+            System.out.println(value); // type of value is Object
+        }
         if (person instanceof Person(var name, Address<String>(var value))) {
-            System.out.println(name+", "+value);
+            System.out.println(name+", "+value); // type of value is String
         }
     }
 }
