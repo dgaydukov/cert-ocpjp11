@@ -636,7 +636,7 @@ record Person(String name, Address<String> address){}
 ```
 * record serialization:
   * record can be serialized but it needs to implement `Serializable`
-  * you can't customize serialization rule. Compare to the class where you can customize by implementing `Serializable` and add private `writeObject/readObject` or implement `Externalizable` - for record those methods just won't be called - this is because record are immutable and state can't change after it was created. So adding custom methods may tamper with immutability.
+  * you can't customize serialization rule. Compare to the class where you can customize by implementing `Serializable` and add private `writeObject/readObject` or implement `Externalizable` - for record those methods just won't be called - this is because record are immutable and state can't change after it was created. So adding custom methods may tamper with immutability - this make sense cause to do it your fields can't be `final`. So same true for any class with final fields - java just doesn't allow you to reassign any values inside these functions to `final` fields.
   * canonical constructor is called - basically java create new record from scratch, just like you would create it with `new ...`. This is different from class, for which serialization rules are different.
   * serialized form - sequence of values derived from the record component fields
   * `serialVersionUID` is 0L by default

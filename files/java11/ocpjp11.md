@@ -10343,8 +10343,8 @@ class Account {
     }
 }
 ```
-There are 3 ways to get jvm process thread dump. But first we need to get processId.
-We can get it in 2 ways (As you see jvm can help us by showing the problems):
+There are 3 ways to get JVM process thread dump. But first we need to get processId.
+We can get it in 2 ways (As you see JVM can help us by showing the problems):
 1. run `jps` - will display all java processes id and names
 ```
 22634 Main
@@ -11586,11 +11586,15 @@ Get exception: message => Unknown column 'ids' in 'where clause', SQLState => 42
 
 #### Serialization
 ###### Java serialization
+Notice:
+* For all examples we use `lombok` to make code shorter and get rid of all boilerplate
+* For all examples we would use `import java.io.*` to shorten examples size
+
 Today Java serialization not used, because other types of serialization exits:
 * web development and microservice architecture - json/xml
 * low latency app - protobuf/SBE/chronicle
 There is a [good article](https://www.infoworld.com/article/2164139/the-java-serialization-algorithm-revealed-2.html) but it's from 2009, things have changed a bit for the last 15 years. Yet both java11 and java21 exam still has questions for serialization. Apparently knowing the basics will help understand other third-party popular tools.
-When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called. Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object. It searches all parents until it found one that doesn't implement `Serializable` and have default constructor, (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.PersonBeam; no valid constructor`), and jvm creates class from that default constructor. But compare with `new` initialization, jvm didn't go further to class constructor. Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`. Always use `serialVersionUID` variable, if doubt just set `private static final long serialVersionUID = 1;`. Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and your deserialization will fail. Java serialization is binary serialization, so your file would have binary content (compare to xml/json). You can decode this binary file for one of below example with following command
+When deserialization of new object happens only static initializer fires (if class wasn't loaded before deserialization), constructors & instance initializer are not executed. First uncomment line to serialize object, then comment and run and you will see that only static initializers are called. Deserialization doesn't invoke constructor & instance initializer because the point of deserialization is to recover an object as it was before serialization. Calling constructor or instance initializers may tamper with object. It searches all parents until it found one that doesn't implement `Serializable` and have default constructor, (if it doesn't have such a class it goes all way up to `Object`, if it has such class, but that class doesn't have no-arg constructor, exception is thrown `java.lang.RuntimeException: java.io.InvalidClassException: com.java.test.PersonBeam; no valid constructor`), and JVM creates class from that default constructor. But compare with `new` initialization, JVM didn't go further to class constructor. Pay attention that static fields don't serialize. If you want to serialize class into file or deserialize it use `ObjectInputStream/ObjectOutputStream`. Always use `serialVersionUID` variable, if doubt just set `private static final long serialVersionUID = 1;`. Otherwise, compiler will generate version for you, but if you change something like adding `transient` field, what is not obstructing deserialization, java may regenerate your serialVersionUID and your deserialization will fail. Java serialization is binary serialization, so your file would have binary content (compare to xml/json). You can decode this binary file for one of below example with following command
 ```
 $ hexdump -C text
 
@@ -11625,16 +11629,11 @@ serialver -classpath target/classes com.java.test.PersonBeam
 When you create instance of `ObjectOutputStream` you can pass either `BufferedOutputStream` or `FileOutputStream`: both would work fine, but it's recommended to always pass buffered instance, because it would be faster due to internal buffer. Yet passing just file stream would work. This is why some examples below pass file stream and others buffered stream.
 Here we don't set clearly serialNumberUID so javac generate it for us. Pay attention if we don't implement `Serializable`, `ObjectStreamClass.lookup(Person.class)` will return null, and `serialver` utility will fail. You can also get serial number from binary data itself:
 ```java
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
-import java.io.Serializable;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         File file = new File("src/main/java/com/java/test/data.ser");
         Person p1 = new Person("Jack", 30);
@@ -11677,28 +11676,17 @@ public class App {
     }
 }
 
+@RequiredArgsConstructor
+@ToString
 class Person implements Serializable {
     private static final long serialVersionUID = 9999;
-    private String name;
-    private int age;
-    public Person(String name, int age){
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString(){
-        return "Person[name="+name+", age="+age+"]";
-    }
+    private final String name;
+    private final int age;
 }
 ```
 You can also use `ByteArrayOutputStream` if you want to serialize the object into byte array, without using file. Then you can either save your byte array, or work directly with it. I'm using `record` for cleaner code.
 ```java
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.io.*;
 
 public class Test {
     public static void main(String[] args) {
@@ -11727,18 +11715,11 @@ deserialized => Person[name=Jack, age=30]
 ```
 We can serialize and deserialize single as well as list of objects. In case of list of objects there is no way to determine end-of-file with `readObject`, so we are using exception to catch it and swallow. This is the only case where it's appropriate to swallow exception.
 ```java
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         serializeSingleObject();
         serializeList();
@@ -11796,34 +11777,29 @@ public class App {
         System.out.println("deserialized => " + deserialized);
     }
 }
+@RequiredArgsConstructor
+@ToString
 class Person implements Serializable {
     private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public String toString() {
-        return "Person[name="+name+",age="+age+"]";
-    }
+    private final String name;
+    private final int age;
 }
 ```
 ```
-p2 => Person[name=Mike,age=30]
+p2 => Person(name=Mike, age=30)
 end of file
-deserialized => [Person[name=Jack,age=25], Person[name=Mike,age=35], Person[name=Melanie,age=30], Person[name=David,age=20]]
+deserialized => [Person(name=Jack, age=25), Person(name=Mike, age=35), Person(name=Melanie, age=30), Person(name=David, age=20)]
 ```
 If our object is composite and includes other objects, they all must implement `Serializable` or be declared `transient` or `static`. Otherwise, we would get error. Since `Body` object inside `Person` doesn't implement `Serializible` we got error trying to serialize:
 * If we change it to `transient private Body body;` it won't be serialized, and would be set to `null` when we deserialize => `Person [name=Mike, age=30, null]`
 * If we change it to `class Body implements Serializable` => `Person [name=Mike, age=30, body=Body[weight=75]]`
 * If body inside person is null, we won't get serialization error
 ```java
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         File file = new File("src/main/java/com/java/test/text");
 
@@ -11842,31 +11818,18 @@ public class App {
         }
     }
 }
+@RequiredArgsConstructor
+@ToString
 class Person implements Serializable {
     private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-    private Body body;
-
-    public Person(String name, int age, Body body) {
-        this.name = name;
-        this.age = age;
-        this.body = body;
-    }
-
-    public String toString() {
-        return "Person[name="+name+",age="+age+",body="+body+"]";
-    }
+    private final String name;
+    private final int age;
+    private final Body body;
 }
+@RequiredArgsConstructor
+@ToString
 class Body{
-    private int weight;
-    public Body(int weight){
-        this.weight = weight;
-    }
-    @Override
-    public String toString(){
-        return "Body[weight=" + weight + "]";
-    }
+    private final int weight;
 }
 ```
 ```
@@ -11878,9 +11841,11 @@ There are 3 ways we can customize serialization:
 * implement `Externalizable` interface
 Set `serialPersistentFields` to define what fields to serialize. Name should be private and match exactly.
 ```java
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         File file = new File("src/main/java/com/java/test/data.ser");
 
@@ -11901,28 +11866,22 @@ public class App {
     }
 }
 
+@RequiredArgsConstructor
+@ToString
 class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
     private static final ObjectStreamField[] serialPersistentFields = {
-        new ObjectStreamField("name", String.class),
-        new ObjectStreamField("age", int.class),
+            new ObjectStreamField("name", String.class),
+            new ObjectStreamField("age", int.class),
     };
-    private String name;
-    private int age;
-    private int weight;
-    public Person(String name, int age, int weight) {
-        this.name = name;
-        this.age = age;
-        this.weight = weight;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + ", weight=" + weight + "]";
-    }
+    private final String name;
+    private final int age;
+    private final int weight;
 }
 ```
 ```
-Person [name=Mike, age=30, weight=80]
-Person [name=Mike, age=30, weight=0]
+Person(name=Mike, age=30, weight=80)
+Person(name=Mike, age=30, weight=0)
 ```
 Define custom `writeObject` and `readObject`:
 * they should be declared `private` - otherwise they won't be invoked
@@ -11939,9 +11898,11 @@ private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundE
 ```
 If you need more custom logic, you should implement them in your code and add any logic. If you want to prevent serialization just implement them and throw `NotSerializableException`.
 ```java
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args) {
         File file = new File("src/main/java/com/java/test/data.ser");
 
@@ -11962,22 +11923,14 @@ public class App {
         }
     }
 }
+@RequiredArgsConstructor
+@ToString
 class Person implements Serializable {
     private static final long serialVersionUID = 1L;
-    private String name;
-    private int age;
-
+    private final String name;
+    private final int age;
     public transient int weight = 1;
     public static int currentObject = 1;
-
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public String toString() {
-        return "Person[name="+name+", age="+age+", weight="+weight+", currentObject="+currentObject+"]";
-    }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
         // utilize default serialization
@@ -11996,13 +11949,15 @@ class Person implements Serializable {
 }
 ```
 ```
-p2 => Person[name=Mike, age=30, weight=80, currentObject=100]
+p2 => Person(name=Mike, age=30, weight=80)
 ```
-We can also use `writeFields` and `readFields`.
+We can also use `writeFields` and `readFields` - in this case our fields can't be `final`, keep this in mind
 ```java
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         File file = new File("src/main/java/com/java/test/data.ser");
 
@@ -12022,17 +11977,12 @@ public class App {
     }
 }
 
+@AllArgsConstructor
+@ToString
 class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String name;
     private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
 
     private void writeObject(ObjectOutputStream out) throws IOException{
         ObjectOutputStream.PutField fields = out.putFields();
@@ -12048,48 +11998,44 @@ class Person implements Serializable {
 }
 ```
 ```
-Person [name=Mike, age=30]
+Person(name=Mike, age=30)
 ```
-We can also use custom serialization with `Externalizable` interface. In this case you have to override 2 methods + add no-arg constructor
+We can also use custom serialization with `Externalizable` interface:
+* in this case you have to override 2 methods + add no-arg constructor
+* it gives full control to developer and use normal flow to create your object, that's why you need to have no-arg constructor - this is different from `Serializable` which use low-level JVM to allocate memory, so it doesn't need your constructor to create object
 ```java
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         File file = new File("src/main/java/com/java/test/data.ser");
 
         try(ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))){
-            Person p1 = new Person("Mike", 30);
-            out.writeObject(p1);
+            Person p = new Person("Mike", 30);
+            out.writeObject(p);
         } catch (IOException ex){
             throw new RuntimeException(ex);
         }
-
         try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
-            Person p2 = (Person)in.readObject();
-            System.out.println(p2);
+            Person p = (Person)in.readObject();
+            System.out.println(p);
         } catch (IOException | ClassNotFoundException ex){
             throw new RuntimeException(ex);
         }
     }
 }
 
-
+@AllArgsConstructor
+@ToString
 class Person implements Externalizable {
     private String name;
     private int age;
-    public Person(String name, int age) {
-        this.name = name;
-        this.age = age;
-    }
-    @Override
-    public String toString() {
-        return "Person [name=" + name + ", age=" + age + "]";
-    }
 
     // you need to have no-arg constructor, otherwise you will get exception: InvalidClassException: com.java.test.PersonBeam; no valid constructor
     public Person() {
-        System.out.println("Person no-arg constructor called");
+        System.out.println("Person no-arg constructor");
     }
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
@@ -12105,8 +12051,9 @@ class Person implements Externalizable {
 }
 ```
 ```
-Person no-arg constructor called
-Person [name=Mike, age=30]
+Person no-arg constructor
+Person(name=Mike, age=30)
+
 ```
 The interesting note is, although you can change state in no-arg constructor
 ```java
@@ -12116,14 +12063,15 @@ public Person() {
     age = 1;
 }
 ```
-Java will overwrite all state that you set here, by using readExternal.
+You can overwrite all state that you set here, by using readExternal.
+
 Notice that different form `Serializable`, in case of `Externalizable` if another class is extending your class, it should also reimplement this interface. If subclass will not implement this interface, error during serialization.
 The main advantage of `Externalizable` is that it doesn't call chain of metadata-parentMetadata-data-parentData, but only your methods are called, that's why you need to have no-arg constructor, cause we don't write meta-info.
 If your class extends from non serializable class it should have default constructor, otherwise can't reconstruct object
 ```java
 import java.io.*;
 
-public class App {
+public class Test {
     public static void main(String[] args){
         File file = new File("src/main/java/com/java/test/data.ser");
 
@@ -12133,7 +12081,7 @@ public class App {
         } catch (IOException ex){
             throw new RuntimeException(ex);
         }
-
+        System.out.println();
         try(ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))){
             Person p2 = (Person)in.readObject();
             System.out.println(p2);
@@ -12143,12 +12091,15 @@ public class App {
     }
 }
 
-class Human{
+class Human {
     protected String type;
-    public Human(String type){
+    public Human(String type) {
         this.type = type;
+        System.out.println("Human 1 arg constructor");
     }
-    public Human(){}
+    public Human() {
+        System.out.println("Human no-arg constructor");
+    }
 }
 class Person extends Human implements Serializable {
     private String name;
@@ -12157,12 +12108,20 @@ class Person extends Human implements Serializable {
         super("person");
         this.name = name;
         this.age = age;
+        System.out.println("Person constructor");
     }
     @Override
     public String toString() {
-        return "Person [name=" + name + ", age=" + age + ", type="+type+"]";
+        return "Person [name=" + name + ", age=" + age + ", type=" + type + "]";
     }
 }
+```
+```
+Human 1 arg constructor
+Person constructor
+
+Human no-arg constructor
+Person [name=Mike, age=30, type=null]
 ```
 
 Example of serializable child and non-serializable parent:
@@ -12227,7 +12186,7 @@ human no-args constructor
 person => Person[name=John, age=30, gender=null]
 ```
 
-enum example:
+enum serialization:
 ```java
 import lombok.Getter;
 import lombok.Setter;
@@ -12275,7 +12234,7 @@ As you see all internal state, including enum value itself - serialized
 day => SUN [DayOfWeek(2025 ,June ,15)]
 ```
 Rules of changing serialized classes:
-* if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, jvm will regenerate new serial number
+* if you don't set serial version and doing something innocuous (like adding new field) during deserialization you will get error, cause once you change your class, JVM will regenerate new serial number
 * if you add new field and initialize them, since deserialization not running constructor and initialization it would be reconstructed to default value (0 for primitive, false for boolean, null for reference)
 * if some fields are removed from new class version, they just ignored during deserialization.
 * no constructor, instance initializer called - make sense, because they can tamper the instance and the goal of deserialization is to reconstruct the object as it was
