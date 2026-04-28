@@ -4633,19 +4633,19 @@ import java.time.temporal.ChronoUnit;
 public class Test {
     public static void main(String[] args) {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        ZonedDateTime utc = now.atZone(ZoneId.of("UTC"));
-        System.out.println("now => " + now + ", utc => " + utc);
+        ZonedDateTime UTC = now.atZone(ZoneId.of("UTC"));
+        System.out.println("now => " + now + ", UTC => " + UTC);
 
         ZonedDateTime zdt = now.atZone(ZoneId.systemDefault());
         ZonedDateTime utc2 = zdt.withZoneSameInstant(ZoneId.of("UTC"));
-        System.out.println("zdt => " + zdt + ", utc => " + utc2);
+        System.out.println("zdt => " + zdt + ", UTC => " + utc2);
     }
 }
 ```
 As you can see both LocalDateTime and UTC time shows the same value for current time, yet if we introduce timezone, UTC time would be different
 ```
-now => 2025-09-15T10:22, utc => 2025-09-15T10:22Z[UTC]
-zdt => 2025-09-15T10:22+04:00[Asia/Dubai], utc => 2025-09-15T06:22Z[UTC]
+now => 2025-09-15T10:22, UTC => 2025-09-15T10:22Z[UTC]
+zdt => 2025-09-15T10:22+04:00[Asia/Dubai], UTC => 2025-09-15T06:22Z[UTC]
 ```
 
 You can iterate over dates like this with interval of 1 month
@@ -4890,21 +4890,21 @@ public class Test {
     public static void main(String[] args) {
         ZoneId NY_TZ = ZoneId.of("America/New_York");
         LocalDateTime ldt = LocalDateTime.parse("2024-01-10T10:30");
-        ZonedDateTime utc = ZonedDateTime.of(ldt, ZoneId.of("UTC"));
+        ZonedDateTime UTC = ZonedDateTime.of(ldt, ZoneId.of("UTC"));
         ZonedDateTime ny = ZonedDateTime.of(ldt, NY_TZ);
-        System.out.println("ldt => "+ldt+", utc => " + utc+", ny = " + ny);
+        System.out.println("ldt => "+ldt+", UTC => " + UTC+", ny = " + ny);
 
-        Instant instant = Instant.from(utc);
+        Instant instant = Instant.from(UTC);
         ZonedDateTime ny2 = instant.atZone(NY_TZ);
         System.out.println("instant => "+instant+", ny2 => "+ny2);
     }
 }
 ```
 ```
-ldt => 2024-01-10T10:30, utc => 2024-01-10T10:30Z[UTC], ny = 2024-01-10T10:30-05:00[America/New_York]
+ldt => 2024-01-10T10:30, UTC => 2024-01-10T10:30Z[UTC], ny = 2024-01-10T10:30-05:00[America/New_York]
 instant => 2024-01-10T10:30:00Z, ny2 => 2024-01-10T05:30-05:00[America/New_York]
 ```
-Beware of such code, where you convert `LocalDateTime/Instant` that shows same time, yet one has offset another not, and they would be converted into different time
+Beware of such code, where you convert `LocalDateTime/Instant` that shows same time, but different offset, and they would be converted into different time
 ```java
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -5019,7 +5019,8 @@ offsetDateTime => 2020-03-10T19:08:25.596795+08:00
 offsetDateTime.toInstant => 2020-03-10T11:08:25.596795Z
 ```
 
-DST(Daylight saving time) is a practice to move time by one hour forward in spring and 1 hour back in fall(november).
+DST(Daylight saving time) is a practice to move time by one hour forward in spring (March) and 1 hour back in fall (November).
+On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in UTC offset. Please note, that diff is still 1 hour.
 ```java
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -5038,7 +5039,6 @@ public class App{
     }
 }
 ```
-On the 13th of March 2016, USA moved 1 hour forward, so after 1.59 it was 3.00 pm. So when you add 1 hour to 1.30, you don’t get 2.30 but 3.30. Also notice change in utc offset. Please note, that diff is still 1 hour.
 ```
 dateTime1 => 2016-03-13T01:30-05:00[US/Eastern]
 dateTime2 => 2016-03-13T03:30-04:00[US/Eastern]
@@ -5047,7 +5047,7 @@ diff => PT1H
 ```
 
 Don't confuse:
-* `Instant` - just store current datetime from UTC, if you are not in UTC - it wil show time less your offset
+* `Instant` - just store current datetime from UTC, if you are not in UTC - it wil show time less your offset (which would be current UTC time)
 * `LocalDateTime` - store current machine time - it doesn't have offset/zone but still shows correct time based on machine settings
 * `OffsetDateTime` - `Instant` + UTC offset (requires `ZoneOffset` which is subclass of `ZoneId`, but stores only offset, not the whole timezone)
 * `ZonedDateTime` - `OffsetDateTime` + time zone (requires `ZoneId` to specify timezone). You can get `ZoneId/ZoneOffset/LocalDateTime/Instant` from this class.
@@ -5075,7 +5075,7 @@ ZonedDateTime =>  2025-09-10T15:19:56.418716100+04:00[Asia/Dubai]
 ```
 You can convert:
 * `ZonedDateTime` to `OffsetDateTime` - it just strip `ZoneId` from it, but offset stays
-* `OffsetDateTime` to `ZonedDateTime` - but such object would lack `ZoneId` and contain only offset => in my opinion it's pure wrong, because such conversion may lead to errors when working with DST, such conversion shouldn't be possible, yet java allows for it due to inheritance: `ZoneOffset` is child of `ZoneId` that's why you can create `ZonedDateTime` with only offset by passing child instead of actual `ZoneId`
+* `OffsetDateTime` to `ZonedDateTime` - but such object would lack `ZoneId` and contain only offset => in my opinion it's pure wrong, because such conversion may lead to errors when working with DST, such conversion shouldn't be possible, yet java allows it due to inheritance: `ZoneOffset` is child of `ZoneId` that's why you can create `ZonedDateTime` with only offset by passing child instead of actual `ZoneId`
 ```java
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -5093,7 +5093,7 @@ public class Test {
     }
 }
 ```
-On the 13th of March 2016, USA moved 1 hour forward, so original `ZonedDateTime` object store zone, and calculate new offset, but ne one without zone, can't correctly recalculate new offset.
+On the 13th of March 2016, USA moved 1 hour forward, so original `ZonedDateTime` object store zone, and calculate new offset, but `newZdt` without zone, can't correctly recalculate new offset.
 ```
 zdt => 2016-03-12T10:00-05:00[US/Eastern], odt => 2016-03-12T10:00-05:00
 newZdt => 2016-03-12T10:00-05:00
@@ -5126,6 +5126,7 @@ In first case we subtract -5 from 10 => 10 - -5 = 10+15 = 15. In second case we 
 2016-03-12T10:00+04:30 => 2016-03-12T05:30:00Z
 ```
 There is a big difference between timeOffset and timeZone. TimeOffset - is just time compare to UTC, like +8.00. TimeZone - is geographical time like `[Asia/Hong_Kong]`. TimeZone - is broader, cause it includes DST (day save time) + it’s political concept. Let’s say tomorrow government decide that now this timezone should have offset not +8, but +9. So in these terms timeZone is broader concept than timeOffset.
+
 Java & DB time practice (we use mysql here as example):
 * timestamp - the number of milliseconds since the `epoch` namely midnight, January 1, 1970 UTC
 * you have 3 classes in java to map to SQL, under `java.sql` package 
@@ -5144,16 +5145,17 @@ Java & DB time practice (we use mysql here as example):
     * java.sql.Timestamp => datetime/timestamp
 * there is no native way to store timezone, so best practice assume to store it in another string column
     * best way to store timezone is IANA format (don't store as offset, cause it's error-prone)
+    * IANA (Internet Assigned Numbers Authority) stores timezone in `Area/Location`:
+      * `Europe/Madrid`
+      * `America/New_York`
+      * `Asia/Kathmandu` - unique zone with a `UTC+5:45` offset
 * best way to store dates is to store
     * timezone as IANA string
     * store time as millisecond in bigint
-        * this is better, cause timestamp - number of millisecond from jan 1970, would always be the same, tz no matter
-        yet when you need to display exact time, depending upon your TZ you will see different time,
-        so best approach just store time as timestamp, and it always utc by default
-        * this would avoid any problems with `timestamp` field like https://stackoverflow.com/questions/71346404/mysql-timestamp-throwing-incorrect-datetime-value-on-one-specific-datetime
-        where your server timezone is bermuda, and due to DST, they switch and some time is missing, and you insert missing time.
-    * or store datetime + LocalDate, but for localdate whenever you call `now()`, make sure you call it with UTC timezone, so you always get UTC time
-        * don't use `Instant` here, cause althougn `now()` returns UTC time by default, it also store timezone inside as Z letter, and you may have issues applying datetimeformat, if you don't want to store zone inside date
+        * this is better, cause timestamp - number of millisecond from jan 1970, would always be the same, tz no matter yet when you need to display exact time, depending upon your TZ you will see different time, so best approach just store time as timestamp, and it always UTC by default
+        * this would avoid any problems with `timestamp` field like https://stackoverflow.com/questions/71346404/mysql-timestamp-throwing-incorrect-datetime-value-on-one-specific-datetime where your server timezone is bermuda, and due to DST, they switch and some time is missing, and you insert missing time.
+    * or store datetime + LocalDate, but for LocalDate whenever you call `now()`, make sure you call it with UTC timezone, so you always get UTC time
+        * don't use `Instant` here, cause although `now()` returns UTC time by default, it also store timezone inside as Z letter, and you may have issues applying datetimeformat, if you don't want to store zone inside date
 * LocalDateTime doesn't store timezone, internally it stores timestamp as seconds, but when displayed, it use current TZ to display time
     * since TZ is not present in LocalDateTime, there is no way to convert it to timestamp with millisec
     * yet you can add timezone, convert to Instant and get timestamp from there
