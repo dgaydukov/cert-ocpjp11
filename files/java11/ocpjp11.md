@@ -5191,8 +5191,8 @@ instant         => 2023-01-21T09:47:44.706Z
 ###### Formatting
 Formatting: There are 3 classes to format date and 1 for numbers
 `java.text.DateFormat extends Format` - private constructor
-`java.text.NumberFormat extends Format` - class for number formatting including currency, private constructor
 `java.text.SimpleDateFormat extends DateFormat` - extends `DateFormat`, 3 constructors (empty, pattern, pattern & locale)
+`java.text.NumberFormat extends Format` - class for number formatting including currency, private constructor
 `java.time.format.DateTimeFormatter` - java8 time library new class, private constructor use `.ofPattern`
 ```java
 import java.text.DateFormat;
@@ -5280,8 +5280,6 @@ NumberFormat.getInstance(locale) => 99,99
 NumberFormat.getCurrencyInstance(locale) => 99,10 ¤
 ```
 
-
-
 All `.parse` (except for `DateTimeFormatter`) throw checked exception `ParseException`. There is also `.parseObject` method in `Format` class, that takes string and throws `ParseException`.
 ```java
 import java.text.NumberFormat;
@@ -5291,22 +5289,27 @@ import java.util.Locale;
 public class Test {
     public static void main(String[] args) {
         double d = 99.99;
-        String formatted = NumberFormat.getInstance(Locale.FRENCH).format(d);
-        System.out.println(formatted);
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.FRENCH);
+        NumberFormat nfLocal = NumberFormat.getNumberInstance();
+        String formatted = nf.format(d);
+        System.out.println("french => " + formatted);
+        System.out.println("local => " + nfLocal.format(d));
         try {
-            // parse returns Number.
-            Number d2 = NumberFormat.getInstance().parse(formatted);
-            System.out.println(d2 + " => " + d2.getClass().getName());
+            Number french = nf.parse(formatted);
+            Number local = nfLocal.parse(formatted);
+            System.out.println("french => " + french + ": " + french.getClass().getName());
+            System.out.println("local => " + local + ": " + local.getClass().getName());
         } catch (ParseException ex) {
-            System.out.println(ex);
+            System.out.println("ERR => " + ex);
         }
     }
 }
 ```
-When we parse we don't use French locale, and default locale is used, all comma separator are discarded and our number is parsed into long
 ```
-99,99
-9999 => java.lang.Long
+french => 99,99
+local => 99.99
+french => 99.99: java.lang.Double
+local => 9999: java.lang.Long
 ```
 
 [List of most common patterns](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html)
@@ -5476,7 +5479,6 @@ import java.time.Period;
 
 public class Test {
     public static void main(String[] args) {
-        LocalDateTime ldt = LocalDateTime.parse("2000-11-11T11:11:11");
         Period period = Period.parse("P1Y2M3W4D");
         Duration duration = Duration.parse("P1DT2H3M10S");
         System.out.println("period => " + period);
