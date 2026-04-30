@@ -3708,7 +3708,7 @@ public class App {
 ```
   
 If you have multiple catch you can't reassign `ex`:
-* because JLS is declared such variable implicitly `final`
+* because JLS is declared such variable implicitly final
 * this is done to protect you, cause such variable is a or of several classes and reassign to anything else can break code
 ```java
 public class App{
@@ -8314,10 +8314,14 @@ Optional.of(null) => java.lang.NullPointerException
 null
 ```
 
+2 concept from math logic:
+* `existential quantification` - statement asserting existence of something is inherently wrong if domain is empty
+* `vacuous truth` - statement about all members of empty set is always true
+
 We can check if elements in stream matching a specific criteria by using one of these 3 methods. Pay attention that all of them are short-circuiting and take predicate as param:
-* `anyMatch` - true if you find any object that match. Once found match - stop searching, return true. Return false for empty stream - because its purpose is to determine if at least one element in the stream matches a given predicate. `existential quantification` - statement asserting existence of something is inherently wrong if domain is empty.
-* `allMatch` - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true. Return true for empty stream. `vacuous truth` from math logic - statement about all members of empty set is always true.
-* `noneMatch` - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. Return true for empty stream.
+* `anyMatch` - true if you find any object that match. Once found match - stop searching, return true. Return false for empty stream - because its purpose is to determine if at least one element in the stream matches a given predicate
+* `allMatch` - true if all items are match. Once found non-match - stop searching, return false, otherwise go to the end and return true. Return true for empty stream.
+* `noneMatch` - true if none of the items are match. Once found match - stop searching, return false, otherwise go to end return true. Return true for empty stream
 ```java
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -8445,8 +8449,7 @@ optionalJoining => Optional[JackJohnMelanieDavid]
 sum => 20
 parallelSum => 20
 ```
-We need for parallel execution third function (combiner), that will combine partial results into one. We don't need it for sequential execution, but because streams designed in such a way that both sequential and parallel executions should work the same way, 
-compiler force us to use combiner for sequential execution, although it's never called. That's why for sequential you can change combiner to `(a, b) => 0`, and it would work fine, but if you change it for parallel you will got 0 as result.
+We need for parallel execution third function (combiner), that will combine partial results into one. We don't need it for sequential execution, but because streams designed in such a way that both sequential and parallel executions should work the same way, compiler force us to use combiner for sequential execution, although it's never called. That's why for sequential you can change combiner to `(a, b) => 0`, and it would work fine, but if you change it for parallel you will got 0 as result.
 
 ###### Parallel streams
 * You can add `parallel()` at any point before terminal operation. Stream doesn't care where it added, all it does is set flag to run in parallel. And streams are lazy-loading, they start execute only when they meet terminal operation.
@@ -10064,7 +10067,7 @@ As you can see `fork/jon` framework always divide task on 2, and start to run fi
 Don't confuse:
 * `Exchanger<T>` - exchange object of type T between 2 threads (you can create pipeline between threads and transfer data to and fro)
 * `Semaphore` - use it when you want a resource to be shared between n number of threads concurrently. A Semaphore is initialized with a specific number of permits, representing the maximum number of threads that can concurrently access the shared resource. Threads that wish to access the resource must first acquire() a permit. If no permits are available, the thread blocks until a permit is released by another thread.
-* `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken, and they all proceed further. If at least of threads is broken(or was interrupted) nobody will proceed.
+* `CyclicBarrier` - method `await` - waits until all threads come to the barrier and when final come, barrier is broken, and they all proceed further. If at least one of threads is broken(or was interrupted) nobody will proceed.
 * `CountDownLatch` - similar to barrier, yet for barrier you specify number of threads that it waits to finish, then all threads releases, but here - you specify number of latches, that you count down, and then all threads are released
 you don't need to wait until threads reach some point, you can count down on any algo, but once you count down to 0, all your threads proceed further
 ```java
@@ -10116,15 +10119,21 @@ public class Test {
         sleep(1);
         System.out.println();
 
-        CyclicBarrier barrier = new CyclicBarrier(threads, ()->{
-            System.out.println("all threads reached barrier");
+        int parties = 2;
+        CyclicBarrier barrier = new CyclicBarrier(parties, () -> {
+            try {
+                Thread.sleep(1_000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(parties + " threads reached barrier");
         });
         for (int i = 0; i < threads; i++) {
             final int index = i;
             service.submit(() -> {
                 try {
                     barrier.await();
-                    System.out.print(index+", ");
+                    System.out.println("index => "+index);
                 } catch (InterruptedException | BrokenBarrierException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -10150,8 +10159,21 @@ countdown...
 semaphore release all...
 2, 6, 9, 0, 5, 1, 3, 4, 7, 8, 
 barrier run...
-all threads reached barrier
-0, 5, 1, 9, 2, 6, 4, 3, 8, 7, 
+2 threads reached barrier
+index => 3
+2 threads reached barrier
+index => 0
+2 threads reached barrier
+index => 5
+2 threads reached barrier
+index => 7
+2 threads reached barrier
+index => 9
+index => 2
+index => 4
+index => 8
+index => 1
+index => 6
 ```
 You can also implement your own synchronizer logic using `AtomicInteger` and round-robin design
 ```java
@@ -13900,10 +13922,11 @@ Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`
   * second convert B.jar (add reference to C from its module-info). Now all 3 jars loaded from `--module-path` (A and B - named module, C - AM)
   * finally convert C.jar
 If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `module-path` (in this case named module loaded as named module, others as automatic modules). Top-down is more preferable, because we don't need to wait for other jars to became modules, we can just start from our modules, and put all other jars into `module-path`. Once other teams/companies modularize their jars, we don't need to change anything, it would be working. The only case, if during modularization they decided to change names of module/package - in this case you would need to change your command. But if they just modularize - no change would be required from your side.
-Inside `module-info.java` we can:
-* requires one module at a time (requires moduleA, moduleB - illegal)
-* exports one package at a time (exports my.com.java.* - illegal)
-* provides - only once for one type (provides A with B, C - in case we have multiple implementation) 
+Inside `module-info.java` we can have:
+* `requires` one module at a time (requires moduleA, moduleB - illegal)
+* `exports` one package at a time (exports my.com.java.* - illegal)
+* `opens` - one package at a time
+* `provides` - only once for one type (provides A with B, C - in case we have multiple implementation) 
 
 Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, loaded as simple jar into `--module-path`, trying to get access to package inside `X` loaded as module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The `opens` directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly `open` the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
 Don't confuse:
@@ -14146,6 +14169,11 @@ Loading rules:
 * if bundle name is `myapp` then file `myapp.properties` should be available on the classpath
 * if bundle name is `data.myapp` then file `myapp.properties` should be under `data` directory, which itself should be on the classpath
 * backslash `\` is used to escape space char
+Order of loading:
+* java always load bottom down and never guesses but can truncate
+* if your locale is `fr` => it will never load `fr_FR` or `fr_CA`
+* but if your locale is `fr_FR` it may drop the country and load just `fr` if exact bundle `fr_FR` is missing
+
 ResourceBundle loading files in following ways: `bundle => bundle_language => bundle_language_country`. Suppose we have 4 files and our default locale is `en_HK`:
 ```
 myapp.properties
