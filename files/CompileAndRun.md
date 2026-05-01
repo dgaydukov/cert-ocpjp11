@@ -10,7 +10,7 @@
 When you need to pass multiple paths to `javac/java/jar` commands you have to separate paths using path separator. And this separator is system dependent:
 * Windows - we use semicolon `;`
 * Linux/MacOS - we use colon `:`
-You need to keep this in mind, because code is written, especially in `code` folder for Linux, and may not compile in Windows, you will have to change. If you try to run with invalid separator, only first dependency would be loaded, and others left, and code won't compile/run.
+You need to keep this in mind, because code is written, especially under `code` folder for Linux, and may not compile in Windows, you will have to change. If you try to run with invalid separator, only first dependency would be loaded, and others discarded, and code won't compile and run.
 ```shell
 # Windows separator
 jdeps --module-path="compiled/printer.jar;compiled/app.jar" compiled/app.jar
@@ -35,9 +35,11 @@ src/
 
 ### Quick command names
 Don't confuse following short commands:
-* `-cp` (java & javac) => `--class-path`, and also `-classpath` - this is the only command that has 2 short form: `-cp/-classpath`
-* `-p` (java & javac) => `--module-path`, specify path of the module (either jar or folder with jar, or folder with compiled files), used in both compilation & running
-* `-m` (java & javac) => `--module`, specify module name, used in both compilation & running
+* `-cp/-classpath` (javac and java) => `--class-path`
+  * all content loaded here (whether modular or non-modular jar) -  aggregated into a single unnamed module
+  * only command that has 2 short form: `-cp/-classpath`
+* `-p` (javac and java) => `--module-path` - path of the module (either jar or folder with jar, or folder with compiled files), used in both compilation & running
+* `-m` (javac and java) => `--module`, specify module name, used in both compilation & running
 * `-d` (javac) => no full command, specify output directory for compilated files
 * `-d` (java) => `--describe-module`, describe module and exit
 * `--module-source-path` (javac), specify compilation path of required modules
@@ -46,7 +48,7 @@ Don't confuse following short commands:
 ### Building and running java
 There are 3 commands available for java cmd:
 * `javac` stands for java compiler - tool to compile java file into binary file with `.class` extension
-  * we add `-d {directory}` option to build proper package structure into file - java expects us that package name is corresponding to file structure
+  * we add `-d` option to build proper package structure into file - java expects us that package name is corresponding to file structure
   * if your project is lacking proper folder structure `javac` would build it:
     * if you have file `App.java` declared with `package com.java.test`, compiler would create full path for compiled file with `com/java/test/App.class`
     * it doesn't matter if your original file as `App.java` had this file structure or not, compile would create it anyway based on the package name - Yet it's considered good practice to structure code according to package name, so your file should be `com/java/test/App.java`
@@ -283,7 +285,7 @@ There are 2 ways you can compile java module:
   * all 3 name for the module name should correspond: name passed into `--module` param, directory that holds the module, module name inside `module-info.java` file
   * inside directory there should be file `module-info.java` with same module name as passed param and directory
   * modular compilation create folder with module name, while simple is just put everything into output folder: if you have output directory as `compiled` and module name as `module.app` - `javac` would compile into `compiled/module.app`, but with simple non-modular compilation, all files would be just in `src` folder
-  * `--module-path` - expect 3 things:
+  * `--module-path` - expect one of 3 things:
     * jar file - if the file is non-modular jar then it's treated as AM
     * exploded module - directory with same name as module with compiled classes
     * folder with multiple jars or multiple exploded modules

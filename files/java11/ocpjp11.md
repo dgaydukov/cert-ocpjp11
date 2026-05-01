@@ -3847,7 +3847,7 @@ java.lang.NullPointerException
 `try-with-resources`:
 * guarantees that resources would be closed - resources closed as soon as we exit `try` block, even if we have `catch/finally`, by the time we enter any of it, resources already closed
 * to be eligible your class should implement either `Closeable` or `AutoCloseable`
-* Java7 team wanted a mechanism to label objects as be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
+* Java7 team wanted a mechanism to label objects to be auto-closeable for the construct. Unfortunately the API spec for the `Closeable.close()` method is too strict - method should be idempotent (if you call it twice result should be the same). So they introduced the `AutoClosable` interface with a less restrictive close() semantic ... and retro-fitted `Closeable` as a subtype of `AutoCloseable`
 * it works by inserting `try/finally` and wrapping your code inside `try` block with it - below is example where I showed how JVM handle closing the resources.
 * resources closed in reverse order of declaration:
   * `catch/finally` are executed after resources closed
@@ -6324,7 +6324,7 @@ fromArray.add("c") => java.lang.UnsupportedOperationException
 
 
 `Arrays.asList`:
-* you can't add new values to list, but can modify existing. The reason is that list still backed by array, and array has a fixed size (so you can update elements, but can't call `add/remove`)
+* you can't add/remove new values to list, but can modify existing. The reason is that list still backed by array, and array has a fixed size (so you can update elements, but can't call `add/remove`)
 * changes made in array are visible in the list, and changes made to the list are visible to array
 * you have to pass array of objects, passing primitive array won't compile
 ```java
@@ -13915,12 +13915,13 @@ Access rules:
   * sealed class should have all subclasses in the same named module - so even if you export it, no other named module can reuse it, because to reuse - other module should have the same class that was defined in the original module, and this will cause compilation/running error
 * AM can access: only exported packages from NM, and all packages from other AM, [all packages from UM](/code/modular/script.sh) - here `calculator.jar` which loaded as AM, is accessing class from `printer.jar` which is loaded as UN.cd
   * AM implicitly exports all of its types
+  * can't ready from UM
 * UM can access all types from both NM and AM, and all packages from other UM
   * yet it true only for custom modules, if your UM try to access platform modules like `java.base` it can only access exported/opened packages
-  * just like AM, UM implicitly exports all of its types
+  * just like AM, UM implicitly exports all of its types 
+  * sealed class should have all subclasses in the same package - so even if you export it, no other named module can reuse it, because to reuse - other module should have the same class that was defined in the original module, and this will cause compilation/running error
 * If same type (same fully qualified name) declared in both named & unnamed module:
   * type from named module is used and type from unnamed module ignored
-  * sealed class should have all subclasses in the same package - so even if you export it, no other named module can reuse it, because to reuse - other module should have the same class that was defined in the original module, and this will cause compilation/running error
   * if same type is loaded from both NM & AM - you get `java.lang.module.ResolutionException` on runtime, just as same type loaded from 2 NM
   * if NM doesn't export package, still any class loaded from module-path, both NM & AM would try to call type from module, not from UM, and if it's not exported you get `Exception in thread "main" java.lang.IllegalAccessError` on runtime
 Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`, where `=>` - means depend on:
@@ -13934,10 +13935,11 @@ Bottom-up vs top-down approach: suppose we have 3 jars `A.jar => B.jar => C.jar`
   * finally convert C.jar
 If you converted 1,2,3 to modules, you can still run them from either classpath (in this case they all loaded as simple jars) or from `module-path` (in this case named module loaded as named module, others as automatic modules). Top-down is more preferable, because we don't need to wait for other jars to became modules, we can just start from our modules, and put all other jars into `module-path`. Once other teams/companies modularize their jars, we don't need to change anything, it would be working. The only case, if during modularization they decided to change names of module/package - in this case you would need to change your command. But if they just modularize - no change would be required from your side.
 Inside `module-info.java` we can have:
-* `requires` one module at a time (requires moduleA, moduleB - illegal)
-* `exports` one package at a time (exports my.com.java.* - illegal)
-* `opens` - one package at a time
-* `provides` - only once for one type (provides A with B, C - in case we have multiple implementation) 
+* `requires` (module) one module at a time (requires moduleA, moduleB - illegal)
+* `exports` (package) one package at a time (exports my.com.java.* - illegal)
+* `opens` (package) - one package at a time
+* `provides` (type) - only once for one type (provides A with B, C - in case we have multiple implementation)
+* `uses` (type) - one service (concrete class not package) at a time
 
 Error message: `module X does not 'opens Y' to unnamed module` - means, that your unnamed module, loaded as simple jar into `--module-path`, trying to get access to package inside `X` loaded as module. Usually happens when you are using reflection to access internal/restricted packages. Modules explicitly declare in `module-info.java` all open packages. If you try to access something that is not there, you get this error. JPMS (Java Platform Module System) enforces strong encapsulation, preventing unauthorized access to internal APIs of modules. The `opens` directive explicitly allows reflective access to a package within a module. To resolve this issue, you need to explicitly `open` the required package from the named module to the unnamed module using the `--add-opens` JVM argument: `java --add-opens java.base/java.lang=ALL-UNNAMED -jar app.jar`.
 Don't confuse:
@@ -14018,10 +14020,10 @@ Don't confuse:
 * service - interface providing some service/features (can be a concrete class, but usually just an interface)
 * service provider - concrete implementation of service
 Simplified process to work with services. You have a service in module `printers` called `printers.Printer`. You have 1 concrete implementation in module `console` called `concole.ConsolePrinter`. Consumer shouldn't know about concrete implementation, he just needs to know about service - there are 3 steps:
-1. create normal module that export the interface:
+1. create normal module that export the package with interface:
 ```java
 module printers {
-    exports printers.Printer;
+    exports printers;
 }
 ```
 2. create service provider:
