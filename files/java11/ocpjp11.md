@@ -9547,7 +9547,12 @@ Don't confuse:
   * timeout expires but service not terminated - return false
   * `InterruptedException` throws - goes to catch block
   * You have to call `shutdown` before, otherwise behavior is unpredictable - it would wait until the end of timeout, regardless if service actually terminated or not and return false
-In below code, if your futures completes in 1 sec, all is good. But if you change it to 3 sec, then `awaitTermination` would exit with false, but your `whenComplete` would be called anyway with fail result, `ex` would be null in either success or fail. Also, it's a nice example of how `CompletableFuture` works, and how you can register callbacks in java with `whenComplete`, and how you can add blocking code to wait the completion of callbacks. There are several ways to wait including:
+
+In below code, if your `Future` completes in 1 sec, all is good. But if you change it to 3 sec:
+* `awaitTermination` would exit with false and `shutdownNow` would be called which would terminate the thread
+* so `InterruptedException` would be thrown and your `Future` would exit
+`whenComplete` would be called with fail result, `ex` would be null
+Also, it's a nice example of how `CompletableFuture` works, and how you can register callbacks in java with `whenComplete`, and how you can add blocking code to wait the completion of callbacks. There are several ways to wait including:
   * CompletableFuture.allOf => `get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException` - wait for execution with timeout, or join (compare to `get` it doesn't throw any exception)
   * `awaitTermination` - that used in below example
   * `CountDownLatch` => `await(long timeout, TimeUnit unit)` - wait for execution with timeout
@@ -9562,7 +9567,7 @@ public class Test {
         ExecutorService service = Executors.newCachedThreadPool();
         CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(3_000);
                 return "success";
             } catch (InterruptedException ex) {
                 return "fail: " + ex.getMessage();
@@ -9577,6 +9582,8 @@ public class Test {
             if (!service.awaitTermination(2, TimeUnit.SECONDS)){
                 System.out.println("Finish timeout waiting and service is not terminated. Shutting down...");
                 service.shutdownNow();
+            } else {
+                System.out.println("Successfully exit before timeout.");
             }
         } catch (InterruptedException ex) {
             System.out.println("ERR => " + ex);
@@ -9584,7 +9591,8 @@ public class Test {
     }
 }
 ```
-* Has 3 versions of submit:
+
+`ExecutorService` 3 versions of submit:
   * `submit(Runnable)` - take nothing, return `Future<?>`
   * `submit(Runnable, T)` - return `Future<T>` when completed
   * `submit(Callable<T>)` - return `Future<T>` from callable
@@ -9641,7 +9649,10 @@ future1 => null
 future2 => MyRunnable done
 future3 => MyCallable done
 ```
-`invokeAll` and `invokeAny` takes only callables and return results. The difference is that `invokeAll` wait until all threads are executed and return ordered list (order in which initial list of callables was passed) as array of Futures. `invokeAny` - run all threads, but wait only the first one and return it (not future) and terminates all unfinished threads.
+
+Don't confuse (both takes only callables and return results):
+* `invokeAll` - wait until all threads are executed and return ordered list of futures
+* `invokeAny` - run all threads, but wait only the first one and return it (not future) and terminates all unfinished threads.
 ```java
 import java.util.*;
 import java.util.concurrent.*;
