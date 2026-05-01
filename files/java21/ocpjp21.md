@@ -837,19 +837,27 @@ From java21:
 * virtual thread has the same priority of `Thread.NORM_PRIORITY`, call to `setPriority` just ignored
 Example of virtual and platform threads:
 ```java
-Thread.Builder platformThread = Thread.ofPlatform();
-Thread.Builder virtualThread = Thread.ofVirtual();
-platformThread.start(()-> System.out.println("platformThread"));
-virtualThread.start(()-> System.out.println("virtualThread"));
+public class Test {
+    public static void main(String[] args) {
+        Thread.Builder platformThread = Thread.ofPlatform();
+        Thread.Builder virtualThread = Thread.ofVirtual();
+        platformThread.start(()-> System.out.println("platformThread"));
+        virtualThread.start(()-> System.out.println("virtualThread"));
+    }
+}
 ```
 create thread but don't start immediately
 ```java
-Thread platform =  new Thread(() -> {});
-Thread virtual =  Thread.ofVirtual().unstarted(()->{});
-System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
-platform.start();
-virtual.start();
-System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
+public class Test {
+    public static void main(String[] args) {
+        Thread platform =  new Thread(() -> {});
+        Thread virtual =  Thread.ofVirtual().unstarted(()->{});
+        System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
+        platform.start();
+        virtual.start();
+        System.out.println(platform.isDaemon()+" => "+virtual.isDaemon());
+    }
+}
 ```
 ```
 false => true
