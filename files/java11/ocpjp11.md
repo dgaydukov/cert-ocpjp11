@@ -15579,45 +15579,36 @@ Here we would show all new cool features of LTS (long term support) java version
 * Hidden classes provide a more secure and efficient way for frameworks to generate and manage temporary, internal classes without exposing them to the broader application
 
 ###### Java 16
-1. [JEP-395](https://openjdk.org/jeps/395) - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have string rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can.
+1. [JEP-395](https://openjdk.org/jeps/395) - Introduction of `Record`. But this enhancement also important, cause it relaxed some rules for nested classes. Before we have strict rule, that non-static nested classes can't have static members (static variables, function, classes). But since java 16, this rule was relaxed, and now it can.
 ```
 Static members of inner classes
-
 It is currently specified to be a compile-time error if an inner class declares a member that is explicitly or implicitly static, unless the member is a constant variable. This means that, for example, an inner class cannot declare a record class member, since nested record classes are implicitly static.
-
 We relax this restriction in order to allow an inner class to declare members that are either explicitly or implicitly static. In particular, this allows an inner class to declare a static member that is a record class
 ```
 Take a look at the following code, and keep in mind that it won't compile under java 11, but will compile and work fine from java 16
 ```java
-public class App {
+public class Test {
   public static void main(String[] args) {
-    App app1 = new App();
-    App app2 = new App();
-    App.A a1 = app1.new A();
-    App.A a2 = app1.new A();
-    App.A a3 = app2.new A();
-    System.out.println("a1.x=" + a1.x + ", a2.x=" + a2.x + ", a3.x="+a3.x);
-    a1.x = 10;
-    a2.x = 20;
-    a3.x = 30;
-    System.out.println("a1.x=" + a1.x + ", a2.x=" + a2.x + ", a3.x="+a3.x);
+    var inner1 = new Outer().new Inner();
+    var inner2 = new Outer().new Inner();
+    inner1.x = 10;
+    inner2.x = 20;
+    System.out.println(inner1.x + " => " + inner2.x);
   }
+}
 
-  class A{
-    int x = 5;
-    void print(){}
-    class A1{}
+class Outer {
+  class Inner {
     // 3 lines won't compile in java 11, but would compile in java 16
-    public static int y = 5;
+    static int x = 5;
     static void run(){}
     static class B{}
   }
 }
 ```
-As you can see, although it's static fields, each non-static nested class, will have their own version of static members. This may be confusing a bit, because you would expect that `a1 & a2`, would share same value for `x`. But not, they different. This is why prior to java 16, nested non-static classes couldn have static members. Cause you would expect that `a1 & a2` should share variable `x`, because they both have same parent, but it's not, `static` for nested non-static class behave same way as non-static. So to avoid this confusion, it was compile-time error. But to add `record` support, they removed this rule.
+As you can see, although we have 2 different instances of inner class, they still share static variable. This maybe confusing, so that is why prior to java 16, nested non-static classes couldn't have static members. Cause you would expect that `a1 & a2` should share variable `x`, because they both have same parent, but it's not, `static` for nested non-static class behave same way as non-static. So to avoid this confusion, it was compile-time error. But to add `record` support, they removed this rule.
 ```
-a1.x=5, a2.x=5, a3.x=5
-a1.x=10, a2.x=20, a3.x=30
+20 => 20
 ```
 
 ###### Java 17
@@ -15685,7 +15676,7 @@ public class App{
     }
 
     // new way
-    if (dog instanceof Animal animal && animal.weight() > 100){
+    if (dog instanceof Animal a && a.weight() > 100){
       // do something
     }
   }
@@ -15735,7 +15726,7 @@ public class App{
 null => oops
 ```
 
-4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces. 
+4. [JEP-409](https://openjdk.org/jeps/409) - Sealed classes and interfaces (java 17) - special class that can be extended only by classes/interfaces that explicitly stated on sealed class definition. Before there was no restriction. Your class can be extended by any other class. Now you can explicitly put such restriction by name. Sealed classes is an addition to the Java language giving a class author a fine-grained control over which classes can extend it. Before, you could either allow everyone to inherit your class or disallow it completely (using `final`). It also works for interfaces.
 * Sealed classes/interfaces are a way to create a tagged union - are to classes what Java enums are to objects. Java enums let you limit the possible objects a class can instantiate to a specific set of values. This helps you model days of the week. Just like enums you can use it inside `switch` without `default` keyword.
 There are several rules when you create `sealed` type:
 * classes in `permits` section should be already defined, otherwise it won't compile
@@ -15855,7 +15846,7 @@ public class App{
 record Point(int x, int y){}
 ```
 
-2. Virtual Threads (JEP 444) - normal threads (platform thread) are thin wrappers around OS threads and when they run they capture such OS thread and cause performance issues. But Virtual threads - runs code on specific OS thread, but doesn't capture it for lifetime, so many virtual threads can share OS threads. You can call it from executors `Executors.newVirtualThreadPerTaskExecutor()`.
+2. Virtual Threads (JEP 444) - normal threads (platform thread) are thin wrappers around OS threads and when they run, they capture such OS thread and cause performance issues. But Virtual threads - code runs on specific OS thread, but doesn't capture it for lifetime, so many virtual threads can share OS threads. You can call it from executors `Executors.newVirtualThreadPerTaskExecutor()`.
 Compare to standard threads, you can create millions of virtual threads. `Thread.startVirtualThread(Runnable)` - start thread in virtual mode.
 
 3. Sequenced collections - elements inside have defined encounter order:
