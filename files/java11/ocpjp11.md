@@ -9,7 +9,7 @@
 * 1.6 [Arrays](#arrays)
 * 1.7 [Arrays.compare and Arrays.mismatch](#arrayscompare-and-arraysmismatch)
 * 1.8 [Pre/Post Increment](#prepost-increment)
-* 1.9 [Statement vs., Expression](#statement-vs-expression)
+* 1.9 [Statement vs. Expression](#statement-vs-expression)
 * 1.10 [Break Label](#break-label)
 2. [Classes and Objects](#classes-and-objects)
 * 2.1 [toString, equals, hashcode, clone](#tostring-equals-hashcode-clone)
@@ -1377,6 +1377,11 @@ System.out.println(i + ", " + j + ", " + x);
 ###### Statement vs. Expression
 Don't confuse:
 * expression - must have a return value, it does not form a valid line of code, and not compile with error: `not a statement`
+  * yes some expression are allowed as statements like:
+    * assignment: `int x = 5;`
+    * increment/decrement `i--;`
+    * method call `foo();`
+    * object creation `new Object();`
 * statement - complete line of code that may or may not have any value of its own.
 
 Let's check a few examples:
@@ -1414,11 +1419,11 @@ Yet you can exit any label block and imitate go-to workflow: below code won't pr
 public class Test {
     public static void main(String[] args) {
         int x = 5;
-        label: {
+        LOOP: {
             System.out.println("start");
             if (x == 5) {
                 System.out.println("breaking...");
-                break label;
+                break LOOP;
             }
             System.out.println("end");
         }
@@ -2751,7 +2756,7 @@ interface X{
 ```
 
 When both class and interface has default implementation, class implementation takes priority. In this case there is no way to call such method of interface:
-* fundamental rule of java inheritance - classes win over interfaces
+* fundamental rule of java inheritance - class wins over interface
 * class inheritance was since java1, but interface default methods were added in java8 - if you allow interface to override - many old code may exhibit wrong behavior. For the same reason if you force to recompile, a lot of older code may get broken. This is the main reason, why it was decided to give class methods priority over interface, and don't throw compilation error
 * based on this you can deduce if class extends another, and implement multiple interface with same default method, no compilation error because method from parent class will take priority and effectively overwrite other implementations
 * for the same reason `extends` should always go before `implements` - so the order is important for these 2 keywords
@@ -11240,7 +11245,7 @@ public class App {
 
         try (Connection conn = DriverManager.getConnection(url);
              PreparedStatement stmt = conn.prepareStatement("select * from people");
-             ResultSet rs = stmt.executeQuery();) {
+             ResultSet rs = stmt.executeQuery()) {
             while (rs.next()){
                 System.out.println("name => " + rs.getString("firstname") + " " + rs.getString("lastname"));
             }
@@ -11255,7 +11260,7 @@ public class App {
 //        ds.setDatabaseName(dbName);
         try (Connection conn = ds.getConnection();
              PreparedStatement stmt = conn.prepareStatement("select * from people");
-             ResultSet rs = stmt.executeQuery();) {
+             ResultSet rs = stmt.executeQuery()) {
             while (rs.next()){
                 System.out.println("name => " + rs.getString("firstname") + " " + rs.getString("lastname"));
             }
@@ -11335,7 +11340,7 @@ public class App {
         long start = System.currentTimeMillis();
         String url = "jdbc:mysql://localhost:3306/mydb?autoReconnect=true&useSSL=false&user=root&password=";
         for (int i = 0; i < n; i++) {
-            try(Connection conn = DriverManager.getConnection(url);){
+            try(Connection conn = DriverManager.getConnection(url)){
             } catch (SQLException e) {
                 System.out.println(e.getSQLState() + ": " + e.getMessage() + ", connection: " + i);
                 break;
@@ -11549,7 +11554,7 @@ public class App {
         String url = "jdbc:mysql://localhost:3306/ocpjp?autoReconnect=true&useSSL=false&user=root&password=";
         try(Connection con = DriverManager.getConnection(url);
             CallableStatement call = con.prepareCall("call getLastName(?, ?)");
-            PreparedStatement stmt = con.prepareStatement("select lastname from people where id=?");){
+            PreparedStatement stmt = con.prepareStatement("select lastname from people where id=?")){
 
             call.setInt(1, 1);
             call.registerOutParameter(2, Types.VARCHAR);
@@ -12425,7 +12430,25 @@ As you see, again we're constructing object from json, we call no-arg constructo
 #### IO and NIO
 ###### InputStream/OutputStream and Reader/Writer
 There are 2 types of streams in java. Those with name `InputStream/OutputStream` and `Reader/Writer`. The difference is that `InputStream/OutputStream` work with all type of binary data (including chars and strings), but `Reader/Writer` works only with characters and strings. There is an advantage to use `Reader/Writer` streams when working with strings, cause you can use writer class to put string into file without worrying about underlying encoding logic.
-`StringReader` - reader that take `String` as input parameter. Useful when you have a string and need to convert in into `Reader` object.
+
+You can convert `String` into stream:
+* `StringReader` - reader that take `String` as input parameter
+* `ByteArrayInputStream` - convert string into `InputStream`
+```java
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+
+public class Test {
+    public static void main(String[] args) {
+        final String str = "ABCDEF";
+        StringReader reader = new StringReader(str);
+        InputStream is = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
+    }
+}
+```
+
 If we try to open non-existing file with `FileInputStrem/FileReader` we will get `FileNotFoundException`. But if we open it with `FileOutputStream/FileWriter` they will create file. This is very logical, cause input stream - for reading, you need file first to read, but output - for writing, even if file doesn't exist you can create it and write into it.
 Don't confuse `InputStream` method:
 * `read()` read and return single byte, but return type is `int`, because it may return one extra value of -1 signify end-of-file. Since byte holds only 256, and we need 257 values, it was decided to return int (although `short` is enough, to be compatible with C it was decided to use `int`)
@@ -12470,7 +12493,9 @@ public class Test {
     }
 }
 ```
+
 `InputStreamReader/OutputStreamWriter` classes act as a converter between a byte stream and a character stream. They convert a byte stream to a character stream (and vice versa) by using the specified (or the default) character encoding.
+
 `BufferedReader/BufferedWriter` - require instance of converter as constructor param, yet `BufferedReader` has nice methods `readLine` to read one line or `lines` that return `Stream<String>`. But you can pass instance of `FileReader/FileWriter` into constructor to avoid passing 2 classes:
     * create with input stream reader:  `BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(PATH_TO_FILE)))`
     * create with file reader:          `BufferedReader in = new BufferedReader(new FileReader(PATH_TO_FILE))`
@@ -12502,6 +12527,7 @@ public class App{
 ```
 InputStream => java.io.FileNotFoundException: nonExistingFile (No such file or directory)
 ```
+
 File has 2 separators:
 `File.separator` - `/` for linux - separates files (/path/to/your/file)
 `File.pathSeparator` - `:` for linux - separates paths (/path/to/jar1.jar:/path/to/jar2.jar:/path/to/jar3.jar)
@@ -12534,7 +12560,7 @@ Exception in thread "main" java.io.FileNotFoundException: src/main/java/com/java
 * maybe null if app is run with `javaw` (run app without command line prompt)
 * also null when you run from IDE, because IDE redirect input/output into its own built-in window
 * available if you run with `java App.java`
-*  method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one get dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
+*  method `readPassword` return array of chars instead of strings. Generally it’s better to use `char[]` instead of `String` to store password, cause if one gets dump he will get all strings in String pool. But with char array you can remove password by overwriting char with some garbage data.
 Pay attention that `Console` object is null when execute from IDE. You need to run it manually from console. In order for `Console` to work, java should be run from interactive console without redirecting input/output.
 With `Console` you can both read and write to/from console.
 ```java
@@ -12828,8 +12854,8 @@ a/b/d
 
 ###### mark, reset, skip
 There are a few methods to move `InputStream` back or forward:
-* `mark(int limit)` - mark the current point with number of bytes to save
-* `reset()` - return to the marked point
+* `mark(int readLimit)` - mark the current point with number of bytes to save
+* `reset()` - return to the marked point (can be called multiple times as-long-as you stay within `readLimit`)
 * `skip(int n)` - skip n bytes
 * IO streams are one-way, you can't rewind them. But if you are using a buffer, you can imitate rewind operation. These 3 are using internally buffer to imitate rewind behavior. Keep in mind that you have to pass buffered stream. If you try to call these operations on `FileInputStream` code would compile and run, because those methods on `InputStream` but it would throw: `java.io.IOException: mark/reset not supported`. You can also call `markSupported` to check if the stream supports rewind operations.
 ```java
@@ -13241,7 +13267,7 @@ import java.io.*;
 public class App {
     public static void main(String[] args){
         String str = "hello world";
-        try(StringReader stringReader = new StringReader(str);){
+        try(StringReader stringReader = new StringReader(str)){
             int i;
             while ((i = stringReader.read()) != -1){
                 System.out.print((char)i);
@@ -13255,7 +13281,7 @@ public class App {
          * once string reader will real all chars, buffered reader will read null
          */
         try(StringReader stringReader = new StringReader(str);
-            BufferedReader bufferedReader = new BufferedReader(stringReader);){
+            BufferedReader bufferedReader = new BufferedReader(stringReader)){
             System.out.println(bufferedReader.readLine());
         } catch (IOException ex){
             System.out.println(ex);
@@ -13267,8 +13293,7 @@ public class App {
 hello world
 hello world
 ```
-Since `Reader` works with chars that is subset of bytes we can easily convert `InputStream` to `Reader` (and `OutputStrem` to `Writer`), but not vice versa
-This is due to the fact, that `InsputStrem` is byte[], and `Reader` is char[].
+Since `Reader` works with chars that is subset of bytes we can easily convert `InputStream` to `Reader` (and `OutputStrem` to `Writer`), but not vice versa. This is due to the fact, that `InsputStrem` is `byte[]`, and `Reader` is `char[]`.
 You can easily convert byte to char, but if you convert char to byte you have precision lost.
 ```
 byte b;
@@ -13291,9 +13316,9 @@ public class App {
     }
 }
 ```
-`RandomAccessFile` - you can read and write at arbitrary position. Second params to constructor should be mode(read/write).
-Since it implements `DataOutput` interface, as `DataOutputStream` does, they both have all methods to write like
-write, writeUTF, writeBoolean and so on... But there is no method writeString.
+`RandomAccessFile`:
+* you can read and write at arbitrary position. Second params to constructor should be mode(read/write).
+* since it implements `DataOutput` interface, as `DataOutputStream` does, they both have all methods to write like `write/writeUTF/writeBoolean...` But there is no method writeString.
 ```
 r   - read, trying to write thows IOException
 rw  - read and write
@@ -13348,8 +13373,8 @@ pointer => 15
 final text => This is very imabchello world                 
 ```
 If file doesn't exist and:
-* you are trying to open file for reading with InputStream/Reader/RandomAccessFile(r) - it will throw `FileNotFoundException`
-* you are trying to open it for writing with OutputStream/Writer/RandomAccessFile(rw) - it will try to create it, and if can't throw `FileNotFoundException` (the reason can be if parent directory doesn't exists or app has no rights to write to directory).
+* you are trying to open file for reading with `InputStream/Reader/RandomAccessFile(r)` - it will throw `FileNotFoundException`
+* you are trying to open it for writing with `OutputStream/Writer/RandomAccessFile(rw)` - it will try to create it, and if can't throw `FileNotFoundException` (the reason can be if parent directory doesn't exists or app has no rights to write to directory).
 If you want to be sure that file always exist you can use following code
 ```java
 import java.io.*;
@@ -13381,7 +13406,7 @@ class App{
          * constructor of RandomAccessFile throws FileNotFoundException, but close method throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(RandomAccessFile raf = new RandomAccessFile(file, "r");){
+        try(RandomAccessFile raf = new RandomAccessFile(file, "r")){
         } catch (IOException ex){
             System.out.println("RandomAccessFile(r) => " + ex);
         }
@@ -13389,7 +13414,7 @@ class App{
          * constructor of FileInputStream throws FileNotFoundException, but close method throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(InputStream is = new FileInputStream(file);){
+        try(InputStream is = new FileInputStream(file)){
         } catch (IOException ex){
             System.out.println("InputStream => " + ex);
         }
@@ -13398,7 +13423,7 @@ class App{
          * constructor of FileReader throws FileNotFoundException, but close method in InputStreamReader throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(Reader reader = new FileReader(file);){
+        try(Reader reader = new FileReader(file)){
         } catch (IOException ex){
             System.out.println("Reader => " + ex);
         }
@@ -13406,7 +13431,7 @@ class App{
          * constructor of RandomAccessFile throws FileNotFoundException, but close method throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(RandomAccessFile raf = new RandomAccessFile(file, "rw");){
+        try(RandomAccessFile raf = new RandomAccessFile(file, "rw")){
         } catch (IOException ex){
             System.out.println("RandomAccessFile(rw) => " + ex);
         }
@@ -13414,7 +13439,7 @@ class App{
          * constructor of FileOutputStream throws FileNotFoundException, but close method throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(OutputStream out = new FileOutputStream(file);){
+        try(OutputStream out = new FileOutputStream(file)){
         } catch (IOException ex){
             System.out.println("OutputStream => " + ex);
         }
@@ -13423,7 +13448,7 @@ class App{
          * constructor of FileWriter throws FileNotFoundException, but close method in OutputStreamWriter throws IOException
          * since FileNotFoundException extends IOException => we catch only IOException
          */
-        try(Writer writer = new FileWriter(file);){
+        try(Writer writer = new FileWriter(file)){
         }catch (IOException ex){
             System.out.println("Writer => " + ex);
         }
@@ -13431,7 +13456,7 @@ class App{
          * PrintStream extends FilterOutputStream, but overrides close and handle IOException (you can check errors by checkError() method)
          * so only FileNotFoundException is left unchecked
          */
-        try(PrintStream ps = new PrintStream(file);){
+        try(PrintStream ps = new PrintStream(file)){
             ps.println("Hello!");
             if (ps.checkError()) {
                 System.out.println("An error occurred in the PrintStream.");
@@ -13443,7 +13468,7 @@ class App{
          * PrintWriter extends Writer, but overrides close and handle IOException
          * so only FileNotFoundException is left unchecked
          */
-        try(PrintWriter pw = new PrintWriter(file);){
+        try(PrintWriter pw = new PrintWriter(file)){
         }catch (FileNotFoundException ex){
             System.out.println("PrintWriter => " + ex);
         }
@@ -13507,13 +13532,13 @@ import java.util.Locale;
 class App{
     public static void main(String[] args) {
         File file = new File("src/main/java/com/java/test/text");
-        try(PrintStream writer = new PrintStream(file);){
+        try(PrintStream writer = new PrintStream(file)){
             writer.print(1);
             writer.println("hello");
         }catch (FileNotFoundException ex){
             System.out.println("PrintStream => " + ex);
         }
-        try(PrintWriter pw = new PrintWriter(file);){
+        try(PrintWriter pw = new PrintWriter(file)){
             pw.print(1);
             pw.println("hello");
             if (pw.checkError()) {
@@ -13543,7 +13568,7 @@ class App{
     }
     public static void main(String[] args) {
         File file = new File("src/main/java/com/java/test/text");
-        try(DataOutputStream writer = new DataOutputStream(new FileOutputStream(file));){
+        try(DataOutputStream writer = new DataOutputStream(new FileOutputStream(file))){
             int size = writer.size();
             writer.writeByte(1);
             print("writeByte(1) => ", writer.size());
@@ -13676,7 +13701,7 @@ public class App {
         File source = new File("src/main/java/source");
         File dest = new File( "src/main/java/dest");
         try (FileInputStream is = new FileInputStream(source);
-            FileOutputStream os = new FileOutputStream(dest);) {
+            FileOutputStream os = new FileOutputStream(dest)) {
             int b;
             while ((b = is.read()) != -1) {
                 System.out.println(b + " " + (char) b);
