@@ -363,6 +363,16 @@ class App {
 }
 ```
 
+Implicit cast:
+* Compound operators `+=, *=, ...` include implicit narrowing cast
+```java
+byte b = 1;
+// same as b = (byte) (b * b)
+b *= b;
+// won't compile, cause b*b = cast to int
+b = b * b;
+```
+
 Return type promotion - same rules applied for return types (this rules for returning from method, not for overriding, because for overriding different rules applied):
 * for numeric return type:
   * numeric - you can return smaller type: for `long` return type you can return `int/short/char/byte`
@@ -14069,7 +14079,8 @@ module consumer {
 4. Inside consumer module you use `java.util.ServiceLoader` to load all available on the `module-path` providers and use any of them. Ideally service should have methods like `getName` to uniquely identify the concrete implementation, because you can have multiple providers at the same time, but need only the specific one.
 There are some rules to service provider:
 * service implementation should be public class and top level or nested static (it can't be nested instance)
-* service implementation should have either default no-arg constructor or `public static T provider` that return instance of the class
+* service implementation should have either default no-arg constructor or `public static T provider()` that return instance of the class
+  * So in the above example `ConsolePrinter` may not be a type of `Printer` (ideally it should be) - but it can be completely unrelated type with method `provider()` that returns type `Printer`. By the way this is the first default option, it first look for static `provider` method and only if not found then try to create instance using no-arg constructor.
 
 `Jlink` - you can create custom jre environment, and run your app, where there is no java
 You can run your jar with 2 options `-jar` or `-cp`. If your jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
