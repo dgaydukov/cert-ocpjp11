@@ -1258,6 +1258,19 @@ These 2 functions are used to compare 2 arrays and found their common prefix:
   * 0 - if arrays identical
   * mismatch at `i` - result of comparing elements of this index
   * if one is subarray - the difference of length
+  * return different results for chars/strings and integers (-1/0/1 only)
+return results
+```java
+System.out.println("Integer.compare(1,9) => " + Integer.compare(1, 9));
+System.out.println("Character.compare(a,f) => " + Character.compare('a', 'f'));
+System.out.println("CharSequence.compare(a,f) => " + CharSequence.compare("a", "f"));
+```
+```
+Integer.compare(1,9) => -1
+Character.compare(a,f) => -5
+CharSequence.compare(a,f) => -5
+```
+Compare this:
 ```java
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -13564,6 +13577,7 @@ class App{
 }
 ```
 
+Write primitive java types (int, long, string):
 `DataOutputStream` - is used for writing data to file. It works the same as `PrintStream/Writer`, except functions are names `write-` and all throws `IOException`.
 `DataInputStream` - is used for reading data from file. It has the same methods like `DataOutputStream` with `read-`.
 Method `size()` can be used to determine current pointer.
