@@ -125,6 +125,7 @@ Only `byte/short/char/int/String` (and their wrappers `Byte/Short//Character/Int
 `long` can't be used in:
 * array index - because it's too much for continuous array, and max array size in java is `Integer.MAX_VALUE`
 * label in case statement - again problem is that long is too long, even int is too high value, but it's used because int is default value in java
+* case label - should always be compile-time constant, so either use literal or variable should be `final` - this is because `switch` optimized during compilation time using Jump Table, and it requires compile-time constant
 
 Variable declared inside `case` are visible throughout switch only if they are in order. As you see `a` is declared before it's used in second case, so it's valid, but `b` is used before it would be declared in second case, so it's invalid.
 ```java
@@ -168,6 +169,7 @@ record B() implements I{}
 * `default` can be anywhere even as first label - it's a good practice to put it the last
   * different for pattern-matching switch, which not jumping to exact value, but using pattern-evaluation of each clause one-by-one, that's why in pattern-matching switch `default` should be the last statement - compiler protects you by manage ordering and if you put `default` on top or any super-class before children you get compilation error: `this case label is dominated by a preceding case label`
   * `null` - is not part of `default` but is a separate label, this is done for backward compatability. Yet we can omit `null` label - no compilation error.
+  * can't be paired with other values, only for pattern matching can be paired with null
 * fall through - if there is no `break` statement once you reach your case you will fall through until the end. In below code:
     * if `i==1` then `case 1` would be entered and 1,2,3 would be printed
     * if `i==3` then `case 3` would be entered and only 3 would be printed
