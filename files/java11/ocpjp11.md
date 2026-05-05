@@ -2639,7 +2639,9 @@ class B implements A {
 ```
 
 when a class implements 2 interfaces with the same:
-* variable (static) - code won't compile: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
+* variable (static) - code compile, but if we try to access this variable - we get compilation error: `reference to size is ambiguous; both variable size in com.java.test.A and variable size in com.java.test.B match`
+  * same true with class and interface
+  * same true if class implement interface or second interface extends first
 * default method - code won't compile: `types com.java.test.A and com.java.test.B are incompatible; class com.java.test.C inherits unrelated defaults for print() from types com.java.test.A and com.java.test.B`
   * unless one interface extends another and overrides the method - in this case we effectively have only 1 version of such method
 ```java
@@ -2696,6 +2698,7 @@ If class implements 2 interfaces:
 * another has default, but extends the first
 * no compilation error and ambiguity
 * implementing `X` is redundant because it's already included into `Y`
+* Yet for other way around if interface A extends B but redeclare `default` method as `abstract` - out class would have to redeclare such method
 ```java
 interface X {
     String name();
@@ -2988,7 +2991,7 @@ interface inheritance:
 * interface can extend one or more interfaces
 * interface only inherits abstract and default methods, and fields, but not static methods
 * interface doesn't inherit static methods - there is no way you can call static methods of parent interface - this is different from classes. But with classes you can inherit only 1 class, but with interface you can extend multiple interfaces, and in this case if 2 interfaces has same static method, which one would you inherit. The problem with default method is simpler, because default methods stored inside instance, but static methods are global. So inherit and storing static methods on the interface would be problematic.
-* interface inherits fields (they only static final) and you can access them from both the interface and it's instance - but if you have 2 variables with the same name, just like with classes such code would compile, but if you try to access such variable you get compilation error
+* interface inherits fields (which are always `static final`) and you can access them from both the interface and it's instance - but if you have 2 variables with the same name, just like with classes such code would compile, but if you try to access such variable you get compilation error
 * if interface extends 2 interfaces with same default method or one default and one abstract - same rules as for class are applied. You have to remove ambiguity by redeclare such method either as abstract or default. Here different from concrete class, if you have 2 interfaces with same default - you can redeclare it as abstract.
 ```java
 public class App {
@@ -13963,6 +13966,17 @@ Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Inte
 ###### JPMS
 JPMS (Java Platform Module System) - new module system from java9 designed to improve encapsulation and class access.
 Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
+There are 3 phases of module:
+* `compile → link → run`
+* Link time = module resolution phase:
+  * resolves all modules and dependencies
+  * checks that the module graph is valid (no cycles, no missing modules)
+  * enforces exports / requires rules 
+  * can optionally create a custom runtime image
+* No link time for non-modular jar, only `compile → run`
+  * dependencies resolved at runtime
+  * errors appear late
+
 There are 3 types of modules:
 * named module (NM) - one with `module-info.java` file loaded from `--module-path`
 * automatic module (AM) - simple jar loaded from `--module-path`, name of the module is the name of the jar itself, hyphens converted into dots and version is removed so `mysql-java-connector-1.2.3.jar` => `mysql.java.connector`. You can also set it explicitly by adding to `MANIFEST.MF` => `Automatic-Module-Name: <module name>`. All packages are both exported/opened of, and it can read all exported packages of all modules loaded with `--module-path`.
