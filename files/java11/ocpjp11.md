@@ -81,7 +81,7 @@
 * 10.10 [BasicFileAttributes](#basicfileattributes)
 * 10.11 [DirectByteBuffer vs HeapByteBuffer](#directbytebuffer-vs-heapbytebuffer)
 11. [Miscellaneous](#miscellaneous)
-* 11.1 [Modules](#modules)
+* 11.1 [JPMS](#jpms)
 * 11.2 [Random numbers](#random-numbers)
 * 11.3 [I18N](#i18n)
 * 11.4 [Assertions](#assertions)
@@ -5979,7 +5979,7 @@ For one method to correctly override another they should have the same signature
 Covariant return:
 * `B` <-- `A`
 * `ArrayList<String>` <-- `List<String>`
-* `List<B>` <-- `List<? extends B>` <-- `List<? extends A>`
+* `List<? extends A>` <-- `List<? extends B>` or `List<B>` or `List<A>` or `List`
   * `List<A>` is subtype of `<List<? extends A>`
   * but `List<B>` or `List<? extends B>` not a subtype of `List<A>`
 * `List<? super Object>` <-- `List<Object>`  <-- `List<? super A>` <-- `List<A>`<-- `List<? super B>`
@@ -6512,32 +6512,38 @@ public class App{
 ```
 
 Collection sublists - you need to distinguish the following collection creation methods for exam which return what and where you can modify:
-* `List<Integer> list = List.of(1,2,3);` - create unmodifiable `List`, you can't `add/set/remove`
+* `List<Integer> list = List.of(1,2,3);` - create unmodifiable list from either array or multiple values, you can't `add/set/remove`
+  * comparing to `Arrays.asList` this creates completely unrelated list and changes in original array are not reflected here
 * `List<Integer> list = new ArrayList<>(List.of(1,2,3));` - create complete new copy of list, you can `add/set/remove`
 * `List<Integer> list2 = List.copyOf(list);` - create unmodifiable unrelated copy of `list` (frozen snapshot), you still can't `add/set/remove`, but changes in `list` not reflected here
 * `List<Integer> list2 = Collections.unmodifiableList(list);` - create unmodifiable view of original list (doesn't copy the data, but wrap original list in security guard), you still can't `add/set/remove`, but changes in `list` are visible here
 * `List<Integer> list2 = list.subList(0, list.size()-1);` - create modifiable view of original list, changes here and in original list reflected to each other. It's comparable to previous, the only difference is this view is open for modifications.
-* `List<Integer> list = Arrays.asList(arr);` - tricky one, create fixed size unmodifiable with exception to `set` view of original array, yet changes like `set` made in array and here reflected both ways
+* `List<Integer> list = Arrays.asList(arr);` - tricky one, create fixed size unmodifiable view of original array with exception to `set`(you can call it on the list). changes in original array and on the list with `set` method  reflected both ways
+array to list
 ```java
 import java.util.Arrays;
 import java.util.List;
 
 public class Test {
-    public static void main(String[] args) {
-        var arr = new Integer[]{1,2,3};
-        List<Integer> list = Arrays.asList(arr);
-        list.set(0, 8);
-        arr[1] = 8;
-        System.out.println(list);
-        System.out.println(Arrays.toString(arr));
+    public static void main(String args[]) {
+        Integer[] arr = {1,2,3};
+        List<Integer> l1 = Arrays.asList(arr);
+        List<Integer> l2 = List.of(arr);
+        arr[0] = 9;
+        l1.set(1, 9);
+        System.out.println("Arrays.asList => "+ l1);
+        System.out.println("List.of => "+ l2);
+        System.out.println("arr => "+ Arrays.toString(arr));
     }
 }
 ```
 ```
-[8, 8, 3]
-[8, 8, 3]
+Arrays.asList => [9, 9, 3]
+List.of => [1, 2, 3]
+arr => [9, 9, 3]
 ```
 * `Map keySet/values` - create view that you can't add, but can remove, and it reflected on the original map
+* Yet if original map is not modified like `Map.of` or `Collections.unmodifiableMap` removing from keys/values will throw `UnsupportedOperationException`
 ```java
 import java.util.Collection;
 import java.util.HashMap;
@@ -12771,14 +12777,9 @@ src/main/java/test.txt
 
 ###### Path resolve and relativize
 There are a few methods relating to `Path`:
-* `resolve` - try bo combine 2 paths into one. If second path absolute - return it. Math addition of 2 path.
+* `resolve` - try bo combine 2 paths into one. If param is path absolute - return it, otherwise addition of 2 path.
+* `resolveSibling` - resolve with 1 level up: `p1.resolveSibling(p2) == p1.getParent().resolve(p2)`
 * `relativize` - try to get relative path of other against current. If any path is absolute but another not - `IllegalArgumentException: 'other' is different type of Path`. Math subtraction.
-```
-p.relativize(p.resolve(q)).equeas(q) == true
-p.resolve(q) = P + Q
-p.relativize(q) = Q - P
-p.relativize(p.resolve(q)) = (P + Q) - P = Q
-```
 * `Paths.get` internally use `Path.of` - static function.
 ```java
 import java.nio.file.Path;
@@ -12854,6 +12855,12 @@ root => \
 ```
 
 `relativize` - is inverse of `resolve`:
+```
+p.relativize(p.resolve(q)).equeas(q) == true
+p.resolve(q) = P + Q
+p.relativize(q) = Q - P
+p.relativize(p.resolve(q)) = (P + Q) - P = Q
+```
 * `path1.relativize(path2)` - means what should we add to `path1` to get `path2`
 * treat both file/directory as directory, so if `path1=/home/user/file.txt` and `path2=/home/user/newfile.txt` then result would be `../newfile.txt`. Although you may think that original path is `/home/user` because `file.txt` is not folder it's file, but you should treat it as path, no matter is it folder or file.
 ```java
@@ -13953,7 +13960,8 @@ Exception in thread "main" java.lang.IllegalArgumentException: Size exceeds Inte
 ```
 
 #### Miscellaneous
-###### Modules
+###### JPMS
+JPMS (Java Platform Module System) - new module system from java9 designed to improve encapsulation and class access.
 Module is the same jar file, but with more control. For example in simple jar file you can use any public classes inside packages, but with module you can limit number of packages publicly available.
 There are 3 types of modules:
 * named module (NM) - one with `module-info.java` file loaded from `--module-path`
@@ -14095,6 +14103,13 @@ There are some rules to service provider:
 * service implementation should be public class and top level or nested static (it can't be nested instance)
 * service implementation should have either default no-arg constructor or `public static T provider()` that return instance of the class
   * So in the above example `ConsolePrinter` may not be a type of `Printer` (ideally it should be) - but it can be completely unrelated type with method `provider()` that returns type `Printer`. By the way this is the first default option, it first look for static `provider` method and only if not found then try to create instance using no-arg constructor.
+
+Split package:
+* when classes have the same package name from different modules or jars
+* protected by module system - such code won't compile - so module system blocks the split package
+* would compile with older jars and 2 cases possible:
+  * if same classloader is used - you can access such classes from your jar (this is the hack how to access package private classes from another jar)
+  * sometimes 2 jars maybe loaded into 2 different classloaders (some env like servlet) - in this case package private classes are accessible in your code but won't be available by your classloader
 
 `Jlink` - you can create custom jre environment, and run your app, where there is no java
 You can run your jar with 2 options `-jar` or `-cp`. If your jar is self-contained (all your dependency inside Manifest.mf in `Class-Path`) you can just use `-jar` option with jar name. If not and you have to pass all dependencies as `-cp` values and use main class after.
