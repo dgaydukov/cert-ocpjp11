@@ -7953,9 +7953,11 @@ len: 5
 ```
 
 ###### Method reference
-Lambda double colon `::` - called method reference:
+Lambda double colon `::` called method reference:
 * If you have static method you can call it only from class => `MyClass::staticMethod`
-* if you have instance method you can call it from instance variable => `my::instanceMethod`, but also from static context, but in this case you should pass the instance as first argument
+* if you have instance method you can call it from both:
+  * instance variable: `my::instanceMethod`
+  * static context: but in this case you should pass the instance as first argument
 * In below example you have instance method `isSpouse` so to call it properly you have to pass 2 instances. If you already have instance, you can call it `p1::isSpouse` in this case you have to pass only 1 argument, because first argument is already there. But if you call `Person::isSpouse` this assumes you have to pass 2 instances, were the first would be the instance and the second would be the argument. That's why the code is not compiled for single `Predicate` but works fine with `BiPredicate`
 * static call on instance method - first param should be the instance itself, then it works.
 ```java
@@ -8013,25 +8015,33 @@ class My{
     }
 }
 ```
-Method reference works a little bit different from lambda. It creates reference of the current object (if we change object, method would be called for old value). Lambda - just wrap(delay) object invocation (so if we change object, method would be called on new object). Notice that since `str` is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda)
+Don't confuse:
+* method reference - captures object immediately (creates reference of the current object, if we change object, method would be called for original value)
+* lambda - just wrap/delay object invocation (so if we change object, method would be called on new value)
+Notice that since `str` is static variable we can change it freely (only local variables must be final or effectively final in order to participate in lambda). Also you can code `eager capture` for lambda, but code would be a bit messy, cause you would need to create local variable and use it inside lambda.
 ```java
 import java.util.function.Supplier;
 
-public class App {
+public class Test {
     private static String str;
     public static void main(String[] args) {
         str = "hello";
         Supplier<String> s1 = str::toUpperCase;
         Supplier<String> s2 = ()->str.toUpperCase();
+        final String snapshot = str;
+        Supplier<String> s3 = ()->snapshot.toUpperCase();
+        // change variable
         str = "world";
         System.out.println(s1.get());
         System.out.println(s2.get());
+        System.out.println(s3.get());
     }
 }
 ```
 ```
 HELLO
 WORLD
+HELLO
 ```
 Here is nice example where method reference useful to write neat code. `ValidatorFactory.getValidator` - return single validator, but in reality it returns all validators with `validate` method, that run it on all validators
 ```java
@@ -8094,15 +8104,15 @@ class TooSmallValidator implements Validator{
 ```
 
 ###### Comparator and Comparable
-Remember Java sort order: natural sorting => `empty > space > negativeNumber > number > uppercase > lowercase`
+Remember Java sort order: natural sorting => `empty > space > negativeNumber > number > uppercase > underscore > lowercase`
 ```java
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class App{
+public class Test {
     public static void main(String[] args) {
-        List<String> list = new ArrayList<>(List.of("", " ", "1", "A", "a"));
+        List<String> list = new ArrayList<>(List.of("", " ", "1", "A", "_", "a"));
         Collections.shuffle(list);
         System.out.println("shuffled => " + list);
         Collections.sort(list);
@@ -8111,8 +8121,8 @@ public class App{
 }
 ```
 ```
-shuffled => [a, A,  , , 1]
-sorted => [,  , 1, A, a]
+shuffled => [1, , a, _, A,  ]
+sorted => [,  , 1, A, _, a]
 ```
 Don't confuse:
 * `Comparable` - just interface with one method `int compareTo(T var1)`. Although technically it's a functional interface, logically it's not, because it describes inherent behavior of implementing class.
