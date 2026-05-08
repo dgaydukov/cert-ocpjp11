@@ -5,12 +5,12 @@
   * [Description](#description)
   * [Preparation](#preparation)
   * [Exam](#exam)
-  * [Results](#results)
+  * [Results And Score](#results-and-score)
 * [Java 21](#java-21)  
   * [Description](#description-1)
   * [Preparation](#preparation-1)
   * [Exam](#exam-1)
-  * [Results](#results-1)
+  * [Results And Score](#results-and-score)
 
 ### Java 11
 ##### Description
@@ -36,7 +36,7 @@ According to [exam prep guide](https://enthuware.com/resources/java-certificatio
 * 1Z0-815 = 79% (passing 63%)
 * 1Z0-816 = 88% (passing 63%)
 * [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
-* [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
+* [Oracle Certified Professional: Java SE 11 Developer](/files/java11/cert.pdf)
 
 ### Java 21
 ##### Description
@@ -55,4 +55,4 @@ I've used the same website for preps, that I've used during java 11 cert prepara
 ##### Results And Score
 * 1Z0-830 = 74% (passing 68%)
 * [Digital badge](https://catalog-education.oracle.com/ords/certview/sharebadge?id=833FE9BD90B7A8219F02CE84F22FF130BABD6617375D489D878188525D1D32E3)
-* [Oracle Certified Professional: Java SE 21 Developer](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
+* [Oracle Certified Professional: Java SE 21 Developer](/files/java21/cert.pdf)
