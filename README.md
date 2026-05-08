@@ -52,5 +52,7 @@ I've used the same website for preps, that I've used during java 11 cert prepara
 ##### Exam
 * [Java SE 21 Developer Professional (1Z0-830)](https://mylearn.oracle.com/ou/exam/java-se-21-developer-professional-1z0-830/105037/139080/220555)
 
-##### Results
-* To be filled...
+##### Results And Score
+* 1Z0-830 = 74% (passing 68%)
+* [Digital badge](https://catalog-education.oracle.com/ords/certview/sharebadge?id=833FE9BD90B7A8219F02CE84F22FF130BABD6617375D489D878188525D1D32E3)
+* [Oracle Certified Professional: Java SE 21 Developer](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
