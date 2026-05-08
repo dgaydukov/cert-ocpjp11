@@ -35,7 +35,8 @@ According to [exam prep guide](https://enthuware.com/resources/java-certificatio
 ##### Results And Score
 * My score for `1Z0-815` is `79%` (passing rate 63%)
 * My score for `1Z0-816` is `88%` (passing rate 63%)
-* [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
+* [Digital badge](https://catalog-education.oracle.com/ords/certview/sharebadge?id=724F65EC1F8CAFADB9E01FC273765445F56121C76F857B46D7C1E24806F8045B)
+* [Digital badge in credly platform](https://www.credly.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d) - newer version of java21 is not supported by this website, so only my old certifications there
 * [Oracle Certified Professional: Java SE 11 Developer](/files/java11/cert.pdf)
 
 ### Java 21
