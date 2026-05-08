@@ -32,8 +32,9 @@ According to [exam prep guide](https://enthuware.com/resources/java-certificatio
 * [Java SE 11 Programmer II | 1Z0-816](https://education.oracle.com/java-se-11-programmer-ii/pexam_1Z0-816) - link not available on website, cause exam was retired in October 2020
 
 
-##### Results
-By passing certification you will get 3 things
+##### Results And Score
+* 1Z0-815 = 79% (passing 63%)
+* 1Z0-816 = 88% (passing 63%)
 * [Digital badge](https://www.youracclaim.com/badges/e012ec2d-fb28-4694-97b8-cf5b2f8eac7d)
 * [Oracle Java SE 11 Professional eCertificate](https://github.com/dgaydukov/cert-ocpjp11/blob/master/files/cert.pdf)
 
