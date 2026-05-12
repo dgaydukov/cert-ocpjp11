@@ -299,7 +299,19 @@ Compare to standard threads, you can create millions of virtual threads. `Thread
 Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these new collections. Now with this collections you get access to first/last element, by adding/removing either first/last element. And traversal order is guaranteed.
 
 4. Into ZGC (from java 15) - generation support added, now you can use flag and run `java -XX:+UseZGC -XX:+ZGenerational ...`
-5. `Vector API` - new API under `jdk.incubator.vector` for quick calculation on vectors if CPU supports it. Some CPU natively supports such compilation, so we can use it for fast compilation. You can achieve same results with scalars. For example if you want to add 2 int arrays and store resulsts in third array, you can do normal loop and create new array. So if CPU supports `SIMD`, then addition of 2 arrays may happen during one CPU cycle.
+5. `Vector API` - new API under `jdk.incubator.vector` for quick calculation on vectors if CPU supports it. Some CPU natively supports such compilation, so we can use it for fast compilation. You can achieve same results with scalars. For example if you want to add 2 int arrays and store results in third array, you can do normal loop and create new array. So if CPU supports `SIMD`, then addition of 2 arrays may happen during one CPU cycle.
 
 ###### Java 25
-Java 25 is LTS version that was released in September 2025, and would be supported until September 2033
+Java 25 is LTS version that was released in September 2025, and would be supported until September 2033. It's a refinement release, without major groundbreaking changes like `Records (Java 16)` or `Virtual Threads (Java 21)`. The goal was to finalize the "big" ideas from Java 21, making them safer and easier to use in day-to-day production code.
+
+Top changes:
+1. Flexible Constructor Bodies (JEP 513) - can write code before calling `super/this` in a constructor, to add validation logic or any other piece of code
+2. Compact Source Files & Instance Main Methods (JEP 512) - now you can write `void main()` inside file and it would work
+3. Module Import Declarations (JEP 511) - now you can import modules too `import module java.base;`
+4. Primitive Types in Patterns (JEP 507) - now you can use primitive types inside `instanceof/switch` for pattern matching (before only java classes were allowed)
+5. Compact Object Headers (JEP 519) - reduce headers size on 64-bit system, gain 20% of heap memory usage
+6. AOT Method Profiling (JEP 515) - faster warm-up
+7. Generational Shenandoah (JEP 521) - this GC now support generations
+8. Scoped Values (JEP 506) - modern, lightweight, and safer alternative to `ThreadLocal`
+9. Key Derivation Function (KDF) API (JEP 510) - new standard API for cryptographic algorithms
+10. Stream Gatherers (JEP 485) - Stream API allows custom intermediate operations
