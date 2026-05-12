@@ -303,13 +303,31 @@ Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these 
 
 ###### Java 25
 Java 25 is LTS version that was released in September 2025, and would be supported until September 2033:
-1. Flexible Constructor Bodies (JEP 513) - can write code before calling `super/this` in a constructor, to add validation logic or any other piece of code
-2. Compact Source Files & Instance Main Methods (JEP 512) - now you can write `void main()` inside file and it would work
-3. Module Import Declarations (JEP 511) - now you can import modules too `import module java.base;`
-4. Primitive Types in Patterns (JEP 507) - now you can use primitive types inside `instanceof/switch` for pattern matching (before only java classes were allowed)
-5. Compact Object Headers (JEP 519) - reduce headers size on 64-bit system, gain 20% of heap memory usage
-6. AOT Method Profiling (JEP 515) - faster warm-up
-7. Generational Shenandoah (JEP 521) - this GC now support generations
-8. Scoped Values (JEP 506) - modern, lightweight, and safer alternative to `ThreadLocal`
-9. Key Derivation Function (KDF) API (JEP 510) - new standard API for cryptographic algorithms
-10. Stream Gatherers (JEP 485) - Stream API allows custom intermediate operations
+1. Unnamed Variables & Patterns - You can now use a single underscore _ for variables you don't intend to use (java22)
+2. Markdown in Javadoc: Developers can now write Javadoc comments using Markdown syntax (using ///) instead of clunky HTML tags (java23)
+3. ZGC Generational Mode by Default (java23)
+4. Flexible Constructor Bodies (JEP 513) - can write code before calling `super/this` in a constructor, to add validation logic or any other piece of code
+5. Compact Source Files & Instance Main Methods (JEP 512) - now you can write `void main()` inside file and it would work
+6. Module Import Declarations (JEP 511) - now you can import modules too `import module java.base;`
+    * you don't need to add any imports, they automatically loaded using this feature
+7. Primitive Types in Patterns (JEP 507) - now you can use primitive types inside `instanceof/switch` for pattern matching (before only java classes were allowed)
+   * Not permanent feature: `use --enable-preview to enable primitive patterns`
+8. Compact Object Headers (JEP 519) - reduce headers size on 64-bit system, gain 20% of heap memory usage
+9. AOT Method Profiling (JEP 515) - faster warm-up
+10. Generational Shenandoah (JEP 521) - this GC now support generations
+11. Scoped Values (JEP 506) - modern, lightweight, and safer alternative to `ThreadLocal`
+    * Not permanent feature: `use --enable-preview to enable primitive patterns`
+12. Key Derivation Function (KDF) API (JEP 510) - new standard API for cryptographic algorithms
+13. Stream Gatherers (JEP 485) - Stream API added new function `gather()`, which allows custom intermediate operations
+```java
+void main(){
+    List<String> words = List.of("apple", "banana", "cherry", "date", "elderberry");
+    List<List<String>> batches = words.stream()
+            .gather(Gatherers.windowFixed(2))
+            .toList();
+    System.out.println(batches);
+}
+```
+```
+[[apple, banana], [cherry, date], [elderberry]]
+```
