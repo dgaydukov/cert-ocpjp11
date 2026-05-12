@@ -302,9 +302,7 @@ Before for set you have to use `LinkedHashSet/SortedSet`, now you can use these 
 5. `Vector API` - new API under `jdk.incubator.vector` for quick calculation on vectors if CPU supports it. Some CPU natively supports such compilation, so we can use it for fast compilation. You can achieve same results with scalars. For example if you want to add 2 int arrays and store results in third array, you can do normal loop and create new array. So if CPU supports `SIMD`, then addition of 2 arrays may happen during one CPU cycle.
 
 ###### Java 25
-Java 25 is LTS version that was released in September 2025, and would be supported until September 2033. It's a refinement release, without major groundbreaking changes like `Records (Java 16)` or `Virtual Threads (Java 21)`. The goal was to finalize the "big" ideas from Java 21, making them safer and easier to use in day-to-day production code.
-
-Top changes:
+Java 25 is LTS version that was released in September 2025, and would be supported until September 2033:
 1. Flexible Constructor Bodies (JEP 513) - can write code before calling `super/this` in a constructor, to add validation logic or any other piece of code
 2. Compact Source Files & Instance Main Methods (JEP 512) - now you can write `void main()` inside file and it would work
 3. Module Import Declarations (JEP 511) - now you can import modules too `import module java.base;`

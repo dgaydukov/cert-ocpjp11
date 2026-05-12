@@ -57,3 +57,6 @@ I've used the same website for preps, that I've used during java 11 cert prepara
 * My score for `1Z0-830` is `74%` (passing rate 68%)
 * [Digital badge](https://catalog-education.oracle.com/ords/certview/sharebadge?id=833FE9BD90B7A8219F02CE84F22FF130BABD6617375D489D878188525D1D32E3)
 * [Oracle Certified Professional: Java SE 21 Developer](/files/java21/cert.pdf)
+
+### Java 25
+It's a refinement release, without major groundbreaking changes like `Records (Java 16)` or `Virtual Threads (Java 21)`. The goal was to finalize the "big" ideas from Java 21, making them safer and easier to use in day-to-day production code. Because of this, I don't see the point to take this exam since I've taken 21, cause not much added in terms of language changes. I should wait till java29 (September 2027) or even java33 (September 2029)
