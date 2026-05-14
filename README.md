@@ -60,3 +60,6 @@ I've used the same website for preps, that I've used during java 11 cert prepara
 
 ### Java 25
 It's a refinement release, without major groundbreaking changes like `Records (Java 16)` or `Virtual Threads (Java 21)`. The goal was to finalize the "big" ideas from Java 21, making them safer and easier to use in day-to-day production code. Because of this, I don't see the point to take this exam since I've taken 21, cause not much added in terms of language changes. I should wait till java29 (September 2027) or even java33 (September 2029)
+
+### Java 29
+This is new LTS expected to be released in September 2027, and approximately 6 months after in Summer 2028 certification will be available. So I would plan to take it in Summer 2028
